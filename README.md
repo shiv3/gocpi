@@ -1,14 +1,14 @@
 # gocpi
 
 A generics-first **OCPI** (Open Charge Point Interface) implementation in Go for
-**OCPI 2.2.1** — the HTTP/JSON REST protocol for e-mobility roaming between CPOs,
-eMSPs and Hubs.
+**OCPI 2.2.1 and 2.3.0** — the HTTP/JSON REST protocol for e-mobility roaming
+between CPOs, eMSPs and Hubs.
 
-> Status: WIP, pre-v1. Implemented: the `core` transport, generated types for all
-> 10 modules, generated typed clients + server handler interfaces for the
-> functional modules, role presets, and the Versions/Credentials handshake.
-> Runtime JSON-Schema validation and observability adapters are still to come.
-> The public API will change before v1.0.
+> Status: WIP, pre-v1. Implemented: the `core` transport (envelope, status codes,
+> pagination, token auth, routing, retries, metrics), generated types + typed
+> clients + server handler interfaces for every module of both versions, role
+> presets, the Versions/Credentials handshake, and two-layer validation
+> (struct-tag + JSON-Schema). The public API may change before v1.0.
 
 gocpi is the OCPI sibling of [gocpp](https://github.com/shiv3/gocpp) (OCPP) and
 shares its philosophy: generics-first ergonomics, version-prefixed packages,
@@ -20,16 +20,20 @@ codegen from the official spec, pluggable observability, and heavy testing.
   you typed HTTP clients to call peers and `http.Handler` server endpoints to
   host your own — for every role (CPO, eMSP, Hub, ...).
 - **Generated from the official OpenAPI.** Types, clients and server handler
-  interfaces for all 10 modules (Locations, Sessions, CDRs, Tariffs, Tokens,
-  Commands, ChargingProfiles, Credentials, Versions, HubClientInfo) are generated
-  from the [official OCPI OpenAPI specification](https://github.com/ocpi/openapi-specification)
+  interfaces for every module of OCPI 2.2.1 (`v221`) and 2.3.0 (`v230`,
+  incl. bookings & payments) are generated from the
+  [official OCPI OpenAPI specification](https://github.com/ocpi/openapi-specification)
   — no hand-written, drift-prone structs.
 - **OCPI semantics built in.** The standard response envelope, OCPI status codes,
   pagination (`Link` / `X-Total-Count` / `X-Limit` + iterators), Base64 token
-  auth, the Versions+Credentials handshake, and hub message-routing headers.
+  auth, the Versions+Credentials handshake, hub message-routing headers, and
+  transient-failure retries.
+- **Two-layer validation.** Generated `validate` struct tags (`core.Validate`)
+  plus an embedded JSON-Schema validator (`v221.ValidateJSON`).
 - **Framework-agnostic.** The server is a plain `http.Handler` — mount it under
   any prefix in net/http, chi, echo, etc.
-- **Pluggable** logging (`slog`) and metrics (Prometheus / OpenTelemetry).
+- **Pluggable observability.** `slog` logging and a `Metrics` interface with
+  Prometheus and OpenTelemetry adapters.
 
 ## Install
 
@@ -58,19 +62,17 @@ v221.RegisterCPO(cpo.Mux(), "https://cpo.example/ocpi/2.2.1", v221.CPOHandlers{
 http.ListenAndServe(":8080", cpo.Handler())
 ```
 
-The handler does relative routing, so mount it under any prefix:
+Mount under any prefix (the handler does relative routing):
 
 ```go
-// chi
-r.Handle("/ocpi/*", http.StripPrefix("/ocpi", cpo.Handler()))
-// echo
-e.Any("/ocpi/*", echo.WrapHandler(http.StripPrefix("/ocpi", cpo.Handler())))
+r.Handle("/ocpi/*", http.StripPrefix("/ocpi", cpo.Handler()))                       // chi
+e.Any("/ocpi/*", echo.WrapHandler(http.StripPrefix("/ocpi", cpo.Handler())))        // echo
 ```
 
 ### eMSP client
 
 ```go
-emsp := core.NewClient(core.WithToken(tokenA)) // CREDENTIALS_TOKEN_A, out of band
+emsp := core.NewClient(core.WithToken(tokenA), core.WithRetry(3))
 
 // Register: discover versions, exchange credentials.
 peer, err := handshake.Register(ctx, emsp, handshake.RegisterRequest{
@@ -84,28 +86,51 @@ locURL, _ := peer.Endpoint(v221.ModuleIDLocations)
 page, err := v221.NewLocationsSenderClient(emsp, locURL).GetLocations(ctx, core.PageOpts{})
 ```
 
-A complete, runnable version of the above is in
-[`examples/dual-role`](examples/dual-role).
+A complete, runnable version is in [`examples/dual-role`](examples/dual-role).
+
+## Validation
+
+```go
+core.Validate(loc)                          // struct-tag layer (go-playground/validator)
+err := v221.ValidateJSON("Location", raw)   // wire layer (JSON-Schema, embedded)
+```
+
+## Observability
+
+```go
+cpo := core.NewServer(core.WithMetrics(prom.New(prometheus.DefaultRegisterer)))
+emsp := core.NewClient(core.WithClientMetrics(otelm))
+```
 
 ## Packages
 
-| Import | Status | Purpose |
+| Import | Purpose |
+|---|---|
+| `core` | Response envelope, pagination, token auth, routing, request IDs, retries, base client/server/mux |
+| `core/status` | OCPI status codes (1xxx–4xxx) + typed `Error` |
+| `core/transport` | `Doer` HTTP abstraction + in-memory fake for tests |
+| `core/schema` | JSON-Schema `Validator` |
+| `core/observability` (+ `metrics/{prom,otel}`) | `Metrics` interface + Prometheus/OpenTelemetry adapters |
+| `v221` / `v230` | Generated types, typed clients + server handlers, `RegisterCPO/MSP/Hub`, embedded JSON-Schema validator |
+| `handshake` | Versions + Credentials registration |
+
+## Versions
+
+| Package | OCPI version | Modules |
 |---|---|---|
-| `core` | implemented | Response envelope, pagination, token auth, routing, request IDs, base client/server/mux |
-| `core/status` | implemented | OCPI status codes (1xxx–4xxx) + typed `Error` |
-| `core/transport` | implemented | `Doer` HTTP abstraction + in-memory fake for tests |
-| `core/observability` | implemented | Pluggable `Metrics` (NoOp default; Prometheus/OTel adapters planned) |
-| `v221` | implemented | Generated types (all 10 modules), typed clients + server handlers for functional modules, `RegisterCPO/MSP/Hub` role presets |
-| `handshake` | implemented | Versions + Credentials registration |
+| `v221` | 2.2.1 | locations, sessions, cdrs, tariffs, tokens, commands, chargingprofiles, hubclientinfo, credentials, versions |
+| `v230` | 2.3.0 | the above **+ bookings, payments** |
 
 ## Testing
 
 ```sh
 make test        # go test ./...
 make test-race   # go test -race ./...
-make generate    # regenerate v221 from the vendored OpenAPI
+make generate    # regenerate v221 + v230 from the vendored OpenAPI
 make lint        # golangci-lint
 ```
+
+See [docs/architecture.md](docs/architecture.md) for the design overview.
 
 ## License
 

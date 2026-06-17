@@ -3,9 +3,10 @@
 build:
 	go build ./...
 
-# Regenerate v221 types/clients/server handlers from the vendored OpenAPI spec.
+# Regenerate the version packages from the vendored OpenAPI specs.
 generate:
 	go run ./internal/codegen -version 2.2.1
+	go run ./internal/codegen -version 2.3.0
 
 test:
 	go test ./...
