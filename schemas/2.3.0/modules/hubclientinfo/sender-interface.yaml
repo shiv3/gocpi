@@ -1,0 +1,66 @@
+openapi: 3.1.0
+info:
+  title: OCPI 2.3.0 - HubClientInfo Module - Sender Interface
+  description: |
+    The Sender Interface is implemented by the Hub.
+    Allows connected parties to request ClientInfo objects from the Hub.
+  version: 2.3.0
+  contact:
+    name: EVRoaming Foundation
+    url: https://evroaming.org
+externalDocs:
+  description: OCPI 2.3.0 Specification
+  url: https://github.com/ocpi/ocpi/blob/master/mod_hub_client_info.asciidoc
+security:
+  - ocpiAuthorization: []
+components:
+  securitySchemes:
+    ocpiAuthorization:
+      $ref: "../../components/schema.yaml#/components/securitySchemes/ocpiAuthorization"
+
+paths:
+  /hubclientinfo:
+    get:
+      operationId: senderGetClientInfoList
+      summary: Get list of ClientInfo objects
+      tags: [ HubClientInfo ]
+      description: |
+        Fetch ClientInfo objects from the Hub. If date_from and/or date_to are provided,
+        only objects with last_updated between the given dates will be returned.
+        This request is paginated.
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/DateFromParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/DateToParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OffsetParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/LimitParameter"
+      responses:
+        "200":
+          description: Successful response containing a list of ClientInfo objects.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            X-Total-Count:
+              $ref: "../../components/schema.yaml#/components/headers/X-Total-Count"
+            X-Limit:
+              $ref: "../../components/schema.yaml#/components/headers/X-Limit"
+            Link:
+              $ref: "../../components/schema.yaml#/components/headers/Link"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "./schema.yaml#/components/schemas/ClientInfo"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIConfigurationErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIConfigurationUnauthorizedResponse"

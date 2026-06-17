@@ -1,0 +1,7 @@
+openapi: 3.1.0
+info:
+  title: OCPI 2.3.0 - CPO Interface
+  version: 2.3.0
+  license:
+    name: OCPI
+    url: https://evroaming.org/ocpi-license/

@@ -1,0 +1,177 @@
+openapi: 3.1.0
+components:
+  schemas:
+    # ---- Request/Response Objects ----
+
+    SetChargingProfile:
+      type: object
+      description: Object sent to a CPO to set a Charging Profile.
+      properties:
+        charging_profile:
+          $ref: "#/components/schemas/ChargingProfile"
+          description: Contains limits for the available power or current over time.
+        response_url:
+          type: string
+          format: uri
+          description: URL that the ChargingProfileResult POST should be sent to. This URL might contain a unique ID to be able to distinguish between GET ActiveChargingProfile requests.
+      required:
+        - charging_profile
+        - response_url
+
+    ChargingProfileResponse:
+      type: object
+      description: The ChargingProfileResponse object is send in the HTTP response body.
+      properties:
+        result:
+          $ref: "#/components/schemas/ChargingProfileResponseType"
+          description: Response from the CPO on the ChargingProfile request.
+        timeout:
+          type: integer
+          description: Timeout for this ChargingProfile request in seconds. When the Result is not received within this timeout, the eMSP can assume that the message might never be sent.
+      required:
+        - result
+        - timeout
+
+    ActiveChargingProfileResult:
+      type: object
+      description: |
+        The ActiveChargingProfileResult object is send by the CPO to the given response_url in a POST request.
+        It contains the result of the GET (ActiveChargingProfile) request send by the eMSP.
+      properties:
+        result:
+          $ref: "#/components/schemas/ChargingProfileResultType"
+          description: The EVSE will indicate if it was able to process the request for the ActiveChargingProfile
+        profile:
+          $ref: "#/components/schemas/ActiveChargingProfile"
+          description: "The requested ActiveChargingProfile, if the result field is set to: ACCEPTED"
+      required:
+        - result
+
+    ChargingProfileResult:
+      type: object
+      description: |
+        The ChargingProfileResult object is sent by the CPO to the given response_url in a POST request.
+        It contains the result of the PUT (SetChargingProfile) request sent by the eMSP.
+      properties:
+        result:
+          $ref: "#/components/schemas/ChargingProfileResultType"
+          description: The EVSE will indicate if it was able to process the new/updated charging profile.
+      required:
+        - result
+
+    ClearProfileResult:
+      type: object
+      description: |
+        The ClearProfileResult object is sent by the CPO to the given response_url in a POST request.
+        It contains the result of the DELETE (ClearProfile) request sent by the eMSP.
+      properties:
+        result:
+          $ref: "#/components/schemas/ChargingProfileResultType"
+          description: The EVSE will indicate if it was able to process the removal of the charging profile (ClearChargingProfile).
+      required:
+        - result
+
+    # ---- Data Classes ----
+
+    ActiveChargingProfile:
+      type: object
+      description: The ActiveChargingProfile is the charging profile as calculated by the EVSE.
+      properties:
+        start_date_time:
+          type: string
+          format: date-time
+          description: Date and time at which the Charge Point has calculated this ActiveChargingProfile. All time measurements within the profile are relative to this timestamp.
+        charging_profile:
+          $ref: "#/components/schemas/ChargingProfile"
+          description: Charging profile structure defines a list of charging periods.
+      required:
+        - start_date_time
+        - charging_profile
+
+    ChargingProfile:
+      type: object
+      description: Charging profile class defines a list of charging periods.
+      properties:
+        start_date_time:
+          type: string
+          format: date-time
+          description: Starting point of an absolute profile. If absent the profile will be relative to start of charging.
+        duration:
+          type: integer
+          description: Duration of the charging profile in seconds. If the duration is left empty, the last period will continue indefinitely or until end of the transaction in case start_date_time is absent.
+        charging_rate_unit:
+          $ref: "#/components/schemas/ChargingRateUnit"
+          description: The unit of measure.
+        min_charging_rate:
+          type: number
+          description: |
+            Minimum charging rate supported by the EV. The unit of measure is defined by the chargingRateUnit.
+            This parameter is intended to be used by a local smart charging algorithm to optimize the power
+            allocation for in the case a charging process is inefficient at lower charging rates.
+            Accepts at most one digit fraction (e.g. 8.1).
+        charging_profile_period:
+          type: array
+          description: List of ChargingProfilePeriod elements defining maximum power or current usage over time.
+          items:
+            $ref: "#/components/schemas/ChargingProfilePeriod"
+      required:
+        - charging_rate_unit
+
+    ChargingProfilePeriod:
+      type: object
+      description: "Charging profile period structure defines a time period in a charging profile, as used in: ChargingProfile"
+      properties:
+        start_period:
+          type: integer
+          description: Start of the period, in seconds from the start of profile. The value of StartPeriod also defines the stop time of the previous period.
+        limit:
+          type: number
+          description: |
+            Charging rate limit during the profile period, in the applicable chargingRateUnit,
+            for example in Amperes (A) or Watts (W). Accepts at most one digit fraction (e.g. 8.1).
+      required:
+        - start_period
+        - limit
+
+    # ---- Enums ----
+
+    ChargingRateUnit:
+      type: string
+      format: enum
+      description: Unit in which a charging profile is defined.
+      enum:
+        - W
+        - A
+      x-enumDescriptions:
+        W: Watts (power). This is the total allowed charging power. It is usually more convenient to use this for DC charging.
+        A: Amperes (current). The amount of Ampere per phase, not the sum of all phases. It is usually more convenient to use this for AC charging.
+
+    ChargingProfileResponseType:
+      type: string
+      format: enum
+      description: Response to the ChargingProfile request from the eMSP to the CPO.
+      enum:
+        - ACCEPTED
+        - NOT_SUPPORTED
+        - REJECTED
+        - TOO_OFTEN
+        - UNKNOWN_SESSION
+      x-enumDescriptions:
+        ACCEPTED: ChargingProfile request accepted by the CPO, request will be forwarded to the EVSE.
+        NOT_SUPPORTED: The ChargingProfiles not supported by this CPO, Charge Point, EVSE etc.
+        REJECTED: ChargingProfile request rejected by the CPO. (Session might not be from a customer of the eMSP that sent this request)
+        TOO_OFTEN: ChargingProfile request rejected by the CPO, requests are sent more often than allowed.
+        UNKNOWN_SESSION: The Session in the requested command is not known by this CPO.
+
+    ChargingProfileResultType:
+      type: string
+      format: enum
+      description: Result of a ChargingProfile request that the EVSE sends via the CPO to the eMSP.
+      enum:
+        - ACCEPTED
+        - REJECTED
+        - UNKNOWN
+      x-enumDescriptions:
+        ACCEPTED: ChargingProfile request accepted by the EVSE.
+        REJECTED: ChargingProfile request rejected by the EVSE.
+        UNKNOWN: No Charging Profile(s) were found by the EVSE matching the request.

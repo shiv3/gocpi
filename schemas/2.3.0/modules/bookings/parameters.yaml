@@ -1,0 +1,43 @@
+openapi: 3.1.0
+components:
+  parameters:
+    BookingLocationIdParameter:
+      in: path
+      name: booking_location_id
+      description: BookingLocation.id of the BookingLocation object.
+      required: true
+      schema:
+        type: string
+        maxLength: 36
+    CalendarIdParameter:
+      in: path
+      name: calendar_id
+      description: Calendar.id of the Calendar object.
+      required: true
+      schema:
+        type: string
+        maxLength: 36
+    BookingIdParameter:
+      in: path
+      name: booking_id
+      description: Booking.id of the Booking object to retrieve.
+      required: true
+      schema:
+        type: string
+        maxLength: 36
+    TimeslotFromParameter:
+      in: query
+      name: timeslot_from
+      description: Only return BookingLocations with timeslots starting after or equal to this DateTime (inclusive).
+      required: false
+      schema:
+        type: string
+        format: date-time
+    TimeslotToParameter:
+      in: query
+      name: timeslot_to
+      description: Only return BookingLocations with timeslots ending before this DateTime (exclusive).
+      required: false
+      schema:
+        type: string
+        format: date-time

@@ -1,0 +1,371 @@
+openapi: 3.1.0
+info:
+  title: OCPI 2.3.0 - Bookings Module - Receiver Interface
+  description: |
+    The Receiver Interface is implemented by the eMSP. It allows the CPO to push
+    BookingLocation, Calendar, and Booking data to the eMSP. Bookings are Client Owned Objects,
+    so the endpoints contain the required extra fields: country_code, party_id, and the
+    object identifier.
+  version: 2.3.0
+  contact:
+    name: EVRoaming Foundation
+    url: https://evroaming.org
+externalDocs:
+  description: OCPI 2.3.0 Specification
+  url: https://github.com/ocpi/ocpi/blob/master/mod_bookings.asciidoc
+security:
+  - ocpiAuthorization: []
+components:
+  securitySchemes:
+    ocpiAuthorization:
+      $ref: "../../components/schema.yaml#/components/securitySchemes/ocpiAuthorization"
+
+paths:
+  /bookings/{country_code}/{party_id}/booking_locations/{booking_location_id}:
+    get:
+      operationId: receiverGetBookingLocation
+      summary: Retrieve a BookingLocation
+      tags: [ Bookings ]
+      description: |
+        If the CPO wants to check the status of a BookingLocation object in the eMSP system,
+        it might GET the object from the eMSP for validation purposes.
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/BookingLocationIdParameter"
+      responses:
+        "200":
+          description: Successful response containing the requested BookingLocation object.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "./schema.yaml#/components/schemas/BookingLocation"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"
+
+    put:
+      operationId: receiverPutBookingLocation
+      summary: Push new or updated BookingLocation
+      tags: [ Bookings ]
+      description: |
+        New or updated BookingLocation objects are pushed from the CPO to the eMSP.
+        PUT can be used to send new objects or to replace existing ones.
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/BookingLocationIdParameter"
+      requestBody:
+        description: New or updated BookingLocation object.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/BookingLocation"
+      responses:
+        "200":
+          $ref: "../../components/schema.yaml#/components/responses/OCPISuccessResponse"
+        "201":
+          $ref: "../../components/schema.yaml#/components/responses/OCPICreatedResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+
+    patch:
+      operationId: receiverPatchBookingLocation
+      summary: Partial update of BookingLocation
+      tags: [ Bookings ]
+      description: |
+        Same as the PUT method, but only the fields/objects that have to be updated have to be
+        present. Any request to the PATCH method SHALL contain the last_updated field.
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/BookingLocationIdParameter"
+      requestBody:
+        description: Partial BookingLocation object with only the fields to update.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/BookingLocationPatch"
+      responses:
+        "200":
+          $ref: "../../components/schema.yaml#/components/responses/OCPISuccessResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"
+
+  /bookings/{country_code}/{party_id}/booking_locations/{booking_location_id}/{calendar_id}:
+    get:
+      operationId: receiverGetCalendar
+      summary: Retrieve a Calendar
+      tags: [ Bookings ]
+      description: Retrieve a Calendar as it is stored in the eMSP's system.
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/BookingLocationIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/CalendarIdParameter"
+      responses:
+        "200":
+          description: Successful response containing the requested Calendar object.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "./schema.yaml#/components/schemas/Calendar"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"
+
+    put:
+      operationId: receiverPutCalendar
+      summary: Push new or updated Calendar
+      tags: [ Bookings ]
+      description: New or updated Calendar objects are pushed from the CPO to the eMSP.
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/BookingLocationIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/CalendarIdParameter"
+      requestBody:
+        description: New or updated Calendar object.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/Calendar"
+      responses:
+        "200":
+          $ref: "../../components/schema.yaml#/components/responses/OCPISuccessResponse"
+        "201":
+          $ref: "../../components/schema.yaml#/components/responses/OCPICreatedResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+
+    patch:
+      operationId: receiverPatchCalendar
+      summary: Partial update of Calendar
+      tags: [ Bookings ]
+      description: |
+        Same as the PUT method, but only the fields/objects that have to be updated have to be
+        present. Any request to the PATCH method SHALL contain the last_updated field.
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/BookingLocationIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/CalendarIdParameter"
+      requestBody:
+        description: Partial Calendar object with only the fields to update.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/CalendarPatch"
+      responses:
+        "200":
+          $ref: "../../components/schema.yaml#/components/responses/OCPISuccessResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"
+
+  /bookings/{country_code}/{party_id}/{booking_id}:
+    get:
+      operationId: receiverGetBooking
+      summary: Retrieve a Booking
+      tags: [ Bookings ]
+      description: Retrieve a Booking as it is stored in the eMSP's system.
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/BookingIdParameter"
+      responses:
+        "200":
+          description: Successful response containing the requested Booking object.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "./schema.yaml#/components/schemas/Booking"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"
+
+    put:
+      operationId: receiverPutBooking
+      summary: Push new or updated Booking
+      tags: [ Bookings ]
+      description: New or updated Booking objects are pushed from the CPO to the eMSP.
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/BookingIdParameter"
+      requestBody:
+        description: New or updated Booking object.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/Booking"
+      responses:
+        "200":
+          $ref: "../../components/schema.yaml#/components/responses/OCPISuccessResponse"
+        "201":
+          $ref: "../../components/schema.yaml#/components/responses/OCPICreatedResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+
+    patch:
+      operationId: receiverPatchBooking
+      summary: Partial update of Booking
+      tags: [ Bookings ]
+      description: |
+        Same as the PUT method, but only the fields/objects that have to be updated have to be
+        present. Any request to the PATCH method SHALL contain the last_updated field.
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/BookingIdParameter"
+      requestBody:
+        description: Partial Booking object with only the fields to update.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/BookingPatch"
+      responses:
+        "200":
+          $ref: "../../components/schema.yaml#/components/responses/OCPISuccessResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"

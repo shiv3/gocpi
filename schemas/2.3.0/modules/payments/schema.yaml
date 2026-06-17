@@ -1,0 +1,247 @@
+openapi: 3.1.0
+components:
+  schemas:
+    Terminal:
+      type: object
+      description: |
+        A Terminal object describes a payment terminal at or near a charging location.
+        The PTP (Payment Terminal Provider) manages these terminals and shares information
+        with the CPO.
+      properties:
+        terminal_id:
+          type: string
+          maxLength: 36
+          description: Unique ID that identifies a terminal.
+        customer_reference:
+          type: string
+          maxLength: 36
+          description: This reference will be used to link the terminal to a CSMS. The reference might also be provided via the order process.
+        party_id:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: This is an alternative to the customer reference which can be used.
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: This is an alternative to the customer reference which can be used.
+        address:
+          type: string
+          maxLength: 45
+          description: Street/block name and house number if available.
+        city:
+          type: string
+          maxLength: 45
+          description: City or town.
+        postal_code:
+          type: string
+          maxLength: 10
+          description: Postal code of the terminal, may only be omitted when the terminal has no postal code.
+        state:
+          type: string
+          maxLength: 20
+          description: State or province of the location, only to be used when relevant.
+        country:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ISO 3166-1 alpha-3 code for the country of this location.
+        coordinates:
+          $ref: "../locations/schema.yaml#/components/schemas/GeoLocation"
+          description: Coordinates of the terminal.
+        invoice_base_url:
+          type: string
+          format: uri
+          description: BaseURL to the downloadable invoice.
+        invoice_creator:
+          $ref: "#/components/schemas/InvoiceCreator"
+          description: Describes which party creates the invoice for the eDriver.
+        reference:
+          type: string
+          maxLength: 36
+          description: Mapping value as issued by the PTP(e.g serial number).
+        location_ids:
+          type: array
+          description: List of all locations assigned to that terminal.
+          items:
+            type: string
+            maxLength: 36
+        evse_uids:
+          type: array
+          description: List of all EVSEs assigned to that terminal.
+          items:
+            type: string
+            maxLength: 36
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp when this Terminal was last updated (or created).
+      required:
+        - terminal_id
+        - last_updated
+
+    TerminalPatch:
+      type: object
+      description: Partial Terminal object for PATCH requests. Only fields present will be updated.
+      properties:
+        location_ids:
+          type: array
+          items:
+            type: string
+            maxLength: 36
+        evse_uids:
+          type: array
+          items:
+            type: string
+            maxLength: 36
+
+    FinancialAdviceConfirmation:
+      type: object
+      description: |
+        A FinancialAdviceConfirmation contains the result of a financial advice
+        (pre-authorization or capture) for a charging session payment.
+      properties:
+        id:
+          type: string
+          maxLength: 36
+          description: Unique ID that identifies a financial advice confirmation.
+        authorization_reference:
+          type: string
+          maxLength: 36
+          description: Reference to the authorization given by the PTP in the Commands.StartSession.
+        total_costs:
+          $ref: "../../components/schema.yaml#/components/schemas/Price"
+          description: Real amount that was captured at the PSP. This is a consumer price with VAT.
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ISO-4217 code of the currency of this tariff.
+        eft_data:
+          type: array
+          minItems: 1
+          description: Invoice relevant data from the direct payment.
+          items:
+            type: string
+            maxLength: 255
+        capture_status_code:
+          $ref: "#/components/schemas/CaptureStatusCode"
+          description: Code that identifies the financial advice status.
+        capture_status_message:
+          type: string
+          maxLength: 255
+          description: Message about any error at the financial advice.
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp when this financial advice confirmation was last updated (or created).
+      required:
+        - id
+        - authorization_reference
+        - total_costs
+        - currency
+        - eft_data
+        - capture_status_code
+        - last_updated
+
+    TerminalActivation:
+      type: object
+      description: |
+        Terminal object used for the activation request. The terminal_id is optional in the
+        activation request as it will be set by the PTP.
+      properties:
+        terminal_id:
+          type: string
+          maxLength: 36
+          description: Unique ID that identifies a terminal. Optional for activation as it will be set by the PTP.
+        customer_reference:
+          type: string
+          maxLength: 36
+          description: This reference will be used to link the terminal to a CSMS. The reference might also be provided via the order process.
+        party_id:
+          type: string
+          maxLength: 3
+          description: This is an alternative to the customer reference which can be used.
+        country_code:
+          type: string
+          maxLength: 2
+          description: This is an alternative to the customer reference which can be used.
+        address:
+          type: string
+          maxLength: 45
+          description: Street/block name and house number if available.
+        city:
+          type: string
+          maxLength: 45
+          description: City or town.
+        postal_code:
+          type: string
+          maxLength: 10
+          description: Postal code of the terminal, may only be omitted when the terminal has no postal code.
+        state:
+          type: string
+          maxLength: 20
+          description: State or province of the location, only to be used when relevant.
+        country:
+          type: string
+          maxLength: 3
+          description: ISO 3166-1 alpha-3 code for the country of this location.
+        coordinates:
+          $ref: "../locations/schema.yaml#/components/schemas/GeoLocation"
+          description: Coordinates of the terminal.
+        invoice_base_url:
+          type: string
+          format: uri
+          description: BaseURL to the downloadable invoice.
+        invoice_creator:
+          $ref: "#/components/schemas/InvoiceCreator"
+          description: Describes which party creates the invoice for the eDriver.
+        reference:
+          type: string
+          maxLength: 36
+          description: Mapping value as issued by the PTP(e.g serial number).
+        location_ids:
+          type: array
+          description: List of all locations assigned to that terminal.
+          items:
+            type: string
+            maxLength: 36
+        evse_uids:
+          type: array
+          description: List of all EVSEs assigned to that terminal.
+          items:
+            type: string
+            maxLength: 36
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp when this Terminal was last updated (or created).
+      required:
+        - last_updated
+
+    # ---- Enums ----
+
+    InvoiceCreator:
+      type: string
+      format: enum
+      description: Defines who creates the invoice for the charging session.
+      enum:
+        - CPO
+        - PTP
+      x-enumDescriptions:
+        CPO: The CPO issues the invoice and provides it via the invoice_base_url + authorization_reference.
+        PTP: The PTP issues the invoice and directly shows/provides it the eDriver via the payment terminal.
+
+    CaptureStatusCode:
+      type: string
+      format: enum
+      description: This enumeration describes the status of the payment capture process following a transaction at an EV charging station. It helps determine the outcome of the transaction and facilitates accurate financial reporting and customer billing.
+      enum:
+        - SUCCESS
+        - PARTIAL_SUCCESS
+        - FAILED
+      x-enumDescriptions:
+        SUCCESS: Indicates that the payment capture was completed successfully without any issues. Funds were secured and will be settled according to the payment processor's timeline. This status confirms that all checks (e.g., fraud, card validation) passed and the transaction was approved.
+        PARTIAL_SUCCESS: Used when only part of the transaction amount was approved or when certain conditions of the payment were altered during processing. This might occur in scenarios where the available balance was insufficient for the full requested amount, or specific transaction limits were enforced by the card issuer.
+        FAILED: Indicates that the payment capture attempt was unsuccessful. This failure can be due to various reasons such as insufficient funds, card expiration, network issues, or refusal by the card issuer.

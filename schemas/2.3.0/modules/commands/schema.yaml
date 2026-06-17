@@ -1,0 +1,244 @@
+openapi: 3.1.0
+components:
+  schemas:
+    # ---- Command Request Objects ----
+
+    CancelReservation:
+      type: object
+      description: |
+        With CancelReservation the Sender can request the Cancel of an existing Reservation.
+        The CancelReservation needs to contain the reservation_id that was given by the Sender to the ReserveNow.
+        As there might be cost involved for a Reservation, canceling a reservation might still result in a CDR being sent for the reservation.
+      properties:
+        response_url:
+          type: string
+          format: uri
+          description: URL that the CommandResult POST should be sent to. This URL might contain a unique ID to be able to distinguish between CancelReservation requests.
+        reservation_id:
+          type: string
+          maxLength: 36
+          description: Reservation id, unique for this reservation. If the Charge Point already has a reservation that matches this reservationId the Charge Point will replace the reservation.
+      required:
+        - response_url
+        - reservation_id
+
+    ReserveNow:
+      type: object
+      description: |
+        The evse_uid is optional. If no EVSE is specified, the Charge Point should keep one EVSE available
+        for the EV Driver identified by the given Token. (This might not be supported by all Charge Points).
+        A reservation can be replaced/updated by sending a RESERVE_NOW request with the same Location
+        (Charge Point) and the same reservation_id.
+      properties:
+        response_url:
+          type: string
+          format: uri
+          description: URL that the CommandResult POST should be sent to. This URL might contain a unique ID to be able to distinguish between ReserveNow requests.
+        token:
+          $ref: "../tokens/schema.yaml#/components/schemas/Token"
+          description: Token object for how to reserve this Charge Point (and specific EVSE).
+        expiry_date:
+          type: string
+          format: date-time
+          description: The Date/Time when this reservation ends, in UTC.
+        reservation_id:
+          type: string
+          maxLength: 36
+          description: Reservation id, unique for this reservation. If the Receiver (typically CPO) Point already has a reservation that matches this reservationId for that Location it will replace the reservation.
+        location_id:
+          type: string
+          maxLength: 36
+          description: Location.id of the Location (belonging to the CPO this request is sent to) for which to reserve an EVSE.
+        evse_uid:
+          type: string
+          maxLength: 36
+          description: Optional EVSE.uid of the EVSE of this Location if a specific EVSE has to be reserved.
+        authorization_reference:
+          type: string
+          maxLength: 36
+          description: Reference to the authorization given by the eMSP, when given, this reference will be provided in the relevant Session and/or CDR.
+      required:
+        - response_url
+        - token
+        - expiry_date
+        - reservation_id
+        - location_id
+
+    StartSession:
+      type: object
+      description: |
+        The evse_uid is optional. If no EVSE is specified, the Charge Point can itself decide on which EVSE
+        to start a new session. (This might not be supported by all Charge Points).
+        The eMSP provides a Token that has to be used by the Charge Point.
+      properties:
+        response_url:
+          type: string
+          format: uri
+          description: URL that the CommandResult POST should be sent to. This URL might contain a unique ID to be able to distinguish between StartSession requests.
+        token:
+          $ref: "../tokens/schema.yaml#/components/schemas/Token"
+          description: Token object the Charge Point has to use to start a new session. The Token provided in this request is authorized by the eMSP.
+        location_id:
+          type: string
+          maxLength: 36
+          description: Location.id of the Location (belonging to the CPO this request is sent to) on which a session is to be started.
+        evse_uid:
+          type: string
+          maxLength: 36
+          description: Optional EVSE.uid of the EVSE of this Location on which a session is to be started. Required when connector_id is set.
+        connector_id:
+          type: string
+          maxLength: 36
+          description: Optional Connector.id of the Connector of the EVSE on which a session is to be started. This field is required when the capability START_SESSION_CONNECTOR_REQUIRED is set on the EVSE.
+        authorization_reference:
+          type: string
+          maxLength: 36
+          description: Reference to the authorization given by the eMSP, when given, this reference will be provided in the relevant Session and/or CDR.
+      required:
+        - response_url
+        - token
+        - location_id
+
+    StopSession:
+      type: object
+      description: Object to stop an ongoing session.
+      properties:
+        response_url:
+          type: string
+          format: uri
+          description: URL that the CommandResult POST should be sent to. This URL might contain a unique ID to be able to distinguish between StopSession requests.
+        session_id:
+          type: string
+          maxLength: 36
+          description: Session.id of the Session that is requested to be stopped.
+      required:
+        - response_url
+        - session_id
+
+    UnlockConnector:
+      type: object
+      description: |
+        Object to request unlock of a connector. Use with care!
+        The command UNLOCK_CONNECTOR may only be used by an operator or the eMSP.
+        This command SHALL never be allowed to be sent directly by the EV-Driver.
+      properties:
+        response_url:
+          type: string
+          format: uri
+          description: URL that the CommandResult POST should be sent to. This URL might contain a unique ID to be able to distinguish between UnlockConnector requests.
+        location_id:
+          type: string
+          maxLength: 36
+          description: Location.id of the Location (belonging to the CPO this request is sent to) of which it is requested to unlock the connector.
+        evse_uid:
+          type: string
+          maxLength: 36
+          description: EVSE.uid of the EVSE of this Location of which it is requested to unlock the connector.
+        connector_id:
+          type: string
+          maxLength: 36
+          description: Connector.id of the Connector of this Location of which it is requested to unlock.
+      required:
+        - response_url
+        - location_id
+        - evse_uid
+        - connector_id
+
+    # ---- Response/Result Objects ----
+
+    CommandResponse:
+      type: object
+      description: |
+        The CommandResponse object is sent in the HTTP response body.
+        It contains the direct response from the CPO, not the response from the Charge Point.
+      properties:
+        result:
+          $ref: "#/components/schemas/CommandResponseType"
+          description: Response from the CPO on the command request.
+        timeout:
+          type: integer
+          description: Timeout for this command in seconds. When the Result is not received within this timeout, the eMSP can assume that the message might never be sent.
+        message:
+          type: array
+          description: Human-readable description of the result (if one can be provided), multiple languages can be provided.
+          items:
+            $ref: "../../components/schema.yaml#/components/schemas/DisplayText"
+      required:
+        - result
+        - timeout
+
+    CommandResult:
+      type: object
+      description: |
+        Result of the command request as sent by the Charge Point to the CPO,
+        forwarded to the eMSP.
+      properties:
+        result:
+          $ref: "#/components/schemas/CommandResultType"
+          description: Result of the command request as sent by the Charge Point to the CPO.
+        message:
+          type: array
+          description: Human-readable description of the reason (if one can be provided), multiple languages can be provided.
+          items:
+            $ref: "../../components/schema.yaml#/components/schemas/DisplayText"
+      required:
+        - result
+
+    # ---- Enums ----
+
+    CommandResponseType:
+      type: string
+      format: enum
+      description: Response to the command request from the eMSP to the CPO.
+      enum:
+        - NOT_SUPPORTED
+        - REJECTED
+        - ACCEPTED
+        - UNKNOWN_SESSION
+      x-enumDescriptions:
+        NOT_SUPPORTED: The requested command is not supported by this CPO, Charge Point, EVSE etc.
+        REJECTED: Command request rejected by the CPO. (Session might not be from a customer of the eMSP that sent this request)
+        ACCEPTED: Command request accepted by the CPO.
+        UNKNOWN_SESSION: The Session in the requested command is not known by this CPO.
+
+    CommandResultType:
+      type: string
+      format: enum
+      description: Result of the command that was sent to the Charge Point.
+      enum:
+        - ACCEPTED
+        - CANCELED_RESERVATION
+        - EVSE_OCCUPIED
+        - EVSE_INOPERATIVE
+        - FAILED
+        - NOT_SUPPORTED
+        - REJECTED
+        - TIMEOUT
+        - UNKNOWN_RESERVATION
+      x-enumDescriptions:
+        ACCEPTED: Command request accepted by the Charge Point.
+        CANCELED_RESERVATION: The Reservation has been canceled by the CPO.
+        EVSE_OCCUPIED: EVSE is currently occupied, another session is ongoing. Cannot start a new session.
+        EVSE_INOPERATIVE: EVSE is currently inoperative or faulted.
+        FAILED: Execution of the command failed at the Charge Point.
+        NOT_SUPPORTED: The requested command is not supported by this Charge Point, EVSE etc.
+        REJECTED: Command request rejected by the Charge Point.
+        TIMEOUT: Command request timeout, no response received from the Charge Point in a reasonable time.
+        UNKNOWN_RESERVATION: The Reservation in the requested command is not known by this Charge Point.
+
+    CommandType:
+      type: string
+      format: open-enum
+      description: The command requested.
+      enum:
+        - CANCEL_RESERVATION
+        - RESERVE_NOW
+        - START_SESSION
+        - STOP_SESSION
+        - UNLOCK_CONNECTOR
+      x-enumDescriptions:
+        CANCEL_RESERVATION: Request the Charge Point to cancel a specific reservation.
+        RESERVE_NOW: Request the Charge Point to reserve a (specific) EVSE for a Token for a certain time, starting now.
+        START_SESSION: Request the Charge Point to start a transaction on the given EVSE/Connector.
+        STOP_SESSION: Request the Charge Point to stop an ongoing session.
+        UNLOCK_CONNECTOR: Request the Charge Point to unlock the connector (if applicable). This functionality is for help desk operators only!

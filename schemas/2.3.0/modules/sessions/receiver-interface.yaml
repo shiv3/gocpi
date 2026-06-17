@@ -1,0 +1,172 @@
+openapi: 3.1.0
+info:
+  title: OCPI 2.3.0 - Sessions Module - Receiver Interface
+  description: |
+    The Receiver Interface is typically implemented by market roles like the eMSP and SCSP.
+    This interface allows senders (CPOs) to push Session data.
+
+    Sessions are Client Owned Objects, so the endpoints need to contain the required extra fields:
+    {country_code}/{party_id}/{session_id}.
+
+    Endpoint structure definition:
+    {sessions_endpoint_url}/{country_code}/{party_id}/{session_id}
+  version: 2.3.0
+  contact:
+    name: EVRoaming Foundation
+    url: https://evroaming.org
+externalDocs:
+  description: OCPI 2.3.0 Specification
+  url: https://github.com/ocpi/ocpi/blob/master/mod_sessions.asciidoc
+security:
+  - ocpiAuthorization: []
+components:
+  securitySchemes:
+    ocpiAuthorization:
+      $ref: "../../components/schema.yaml#/components/securitySchemes/ocpiAuthorization"
+paths:
+  /sessions/{country_code}/{party_id}/{session_id}:
+    get:
+      operationId: receiverGetSession
+      summary: Get a Session
+      description: |
+        The CPO system might request the current version of a Session object from the eMSP's system
+        to, for example, validate the state, or because the CPO has received an error during a
+        PATCH operation.
+      tags: [ Sessions ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/SessionIdParameter"
+      responses:
+        "200":
+          description: Successful response containing the requested Session object.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - properties:
+                      data:
+                        $ref: "./schema.yaml#/components/schemas/Session"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"
+
+    put:
+      operationId: receiverPutSession
+      summary: Create or replace a Session
+      description: |
+        Inform the eMSP's system about a new/updated Session object in the CPO's system.
+
+        When a PUT request is received for an existing Session object (the object is PUT to the
+        same URL), the newly received Session object SHALL replace the existing object.
+
+        Any charging_periods from the existing object SHALL be replaced by the charging_periods
+        from the newly received Session object. If the new Session object does not contain
+        charging_periods (field is omitted or contains an empty list), the charging_periods of
+        the existing object SHALL be removed (replaced by the new empty list).
+      tags: [ Sessions ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+          description: |
+            Country code of the CPO performing this PUT on the eMSP’s system.
+            This SHALL be the same value as the country_code in the Session object
+            being pushed.
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+          description: |
+            Party ID (Provider ID) of the CPO performing this PUT on the eMSP’s
+            system. This SHALL be the same value as the party_id in the Session
+            object being pushed.
+        - $ref: "./parameters.yaml#/components/parameters/SessionIdParameter"
+      requestBody:
+        description: New or updated Session object.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/Session"
+      responses:
+        "200":
+          $ref: "../../components/schema.yaml#/components/responses/OCPISuccessResponse"
+        "201":
+          $ref: "../../components/schema.yaml#/components/responses/OCPICreatedResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+
+    patch:
+      operationId: receiverPatchSession
+      summary: Partially update a Session
+      description: |
+        Same as the PUT method, but only the fields/objects that need to be updated have to be
+        present. Fields/objects which are not specified are considered unchanged.
+
+        Any request to the PATCH method SHALL contain the last_updated field.
+
+        The PATCH method works on the entire Session object only. It is not allowed to use extra
+        URL segments to try to PATCH fields of inner objects of the Session object directly.
+
+        When a PATCH request contains the charging_periods field (inside a Session object), this
+        SHALL be processed as a request to add all the ChargingPeriod objects to the existing
+        Session object. If the request charging_periods list is omitted (or contains an empty list),
+        no changes SHALL be made to the existing list of charging_periods.
+
+        If existing ChargingPeriod objects in a Session need to be replaced or removed, the Sender
+        SHALL use the PUT method to replace the entire Session object (including all the
+        charging_periods).
+      tags: [ Sessions ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/SessionIdParameter"
+      requestBody:
+        description: The partial Session object containing only the fields to update. Must contain last_updated.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/SessionPatch"
+      responses:
+        "200":
+          $ref: "../../components/schema.yaml#/components/responses/OCPISuccessResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"

@@ -1,0 +1,19 @@
+openapi: 3.1.0
+components:
+  parameters:
+    TerminalIdParameter:
+      in: path
+      name: terminal_id
+      description: Terminal.terminal_id of the Terminal object.
+      required: true
+      schema:
+        type: string
+        maxLength: 36
+    FinancialAdviceConfirmationIdParameter:
+      in: path
+      name: financial_advice_confirmation_id
+      description: FinancialAdviceConfirmation.id of the FinancialAdviceConfirmation object.
+      required: true
+      schema:
+        type: string
+        maxLength: 36

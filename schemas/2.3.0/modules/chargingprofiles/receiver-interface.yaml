@@ -1,0 +1,195 @@
+openapi: 3.1.0
+info:
+  title: OCPI 2.3.0 - ChargingProfiles Module - Receiver Interface
+  description: |
+    The Receiver Interface is typically implemented by market roles like the CPO.
+    It enables a Sender (typically eMSP or SCSP) to send ChargingProfiles to a Location/EVSE,
+    request the ActiveChargingProfile, or clear an existing ChargingProfile.
+
+    The ChargingProfiles module is designed to work asynchronously. The Receiver checks if it
+    can send the request to a Charge Point and responds with a status. The actual result from
+    the Charge Point is sent asynchronously via POST to the Sender interface.
+
+    Endpoint structure: {chargingprofiles_endpoint_url}/{session_id}
+  version: 2.3.0
+  contact:
+    name: EVRoaming Foundation
+    url: https://evroaming.org
+externalDocs:
+  description: OCPI 2.3.0 Specification
+  url: https://github.com/ocpi/ocpi/blob/master/mod_charging_profiles.asciidoc
+security:
+  - ocpiAuthorization: []
+components:
+  securitySchemes:
+    ocpiAuthorization:
+      $ref: "../../components/schema.yaml#/components/securitySchemes/ocpiAuthorization"
+
+paths:
+  /chargingprofiles/{session_id}:
+    get:
+      operationId: receiverGetActiveChargingProfile
+      summary: Get the ActiveChargingProfile for a session
+      description: Retrieves the ActiveChargingProfile as it is currently planned for the the given session.
+      tags: [ ChargingProfiles ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../sessions/parameters.yaml#/components/parameters/SessionIdParameter"
+        - in: query
+          name: duration
+          description: |
+            Length of the requested ActiveChargingProfile in seconds.
+            Balance the duration between maximizing the information gained and the data usage
+            and computation to execute on the request. Warning: asking for longer duration than necessary
+            might result in additional data costs, while its added value diminishes with every change in the
+            schedule.
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: response_url
+          description: URL that the ActiveChargingProfileResult POST should be sent to. This URL might contain a unique ID to be able to distinguish between GET ActiveChargingProfile requests.
+          required: true
+          schema:
+            type: string
+            format: uri
+      responses:
+        "200":
+          description: |
+            The response contains the direct response from the Receiver, not the response from the EVSE itself. That
+            information will be sent via an asynchronous POST on the Sender interface if this response is ACCEPTED.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "./schema.yaml#/components/schemas/ChargingProfileResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+
+    put:
+      operationId: receiverPutChargingProfile
+      summary: Create or update a ChargingProfile for a session
+      description: Creates a new ChargingProfile on a session, or replaces an existing ChargingProfile on the EVSE.
+      tags: [ ChargingProfiles ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../sessions/parameters.yaml#/components/parameters/SessionIdParameter"
+      requestBody:
+        description: SetChargingProfile object with information needed to set/update the Charging Profile for a session.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/SetChargingProfile"
+      responses:
+        "200":
+          description: |
+            The response contains the direct response from the Receiver (Typically CPO), not the response from the EVSE itself,
+            that will be sent via an asynchronous POST on the Sender interface if this response is ACCEPTED.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "./schema.yaml#/components/schemas/ChargingProfileResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+
+    delete:
+      operationId: receiverDeleteChargingProfile
+      summary: Clear a ChargingProfile for a session
+      description: Clears the ChargingProfile set by the eMSP on the given session.
+      tags: [ ChargingProfiles ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../sessions/parameters.yaml#/components/parameters/SessionIdParameter"
+        - in: query
+          name: response_url
+          description: URL that the ClearProfileResult POST should be sent to. This URL might contain a unique ID to be able to distinguish between DELETE ChargingProfile requests.
+          required: true
+          schema:
+            type: string
+            format: uri
+      responses:
+        "200":
+          description: |
+            The response contains the direct response from the Receiver (typically CPO), not the response from the EVSE itself,
+            that will be sent via an asynchronous POST on the Sender interface if this response is ACCEPTED.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "./schema.yaml#/components/schemas/ChargingProfileResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"

@@ -1,0 +1,160 @@
+openapi: 3.1.0
+info:
+  title: OCPI 2.3.0 - Sessions Module - Sender Interface
+  description: |
+    The Sender Interface is typically implemented by market roles like the CPO.
+    This interface allows receivers (eMSPs) to fetch Session data and set Charging Preferences.
+
+    The Sender interface provides two functionalities:
+    - GET: Fetch a list of Sessions, optionally filtered on last_updated.
+    - PUT: Set/update the driver's Charging Preferences for an ongoing session.
+  version: 2.3.0
+  contact:
+    name: EVRoaming Foundation
+    url: https://evroaming.org
+externalDocs:
+  description: OCPI 2.3.0 Specification
+  url: https://github.com/ocpi/ocpi/blob/master/mod_sessions.asciidoc
+security:
+  - ocpiAuthorization: []
+components:
+  securitySchemes:
+    ocpiAuthorization:
+      $ref: "../../components/schema.yaml#/components/securitySchemes/ocpiAuthorization"
+paths:
+  /sessions:
+    get:
+      operationId: senderGetSessions
+      summary: Get list of Sessions
+      description: |
+        Fetch a list of Sessions from the CPO system (paginated).
+
+        Only Sessions with last_updated between the given date_from (including) and date_to
+        (excluding) will be returned.
+      tags: [ Sessions ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/DateFromParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/DateToParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/LimitParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OffsetParameter"
+      responses:
+        "200":
+          description: |
+            The response contains a list of Session objects that match the given parameters in the request, the header will
+            contain the pagination related headers.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+            X-Total-Count:
+              $ref: "../../components/schema.yaml#/components/headers/X-Total-Count"
+            X-Limit:
+              $ref: "../../components/schema.yaml#/components/headers/X-Limit"
+            Link:
+              $ref: "../../components/schema.yaml#/components/headers/Link"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - properties:
+                      data:
+                        type: array
+                        description: List of Session objects that match the request parameters.
+                        items:
+                          $ref: "./schema.yaml#/components/schemas/Session"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+
+  /sessions/{session_id}/charging_preferences:
+    put:
+      operationId: senderPutChargingPreferences
+      summary: Set Charging Preferences
+      description: |
+        Set/update the driver's Charging Preferences for this charging session.
+
+        The /charging_preferences URL suffix is required when setting Charging Preferences.
+      tags: [ Sessions ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "./parameters.yaml#/components/parameters/SessionIdParameter"
+      requestBody:
+        description: Updated Charging Preferences of the driver for this Session.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/ChargingPreferences"
+      responses:
+        "200":
+          description: Charging Preferences response.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - properties:
+                      data:
+                        $ref: "./schema.yaml#/components/schemas/ChargingPreferencesResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          description: |
+            If a PUT with ChargingPreferences is received for an EVSE that does not have the capability
+            CHARGING_PREFERENCES_CAPABLE, the receiver should respond with an HTTP status of 404 and an OCPI status code of
+            2001 in the OCPI response object.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+          content:
+            application/json:
+              schema:
+                $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+

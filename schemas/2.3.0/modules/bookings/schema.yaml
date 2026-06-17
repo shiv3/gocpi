@@ -1,0 +1,673 @@
+openapi: 3.1.0
+components:
+  schemas:
+    Booking:
+      type: object
+      description: A booking for a charge point or parking space at a location.
+      properties:
+        id:
+          type: string
+          maxLength: 36
+          description: ID for the CPO side.
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: ISO-3166 alpha-2 country code of the CPO that 'owns' this Booking.
+        party_id:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ID of the CPO that 'owns' this Booking (following the ISO-15118 standard).
+        request_id:
+          type: string
+          maxLength: 36
+          description: Request ID determined by the requesting party. The same request ID SHALL be used for all edits on booking.
+        booking_option:
+          $ref: "#/components/schemas/BookingOption"
+          description: Selected specification to charge at this Location.
+        location_id:
+          type: string
+          maxLength: 36
+          description: Location.id of the Location object of this CPO, on which the reservation can be made.
+        booking_tokens:
+          type: array
+          items:
+            $ref: "#/components/schemas/BookingToken"
+          description: Token(s) that can be used to utilise the booking.
+        tariff_ids:
+          type: array
+          items:
+            type: string
+            maxLength: 36
+          description: A list of Tariff id's relevant for this booking.
+        period:
+          $ref: "#/components/schemas/Timeslot"
+          description: The timeslot for this booking.
+        reservation_status:
+          $ref: "#/components/schemas/ReservationStatus"
+          description: The current state of the reservation.
+        canceled:
+          $ref: "#/components/schemas/Cancellation"
+          description: Is the booking canceled, why and by whom.
+        access_information:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccessInformation"
+          description: Information needed to access the location.
+        authorization_reference:
+          type: string
+          maxLength: 36
+          description: Authorization reference for the relevant Session and CDR.
+        booking_terms:
+          $ref: "#/components/schemas/BookingTerms"
+          description: The accepted booking terms.
+        booking_requests:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/BookingRequestStatus"
+          description: All the requests made for this booking.
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp for the last booking change has been made.
+      required:
+        - id
+        - country_code
+        - party_id
+        - request_id
+        - location_id
+        - period
+        - reservation_status
+        - authorization_reference
+        - booking_terms
+        - booking_requests
+        - last_updated
+
+    BookingLocation:
+      type: object
+      description: A bookable location with availability calendars.
+      properties:
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: ISO-3166 alpha-2 country code of the CPO that 'owns' this BookingLocation.
+        party_id:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ID of the CPO that 'owns' this BookingLocation (following the ISO-15118 standard).
+        id:
+          type: string
+          maxLength: 36
+          description: The unique id that identifies the BookingLocation in the CPO platform.
+        location_id:
+          type: string
+          maxLength: 36
+          description: Location.id of the Location object of this CPO, on which the reservation can be made.
+        booking_option:
+          $ref: "#/components/schemas/BookingOption"
+          description: Specification that can be booked by drivers that want to charge at this Location.
+        policy:
+          $ref: "#/components/schemas/Policy"
+          description: The number of charging stations that are bookable at this location and if this is required.
+        tariff_ids:
+          type: array
+          items:
+            type: string
+            maxLength: 36
+          description: A list of Tariff id's.
+        booking_terms:
+          $ref: "#/components/schemas/BookingTerms"
+          description: Terms specified for if you book on this location.
+        calendars:
+          type: array
+          items:
+            $ref: "#/components/schemas/Calendar"
+          description: The list of calendars to display the availability on this location.
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp for the last BookingLocation change has been made.
+      required:
+        - country_code
+        - party_id
+        - id
+        - location_id
+        - last_updated
+
+    Calendar:
+      type: object
+      description: A calendar defining available booking timeslots.
+      properties:
+        id:
+          type: string
+          maxLength: 36
+          description: ID of the calendar object.
+        begin_from:
+          type: string
+          format: date-time
+          description: Start time of a calendar.
+        end_before:
+          type: string
+          format: date-time
+          description: End time of a calendar.
+        timeslot_increment:
+          type: integer
+          description: The minimum allowed booking increment within available timeslot in minutes.
+        available_timeslots:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/Timeslot"
+          description: List of available timeslots.
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp for the last calendar change has been made.
+      required:
+        - id
+        - begin_from
+        - end_before
+        - available_timeslots
+        - last_updated
+
+    Timeslot:
+      type: object
+      description: A time period with start and end, optionally with power and energy details.
+      properties:
+        start_date_time:
+          type: string
+          format: date-time
+          description: Start time of this timeslot.
+        end_date_time:
+          type: string
+          format: date-time
+          description: End time of this timeslot.
+        min_power:
+          type: number
+          description: Minimum Power guaranteed during this timeslot, in Watts (W).
+        max_power:
+          type: number
+          description: Maximum power available during this timeslot, in Watts (W).
+        green_energy_support:
+          type: boolean
+          description: Specifies whether green energy is available during this timeslot.
+      required:
+        - start_date_time
+        - end_date_time
+
+    Period:
+      type: object
+      description: A period defined by start and end DateTime.
+      properties:
+        start_date_time:
+          type: string
+          format: date-time
+          description: Start time of this period.
+        end_date_time:
+          type: string
+          format: date-time
+          description: End time of this period.
+      required:
+        - start_date_time
+        - end_date_time
+
+    BookingRequest:
+      type: object
+      description: Request to create a new booking.
+      properties:
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: ISO-3166 alpha-2 country code of the MSP that requests the booking.
+        party_id:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ID of the MSP that requests this booking (following the ISO-15118 standard).
+        request_id:
+          type: string
+          maxLength: 36
+          description: Request ID determined by the requesting party. The same request ID SHALL be used for all edits on booking.
+        booking_option:
+          $ref: "#/components/schemas/BookingOption"
+          description: Selected specification to charge at this Location.
+        location_id:
+          type: string
+          maxLength: 36
+          description: Location.id of the Location object of this CPO, on which the reservation can be made.
+        booking_location_id:
+          type: string
+          maxLength: 36
+          description: The unique id that identifies the BookingLocation in the CPO platform.
+        tokens:
+          type: array
+          items:
+            $ref: "#/components/schemas/BookingToken"
+          description: Token(s) that can be used to utilise the booking.
+        access_information:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccessInformation"
+          description: Information needed to access the location.
+        period:
+          $ref: "#/components/schemas/Period"
+          description: The period for this booking.
+        authorization_reference:
+          type: string
+          maxLength: 36
+          description: Authorization reference for the relevant Session and CDR.
+        power_required:
+          type: integer
+          description: The power requested for the reservation in kW. If it isn't the maximum available the CPO can relocate the extra to another session.
+        canceled:
+          $ref: "#/components/schemas/Cancellation"
+          description: To set when requesting to cancel the booking.
+      required:
+        - country_code
+        - party_id
+        - request_id
+        - location_id
+        - booking_location_id
+        - period
+        - authorization_reference
+
+    BookingRequestStatus:
+      type: object
+      description: Status wrapper for a booking request.
+      properties:
+        request_status:
+          $ref: "#/components/schemas/ReservationRequestStatus"
+          description: The current state of the booking request.
+        booking_request:
+          $ref: "#/components/schemas/BookingRequest"
+          description: The booking request that was received.
+        request_received:
+          type: string
+          format: date-time
+          description: Timestamp for when the request was received.
+      required:
+        - request_status
+        - booking_request
+        - request_received
+
+    BookingOption:
+      type: object
+      description: Specification of what can be booked at a location, describing EVSE, connector, and parking characteristics.
+      properties:
+        evse_uid:
+          type: string
+          maxLength: 36
+          description: A bookable EVSE.uid of the EVSE of this Location on which the reservation will be made. Allowed to be set to '#NA' when no EVSE yet assigned to the driver.
+        connector_id:
+          type: string
+          maxLength: 36
+          description: Connector.id of the Connector of this Location where the booking will happen.
+        parking_id:
+          type: string
+          maxLength: 36
+          description: Reference to the parking identifier.
+        evse_position:
+          type: array
+          items:
+            $ref: "../locations/schema.yaml#/components/schemas/EVSEPosition"
+          description: The position of the EVSE relative to the parking space.
+        vehicle_types:
+          type: array
+          items:
+            $ref: "../locations/schema.yaml#/components/schemas/VehicleType"
+          description: The vehicle types that the parking is designed to accommodate.
+        connector_format:
+          type: array
+          items:
+            $ref: "../locations/schema.yaml#/components/schemas/ConnectorFormat"
+          description: The format (socket/cable) of the installed connector.
+        connector_types:
+          type: array
+          items:
+            $ref: "../locations/schema.yaml#/components/schemas/ConnectorType"
+          description: The type of the installed connector.
+        power_types:
+          type: array
+          items:
+            $ref: "../locations/schema.yaml#/components/schemas/PowerType"
+          description: The type of power provided by the EVSE.
+        max_vehicle_weight:
+          type: number
+          description: The maximum vehicle weight that can park at the EVSE, in kilograms.
+        max_vehicle_height:
+          type: number
+          description: The maximum vehicle height that can park at the EVSE, in centimeters.
+        max_vehicle_length:
+          type: number
+          description: The maximum vehicle length that can park at the EVSE, in centimeters.
+        max_vehicle_width:
+          type: number
+          description: The maximum vehicle width that can park at the EVSE, in centimeters.
+        min_parking_space_length:
+          type: number
+          description: The minimum length of the parking space, in centimeters.
+        min_parking_space_width:
+          type: number
+          description: The minimum width of the parking space, in centimeters.
+        dangerous_goods_allowed:
+          type: boolean
+          description: Whether vehicles loaded with dangerous substances are allowed to park at the EVSE.
+        drive_through:
+          type: boolean
+          description: Whether a vehicle can stop, charge, and proceed without reversing into or out of a parking space.
+        refrigeration_outlet:
+          type: boolean
+          description: Whether a power outlet is available to power a transport truck's load refrigeration while the vehicle is parked.
+
+    BookingToken:
+      type: object
+      description: Token information for a booking, identifying the token that can be used.
+      properties:
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: ISO-3166 alpha-2 country code of the MSP that 'owns' this Token.
+        party_id:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ID of the eMSP that 'owns' this Token (following the ISO-15118 standard).
+        uid:
+          type: string
+          maxLength: 36
+          description: Unique ID by which this Token can be identified. This is the field used by the CPO's system (RFID reader on the Charge Point) to identify this token.
+        type:
+          $ref: "../tokens/schema.yaml#/components/schemas/TokenType"
+          description: Type of the token.
+        contract_id:
+          type: string
+          maxLength: 36
+          description: Uniquely identifies the EV driver contract token within the eMSP's platform.
+      required:
+        - country_code
+        - party_id
+        - uid
+        - type
+        - contract_id
+
+    BookingTerms:
+      type: object
+      description: Terms and conditions for the booking.
+      properties:
+        rfid_auth_required:
+          type: boolean
+          description: Charging for reserved booking requires authentication by RFID card at charger.
+        token_groups_supported:
+          type: boolean
+          description: If true, any token within the same token group may be used for the booking.
+        remote_auth_supported:
+          type: boolean
+          description: If true, charging for reserved booking is possible through remote authentication (Start message through Commands endpoint).
+        supported_access_methods:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/AccessMethod"
+          description: What is needed to access the location.
+        change_until_minutes:
+          type: number
+          description: Number of minutes before the booking till which it can be changed.
+        cancel_until_minutes:
+          type: number
+          description: Number of minutes before the booking till which it can be canceled.
+        change_not_allowed:
+          type: boolean
+          description: If change is allowed.
+        early_start_allowed:
+          type: boolean
+          description: If an early start of the session is allowed/possible.
+        early_start_time:
+          type: number
+          description: Number of minutes early start is allowed/possible.
+        noshow_timeout:
+          type: number
+          description: The number of minutes after the booking start time that it is considered a no show and booking is released. No timeout if unspecified.
+        noshow_fee:
+          type: boolean
+          description: If the CPO will charge a no show fee. The amount of the fee can be defined in the booking_terms URL. Will also be in the Tariff part of the BookingLocation.
+        late_stop_allowed:
+          type: boolean
+          description: If a user can charge longer than requested in the booking.
+        late_stop_time:
+          type: number
+          description: Number of minutes late stop is allowed/possible.
+        overlapping_bookings_allowed:
+          type: boolean
+          description: Is it possible to connect the same RFID Token to multiple bookings.
+        min_booking_duration:
+          type: number
+          description: Minimum booking duration in minutes.
+        max_booking_duration:
+          type: number
+          description: Maximum booking duration in minutes.
+        booking_terms:
+          type: string
+          format: uri
+          description: The CPO's URL to the booking terms.
+      required:
+        - supported_access_methods
+        - change_until_minutes
+        - cancel_until_minutes
+
+    AccessInformation:
+      type: object
+      description: Information on how to access the booked resource.
+      properties:
+        method:
+          $ref: "#/components/schemas/AccessMethod"
+          description: If the location is not freely accessible, how is it accessible with the AccessMethod enum.
+        value:
+          type: string
+          description: The value for the location access method, e.g. for a license plate "ABC12D" or for an access code "1224".
+      required:
+        - method
+
+    AccessMethod:
+      type: string
+      format: enum
+      description: Method to access the booked resource.
+      enum:
+        - OPEN
+        - TOKEN
+        - LICENSE_PLATE
+        - ACCESS_CODE
+        - INTERCOM
+        - PARKING_TICKET
+      x-enumDescriptions:
+        OPEN: Open access to the site.
+        TOKEN: Using a token that was sent in the booking.
+        LICENSE_PLATE: The license plate(s) of the vehicle that wants to charge.
+        ACCESS_CODE: The access code provided.
+        INTERCOM: Get access to the charging station by ringing the intercom.
+        PARKING_TICKET: Parking ticket required.
+
+    Cancellation:
+      type: object
+      description: Cancellation details.
+      properties:
+        cancellation_reason:
+          $ref: "#/components/schemas/CanceledReason"
+          description: The reason why the booking is canceled.
+        who_canceled:
+          $ref: "../hubclientinfo/schema.yaml#/components/schemas/Role"
+          description: Who canceled the booking.
+      required:
+        - cancellation_reason
+        - who_canceled
+
+    CanceledReason:
+      type: string
+      format: enum
+      description: Reason for cancellation.
+      enum:
+        - POWER_OUTAGE
+        - BROKEN_CHARGER
+        - FULL
+        - BLOCKED
+        - TRAFFIC
+        - BROKEN_VEHICLE
+        - NO_CANCELED
+        - UNKNOWN
+      x-enumDescriptions:
+        POWER_OUTAGE: No power available at the site, set by the CPO.
+        BROKEN_CHARGER: The charger is broken and charging is not possible, set by the CPO.
+        FULL: The chargers are full, because someone isn't leaving, set by the CPO.
+        BLOCKED: The reserved charger isn't physically reachable.
+        TRAFFIC: The vehicle can't come in time because of traffic, set by the MSP.
+        BROKEN_VEHICLE: The vehicle broke down and can't make the reservation, set by the MSP.
+        NO_CANCELED: The driver didn't communicate a reason for canceling, set by the MSP.
+        UNKNOWN: Any other status / unknown status.
+
+    Policy:
+      type: object
+      description: Booking policy for a location.
+      properties:
+        reservation_required:
+          type: boolean
+          description: Is a reservation required.
+        ad_hoc:
+          type: number
+          description: Number of ad_hoc charging options available.
+      required:
+        - reservation_required
+
+    ReservationStatus:
+      type: string
+      format: enum
+      description: Status of the reservation/booking.
+      enum:
+        - PENDING
+        - RESERVED
+        - CANCELED
+        - FAILED
+        - NO_SHOW
+        - FULFILLED
+        - REJECTED
+        - UNKNOWN
+      x-enumDescriptions:
+        PENDING: Booking request pending processing by the CPO.
+        RESERVED: Booking request accepted by the CPO.
+        CANCELED: Booking canceled.
+        FAILED: Request for booking failed (error).
+        NO_SHOW: Booking was not fulfilled because no one showed up, within start time found in the booking terms.
+        FULFILLED: The Booking is fulfilled, fulfilled means that the session is started with the communicated token before the expiry moment has passed.
+        REJECTED: Booking request is rejected after processing by the CPO (e.g., requested time slot unavailable).
+        UNKNOWN: Any other status / unknown status.
+
+    ReservationRequestStatus:
+      type: string
+      format: enum
+      description: Status of a booking request.
+      enum:
+        - PENDING
+        - ACCEPTED
+        - DECLINED
+        - FAILED
+      x-enumDescriptions:
+        PENDING: Booking request pending processing by the CPO.
+        ACCEPTED: Booking request accepted by the CPO.
+        DECLINED: Booking request declined by the CPO.
+        FAILED: Request for booking failed (error).
+
+    # ---- Patch schemas (partial updates) ----
+
+    BookingLocationPatch:
+      type: object
+      description: Partial BookingLocation for PATCH requests. Only fields present will be updated. last_updated is required.
+      properties:
+        booking_option:
+          $ref: "#/components/schemas/BookingOption"
+        policy:
+          $ref: "#/components/schemas/Policy"
+        tariff_ids:
+          type: array
+          items:
+            type: string
+            maxLength: 36
+        booking_terms:
+          $ref: "#/components/schemas/BookingTerms"
+        calendars:
+          type: array
+          items:
+            $ref: "#/components/schemas/Calendar"
+        last_updated:
+          type: string
+          format: date-time
+      required:
+        - last_updated
+
+    BookingPatch:
+      type: object
+      description: Partial Booking for PATCH requests. Only fields present will be updated. last_updated is required.
+      properties:
+        booking_option:
+          $ref: "#/components/schemas/BookingOption"
+        location_id:
+          type: string
+          maxLength: 36
+        booking_tokens:
+          type: array
+          items:
+            $ref: "#/components/schemas/BookingToken"
+        tariff_ids:
+          type: array
+          items:
+            type: string
+            maxLength: 36
+        period:
+          $ref: "#/components/schemas/Timeslot"
+        reservation_status:
+          $ref: "#/components/schemas/ReservationStatus"
+        canceled:
+          $ref: "#/components/schemas/Cancellation"
+        access_information:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccessInformation"
+        authorization_reference:
+          type: string
+          maxLength: 36
+        booking_terms:
+          $ref: "#/components/schemas/BookingTerms"
+        booking_requests:
+          type: array
+          items:
+            $ref: "#/components/schemas/BookingRequestStatus"
+        last_updated:
+          type: string
+          format: date-time
+      required:
+        - last_updated
+
+    CalendarPatch:
+      type: object
+      description: Partial Calendar for PATCH requests. Only fields present will be updated. last_updated is required.
+      properties:
+        begin_from:
+          type: string
+          format: date-time
+        end_before:
+          type: string
+          format: date-time
+        timeslot_increment:
+          type: integer
+        available_timeslots:
+          type: array
+          items:
+            $ref: "#/components/schemas/Timeslot"
+        last_updated:
+          type: string
+          format: date-time
+      required:
+        - last_updated

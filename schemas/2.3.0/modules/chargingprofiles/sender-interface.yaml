@@ -1,0 +1,144 @@
+openapi: 3.1.0
+info:
+  title: OCPI 2.3.0 - ChargingProfiles Module - Sender Interface
+  description: |
+    The Sender Interface is typically implemented by market roles like the eMSP or SCSP.
+    It receives the asynchronous responses from the Charge Point via the CPO,
+    and updated ActiveChargingProfiles when the CPO knows the profile has changed.
+
+    For the POST method: The URL structure is open for the Sender to define. The URL is provided
+    to the Receiver via the response_url field. The path shown here is a typical implementation pattern.
+
+    For the PUT method: The endpoint structure is {chargingprofiles_endpoint_url}/{session_id}.
+  version: 2.2.1
+  contact:
+    name: EVRoaming Foundation
+    url: https://evroaming.org
+externalDocs:
+  description: OCPI 2.3.0 Specification
+  url: https://github.com/ocpi/ocpi/blob/master/mod_charging_profiles.asciidoc
+security:
+  - ocpiAuthorization: []
+components:
+  securitySchemes:
+    ocpiAuthorization:
+      $ref: "../../components/schema.yaml#/components/securitySchemes/ocpiAuthorization"
+
+paths:
+  /chargingprofiles/response:
+    post:
+      operationId: senderPostChargingProfileCallback
+      summary: Receive asynchronous charging profile result
+      description: |
+        Receive the asynchronous response from the Charge Point.
+        
+        As the Sender interface is called by the Receiver (typically CPO) on the URL given response_url in the Sender request
+        to the Receiver interface. It is up to the implementation of the Sender (typically SCSP) to determine what parameters
+        are put in the URL. The Sender sends a URL in the POST method body to the Receiver. The Receiver is required to
+        use this URL for the asynchronous response by the Charge Point. It is advised to make this URL unique for every
+        request to differentiate simultaneous commands, for example by adding a unique id as a URL segment.
+      tags: [ ChargingProfiles ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+      requestBody:
+        description: |
+          Choice: one of three.
+          ActiveChargingProfileResult: Result of the GET ActiveChargingProfile request, from the Charge Point.
+          ChargingProfileResult: Result of the PUT ChargingProfile request, from the Charge Point.
+          ClearProfileResult: Result of the DELETE ChargingProfile request, from the Charge Point.
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "./schema.yaml#/components/schemas/ActiveChargingProfileResult"
+                - $ref: "./schema.yaml#/components/schemas/ChargingProfileResult"
+                - $ref: "./schema.yaml#/components/schemas/ClearProfileResult"
+      responses:
+        "200":
+          description: Successful OCPI response.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+          content:
+            application/json:
+              schema:
+                description: OCPI Response envelope.
+                type: object
+                properties:
+                  status_code:
+                    type: integer
+                    description: OCPI status code, 1000 for success.
+                    example: 1000
+                  status_message:
+                    type: string
+                    description: An optional status message which may help when debugging.
+                  timestamp:
+                    type: string
+                    format: date-time
+                    description: The time this message was generated.
+                required:
+                  - status_code
+                  - timestamp
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+
+  /chargingprofiles/{session_id}:
+    put:
+      operationId: senderPutActiveChargingProfile
+      summary: Receive updated ActiveChargingProfile
+      description: |
+        Updates the Sender (typically SCSP) when the Receiver (typically CPO) knows the ActiveChargingProfile has changed.
+        
+        The Receiver SHALL call this interface every time it knows changes have been made that influence the
+        ActiveChargingProfile for an ongoing session AND the Sender has at least once successfully called the charging
+        profile Receiver PUT interface for this session (SetChargingProfile). If the Receiver doesn’t know the
+        ActiveChargingProfile has changed (EVSE does not notify the Receiver (typically CPO) of the change) it is not
+        required to call this interface.
+        
+        The Receiver SHALL NOT call this interface for any session where the Sender has never, successfully called the
+        charging profile Receiver PUT interface for this session (SetChargingProfile).
+        
+        The Receiver SHALL send a useful relevant duration of ActiveChargingProfile to send to the Sender. As a guide:
+        between 5 and 60 minutes. If the Sender wants a longer ActiveChargingProfile the Sender can always do a GET with
+        a longer duration.
+      tags: [ ChargingProfiles ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../sessions/parameters.yaml#/components/parameters/SessionIdParameter"
+      requestBody:
+        description: The new ActiveChargingProfile. If there is no longer any charging profile active, the ActiveChargingProfile SHALL reflect this by showing the maximum charging capacity of the EVSE.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/ActiveChargingProfile"
+      responses:
+        "200":
+          $ref: "../../components/schema.yaml#/components/responses/OCPISuccessResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"

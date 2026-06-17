@@ -1,0 +1,3687 @@
+{
+  "$defs": {
+    "AccessInformation": {
+      "properties": {
+        "method": {
+          "$ref": "#/$defs/AccessMethod"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "method"
+      ],
+      "type": "object"
+    },
+    "AccessMethod": {
+      "enum": [
+        "OPEN",
+        "TOKEN",
+        "LICENSE_PLATE",
+        "ACCESS_CODE",
+        "INTERCOM",
+        "PARKING_TICKET"
+      ],
+      "type": "string"
+    },
+    "ActiveChargingProfile": {
+      "properties": {
+        "charging_profile": {
+          "$ref": "#/$defs/ChargingProfile"
+        },
+        "start_date_time": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_date_time",
+        "charging_profile"
+      ],
+      "type": "object"
+    },
+    "ActiveChargingProfileResult": {
+      "properties": {
+        "profile": {
+          "$ref": "#/$defs/ActiveChargingProfile"
+        },
+        "result": {
+          "$ref": "#/$defs/ChargingProfileResultType"
+        }
+      },
+      "required": [
+        "result"
+      ],
+      "type": "object"
+    },
+    "AdditionalGeoLocation": {
+      "properties": {
+        "latitude": {
+          "maxLength": 10,
+          "type": "string"
+        },
+        "longitude": {
+          "maxLength": 11,
+          "type": "string"
+        },
+        "name": {
+          "$ref": "#/$defs/DisplayText"
+        }
+      },
+      "required": [
+        "latitude",
+        "longitude"
+      ],
+      "type": "object"
+    },
+    "AllowedType": {
+      "enum": [
+        "ALLOWED",
+        "BLOCKED",
+        "EXPIRED",
+        "NO_CREDIT",
+        "NOT_ALLOWED"
+      ],
+      "type": "string"
+    },
+    "AuthMethod": {
+      "enum": [
+        "AUTH_REQUEST",
+        "COMMAND",
+        "WHITELIST"
+      ],
+      "type": "string"
+    },
+    "AuthorizationInfo": {
+      "properties": {
+        "allowed": {
+          "$ref": "#/$defs/AllowedType"
+        },
+        "authorization_reference": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "info": {
+          "$ref": "#/$defs/DisplayText"
+        },
+        "location": {
+          "$ref": "#/$defs/LocationReferences"
+        },
+        "token": {
+          "$ref": "#/$defs/Token"
+        }
+      },
+      "required": [
+        "allowed",
+        "token"
+      ],
+      "type": "object"
+    },
+    "Booking": {
+      "properties": {
+        "access_information": {
+          "items": {
+            "$ref": "#/$defs/AccessInformation"
+          },
+          "type": "array"
+        },
+        "authorization_reference": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "booking_option": {
+          "$ref": "#/$defs/BookingOption"
+        },
+        "booking_requests": {
+          "items": {
+            "$ref": "#/$defs/BookingRequestStatus"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "booking_terms": {
+          "$ref": "#/$defs/BookingTerms"
+        },
+        "booking_tokens": {
+          "items": {
+            "$ref": "#/$defs/BookingToken"
+          },
+          "type": "array"
+        },
+        "canceled": {
+          "$ref": "#/$defs/Cancellation"
+        },
+        "country_code": {
+          "maxLength": 2,
+          "minLength": 2,
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "location_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "party_id": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "period": {
+          "$ref": "#/$defs/Timeslot"
+        },
+        "request_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "reservation_status": {
+          "$ref": "#/$defs/ReservationStatus"
+        },
+        "tariff_ids": {
+          "items": {
+            "maxLength": 36,
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "country_code",
+        "party_id",
+        "request_id",
+        "location_id",
+        "period",
+        "reservation_status",
+        "authorization_reference",
+        "booking_terms",
+        "booking_requests",
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "BookingLocation": {
+      "properties": {
+        "booking_option": {
+          "$ref": "#/$defs/BookingOption"
+        },
+        "booking_terms": {
+          "$ref": "#/$defs/BookingTerms"
+        },
+        "calendars": {
+          "items": {
+            "$ref": "#/$defs/Calendar"
+          },
+          "type": "array"
+        },
+        "country_code": {
+          "maxLength": 2,
+          "minLength": 2,
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "location_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "party_id": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "policy": {
+          "$ref": "#/$defs/Policy"
+        },
+        "tariff_ids": {
+          "items": {
+            "maxLength": 36,
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "country_code",
+        "party_id",
+        "id",
+        "location_id",
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "BookingLocationPatch": {
+      "properties": {
+        "booking_option": {
+          "$ref": "#/$defs/BookingOption"
+        },
+        "booking_terms": {
+          "$ref": "#/$defs/BookingTerms"
+        },
+        "calendars": {
+          "items": {
+            "$ref": "#/$defs/Calendar"
+          },
+          "type": "array"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "policy": {
+          "$ref": "#/$defs/Policy"
+        },
+        "tariff_ids": {
+          "items": {
+            "maxLength": 36,
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "BookingOption": {
+      "properties": {
+        "connector_format": {
+          "items": {
+            "$ref": "#/$defs/ConnectorFormat"
+          },
+          "type": "array"
+        },
+        "connector_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "connector_types": {
+          "items": {
+            "$ref": "#/$defs/ConnectorType"
+          },
+          "type": "array"
+        },
+        "dangerous_goods_allowed": {
+          "type": "boolean"
+        },
+        "drive_through": {
+          "type": "boolean"
+        },
+        "evse_position": {
+          "items": {
+            "$ref": "#/$defs/EVSEPosition"
+          },
+          "type": "array"
+        },
+        "evse_uid": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "max_vehicle_height": {
+          "type": "number"
+        },
+        "max_vehicle_length": {
+          "type": "number"
+        },
+        "max_vehicle_weight": {
+          "type": "number"
+        },
+        "max_vehicle_width": {
+          "type": "number"
+        },
+        "min_parking_space_length": {
+          "type": "number"
+        },
+        "min_parking_space_width": {
+          "type": "number"
+        },
+        "parking_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "power_types": {
+          "items": {
+            "$ref": "#/$defs/PowerType"
+          },
+          "type": "array"
+        },
+        "refrigeration_outlet": {
+          "type": "boolean"
+        },
+        "vehicle_types": {
+          "items": {
+            "$ref": "#/$defs/VehicleType"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "BookingPatch": {
+      "properties": {
+        "access_information": {
+          "items": {
+            "$ref": "#/$defs/AccessInformation"
+          },
+          "type": "array"
+        },
+        "authorization_reference": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "booking_option": {
+          "$ref": "#/$defs/BookingOption"
+        },
+        "booking_requests": {
+          "items": {
+            "$ref": "#/$defs/BookingRequestStatus"
+          },
+          "type": "array"
+        },
+        "booking_terms": {
+          "$ref": "#/$defs/BookingTerms"
+        },
+        "booking_tokens": {
+          "items": {
+            "$ref": "#/$defs/BookingToken"
+          },
+          "type": "array"
+        },
+        "canceled": {
+          "$ref": "#/$defs/Cancellation"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "location_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "period": {
+          "$ref": "#/$defs/Timeslot"
+        },
+        "reservation_status": {
+          "$ref": "#/$defs/ReservationStatus"
+        },
+        "tariff_ids": {
+          "items": {
+            "maxLength": 36,
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "BookingRequest": {
+      "properties": {
+        "access_information": {
+          "items": {
+            "$ref": "#/$defs/AccessInformation"
+          },
+          "type": "array"
+        },
+        "authorization_reference": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "booking_location_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "booking_option": {
+          "$ref": "#/$defs/BookingOption"
+        },
+        "canceled": {
+          "$ref": "#/$defs/Cancellation"
+        },
+        "country_code": {
+          "maxLength": 2,
+          "minLength": 2,
+          "type": "string"
+        },
+        "location_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "party_id": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "period": {
+          "$ref": "#/$defs/Period"
+        },
+        "power_required": {
+          "type": "integer"
+        },
+        "request_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "tokens": {
+          "items": {
+            "$ref": "#/$defs/BookingToken"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "country_code",
+        "party_id",
+        "request_id",
+        "location_id",
+        "booking_location_id",
+        "period",
+        "authorization_reference"
+      ],
+      "type": "object"
+    },
+    "BookingRequestStatus": {
+      "properties": {
+        "booking_request": {
+          "$ref": "#/$defs/BookingRequest"
+        },
+        "request_received": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "request_status": {
+          "$ref": "#/$defs/ReservationRequestStatus"
+        }
+      },
+      "required": [
+        "request_status",
+        "booking_request",
+        "request_received"
+      ],
+      "type": "object"
+    },
+    "BookingRestrictionType": {
+      "enum": [
+        "BOOKING",
+        "BOOKING_EXPIRES",
+        "BOOKING_CANCELLATION_FEES",
+        "BOOKING_OVERTIME"
+      ],
+      "type": "string"
+    },
+    "BookingTerms": {
+      "properties": {
+        "booking_terms": {
+          "format": "uri",
+          "type": "string"
+        },
+        "cancel_until_minutes": {
+          "type": "number"
+        },
+        "change_not_allowed": {
+          "type": "boolean"
+        },
+        "change_until_minutes": {
+          "type": "number"
+        },
+        "early_start_allowed": {
+          "type": "boolean"
+        },
+        "early_start_time": {
+          "type": "number"
+        },
+        "late_stop_allowed": {
+          "type": "boolean"
+        },
+        "late_stop_time": {
+          "type": "number"
+        },
+        "max_booking_duration": {
+          "type": "number"
+        },
+        "min_booking_duration": {
+          "type": "number"
+        },
+        "noshow_fee": {
+          "type": "boolean"
+        },
+        "noshow_timeout": {
+          "type": "number"
+        },
+        "overlapping_bookings_allowed": {
+          "type": "boolean"
+        },
+        "remote_auth_supported": {
+          "type": "boolean"
+        },
+        "rfid_auth_required": {
+          "type": "boolean"
+        },
+        "supported_access_methods": {
+          "items": {
+            "$ref": "#/$defs/AccessMethod"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "token_groups_supported": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "supported_access_methods",
+        "change_until_minutes",
+        "cancel_until_minutes"
+      ],
+      "type": "object"
+    },
+    "BookingToken": {
+      "properties": {
+        "contract_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "country_code": {
+          "maxLength": 2,
+          "minLength": 2,
+          "type": "string"
+        },
+        "party_id": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/TokenType"
+        },
+        "uid": {
+          "maxLength": 36,
+          "type": "string"
+        }
+      },
+      "required": [
+        "country_code",
+        "party_id",
+        "uid",
+        "type",
+        "contract_id"
+      ],
+      "type": "object"
+    },
+    "BusinessDetails": {
+      "properties": {
+        "logo": {
+          "$ref": "#/$defs/Image"
+        },
+        "name": {
+          "maxLength": 100,
+          "type": "string"
+        },
+        "website": {
+          "format": "uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "CDR": {
+      "properties": {
+        "auth_method": {
+          "$ref": "#/$defs/AuthMethod"
+        },
+        "authorization_reference": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "booking_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "cdr_location": {
+          "$ref": "#/$defs/CdrLocation"
+        },
+        "cdr_token": {
+          "$ref": "#/$defs/CdrToken"
+        },
+        "charging_periods": {
+          "items": {
+            "$ref": "#/$defs/ChargingPeriod"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "country_code": {
+          "maxLength": 2,
+          "minLength": 2,
+          "type": "string"
+        },
+        "credit": {
+          "type": "boolean"
+        },
+        "credit_reference_id": {
+          "maxLength": 39,
+          "type": "string"
+        },
+        "currency": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "end_date_time": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "home_charging_compensation": {
+          "type": "boolean"
+        },
+        "id": {
+          "maxLength": 39,
+          "type": "string"
+        },
+        "invoice_reference_id": {
+          "maxLength": 39,
+          "type": "string"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "meter_id": {
+          "maxLength": 255,
+          "type": "string"
+        },
+        "party_id": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "remark": {
+          "maxLength": 255,
+          "type": "string"
+        },
+        "session_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "signed_data": {
+          "$ref": "#/$defs/SignedData"
+        },
+        "start_date_time": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "tariffs": {
+          "items": {
+            "$ref": "#/$defs/Tariff"
+          },
+          "type": "array"
+        },
+        "total_cost": {
+          "$ref": "#/$defs/Price"
+        },
+        "total_energy": {
+          "type": "number"
+        },
+        "total_energy_cost": {
+          "$ref": "#/$defs/Price"
+        },
+        "total_fixed_cost": {
+          "$ref": "#/$defs/Price"
+        },
+        "total_parking_cost": {
+          "$ref": "#/$defs/Price"
+        },
+        "total_parking_time": {
+          "type": "number"
+        },
+        "total_reservation_cost": {
+          "$ref": "#/$defs/Price"
+        },
+        "total_time": {
+          "type": "number"
+        },
+        "total_time_cost": {
+          "$ref": "#/$defs/Price"
+        }
+      },
+      "required": [
+        "country_code",
+        "party_id",
+        "id",
+        "start_date_time",
+        "end_date_time",
+        "cdr_token",
+        "auth_method",
+        "cdr_location",
+        "currency",
+        "charging_periods",
+        "total_cost",
+        "total_energy",
+        "total_time",
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "Calendar": {
+      "properties": {
+        "available_timeslots": {
+          "items": {
+            "$ref": "#/$defs/Timeslot"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "begin_from": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "end_before": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "timeslot_increment": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "begin_from",
+        "end_before",
+        "available_timeslots",
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "CalendarPatch": {
+      "properties": {
+        "available_timeslots": {
+          "items": {
+            "$ref": "#/$defs/Timeslot"
+          },
+          "type": "array"
+        },
+        "begin_from": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "end_before": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "timeslot_increment": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "CancelReservation": {
+      "properties": {
+        "reservation_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "response_url": {
+          "format": "uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "response_url",
+        "reservation_id"
+      ],
+      "type": "object"
+    },
+    "CanceledReason": {
+      "enum": [
+        "POWER_OUTAGE",
+        "BROKEN_CHARGER",
+        "FULL",
+        "BLOCKED",
+        "TRAFFIC",
+        "BROKEN_VEHICLE",
+        "NO_CANCELED",
+        "UNKNOWN"
+      ],
+      "type": "string"
+    },
+    "Cancellation": {
+      "properties": {
+        "cancellation_reason": {
+          "$ref": "#/$defs/CanceledReason"
+        },
+        "who_canceled": {
+          "$ref": "#/$defs/Role"
+        }
+      },
+      "required": [
+        "cancellation_reason",
+        "who_canceled"
+      ],
+      "type": "object"
+    },
+    "Capability": {
+      "enum": [
+        "CHARGING_PROFILE_CAPABLE",
+        "CHARGING_PREFERENCES_CAPABLE",
+        "CHIP_CARD_SUPPORT",
+        "CONTACTLESS_CARD_SUPPORT",
+        "CREDIT_CARD_PAYABLE",
+        "DEBIT_CARD_PAYABLE",
+        "PED_TERMINAL",
+        "REMOTE_START_STOP_CAPABLE",
+        "RESERVABLE",
+        "RFID_READER",
+        "START_SESSION_CONNECTOR_REQUIRED",
+        "TOKEN_GROUP_CAPABLE",
+        "UNLOCK_CAPABLE"
+      ],
+      "format": "open-enum",
+      "type": "string"
+    },
+    "CaptureStatusCode": {
+      "enum": [
+        "SUCCESS",
+        "PARTIAL_SUCCESS",
+        "FAILED"
+      ],
+      "type": "string"
+    },
+    "CdrDimension": {
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/CdrDimensionType"
+        },
+        "volume": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "type",
+        "volume"
+      ],
+      "type": "object"
+    },
+    "CdrDimensionType": {
+      "enum": [
+        "CURRENT",
+        "ENERGY",
+        "ENERGY_EXPORT",
+        "ENERGY_IMPORT",
+        "MAX_CURRENT",
+        "MIN_CURRENT",
+        "MAX_POWER",
+        "MIN_POWER",
+        "PARKING_TIME",
+        "POWER",
+        "RESERVATION_TIME",
+        "RESERVATION_EXPIRES",
+        "RESERVATION_OVERTIME",
+        "STATE_OF_CHARGE",
+        "TIME"
+      ],
+      "type": "string"
+    },
+    "CdrLocation": {
+      "properties": {
+        "address": {
+          "maxLength": 45,
+          "type": "string"
+        },
+        "city": {
+          "maxLength": 45,
+          "type": "string"
+        },
+        "connector_format": {
+          "$ref": "#/$defs/ConnectorFormat"
+        },
+        "connector_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "connector_power_type": {
+          "$ref": "#/$defs/PowerType"
+        },
+        "connector_standard": {
+          "$ref": "#/$defs/ConnectorType"
+        },
+        "coordinates": {
+          "$ref": "#/$defs/GeoLocation"
+        },
+        "country": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "evse_id": {
+          "maxLength": 48,
+          "type": "string"
+        },
+        "evse_uid": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 255,
+          "type": "string"
+        },
+        "postal_code": {
+          "maxLength": 10,
+          "type": "string"
+        },
+        "state": {
+          "maxLength": 20,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "address",
+        "city",
+        "country",
+        "coordinates",
+        "evse_uid",
+        "evse_id",
+        "connector_id",
+        "connector_standard",
+        "connector_format",
+        "connector_power_type"
+      ],
+      "type": "object"
+    },
+    "CdrToken": {
+      "properties": {
+        "contract_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "country_code": {
+          "maxLength": 2,
+          "minLength": 2,
+          "type": "string"
+        },
+        "party_id": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/TokenType"
+        },
+        "uid": {
+          "maxLength": 36,
+          "type": "string"
+        }
+      },
+      "required": [
+        "country_code",
+        "party_id",
+        "uid",
+        "type",
+        "contract_id"
+      ],
+      "type": "object"
+    },
+    "ChargingPeriod": {
+      "properties": {
+        "dimensions": {
+          "items": {
+            "$ref": "#/$defs/CdrDimension"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "start_date_time": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "tariff_id": {
+          "maxLength": 36,
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_date_time",
+        "dimensions"
+      ],
+      "type": "object"
+    },
+    "ChargingPreferences": {
+      "properties": {
+        "departure_time": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "discharge_allowed": {
+          "type": "boolean"
+        },
+        "energy_need": {
+          "type": "number"
+        },
+        "profile_type": {
+          "$ref": "#/$defs/ProfileType"
+        }
+      },
+      "required": [
+        "profile_type"
+      ],
+      "type": "object"
+    },
+    "ChargingPreferencesResponse": {
+      "enum": [
+        "ACCEPTED",
+        "DEPARTURE_REQUIRED",
+        "ENERGY_NEED_REQUIRED",
+        "NOT_POSSIBLE",
+        "PROFILE_TYPE_NOT_SUPPORTED"
+      ],
+      "type": "string"
+    },
+    "ChargingProfile": {
+      "properties": {
+        "charging_profile_period": {
+          "items": {
+            "$ref": "#/$defs/ChargingProfilePeriod"
+          },
+          "type": "array"
+        },
+        "charging_rate_unit": {
+          "$ref": "#/$defs/ChargingRateUnit"
+        },
+        "duration": {
+          "type": "integer"
+        },
+        "min_charging_rate": {
+          "type": "number"
+        },
+        "start_date_time": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "charging_rate_unit"
+      ],
+      "type": "object"
+    },
+    "ChargingProfilePeriod": {
+      "properties": {
+        "limit": {
+          "type": "number"
+        },
+        "start_period": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start_period",
+        "limit"
+      ],
+      "type": "object"
+    },
+    "ChargingProfileResponse": {
+      "properties": {
+        "result": {
+          "$ref": "#/$defs/ChargingProfileResponseType"
+        },
+        "timeout": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "result",
+        "timeout"
+      ],
+      "type": "object"
+    },
+    "ChargingProfileResponseType": {
+      "enum": [
+        "ACCEPTED",
+        "NOT_SUPPORTED",
+        "REJECTED",
+        "TOO_OFTEN",
+        "UNKNOWN_SESSION"
+      ],
+      "type": "string"
+    },
+    "ChargingProfileResult": {
+      "properties": {
+        "result": {
+          "$ref": "#/$defs/ChargingProfileResultType"
+        }
+      },
+      "required": [
+        "result"
+      ],
+      "type": "object"
+    },
+    "ChargingProfileResultType": {
+      "enum": [
+        "ACCEPTED",
+        "REJECTED",
+        "UNKNOWN"
+      ],
+      "type": "string"
+    },
+    "ChargingRateUnit": {
+      "enum": [
+        "W",
+        "A"
+      ],
+      "type": "string"
+    },
+    "ClearProfileResult": {
+      "properties": {
+        "result": {
+          "$ref": "#/$defs/ChargingProfileResultType"
+        }
+      },
+      "required": [
+        "result"
+      ],
+      "type": "object"
+    },
+    "ClientInfo": {
+      "properties": {
+        "country_code": {
+          "maxLength": 2,
+          "minLength": 2,
+          "type": "string"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "party_id": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/$defs/Role"
+        },
+        "status": {
+          "$ref": "#/$defs/ConnectionStatus"
+        }
+      },
+      "required": [
+        "party_id",
+        "country_code",
+        "role",
+        "status",
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "CommandResponse": {
+      "properties": {
+        "message": {
+          "items": {
+            "$ref": "#/$defs/DisplayText"
+          },
+          "type": "array"
+        },
+        "result": {
+          "$ref": "#/$defs/CommandResponseType"
+        },
+        "timeout": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "result",
+        "timeout"
+      ],
+      "type": "object"
+    },
+    "CommandResponseType": {
+      "enum": [
+        "NOT_SUPPORTED",
+        "REJECTED",
+        "ACCEPTED",
+        "UNKNOWN_SESSION"
+      ],
+      "type": "string"
+    },
+    "CommandResult": {
+      "properties": {
+        "message": {
+          "items": {
+            "$ref": "#/$defs/DisplayText"
+          },
+          "type": "array"
+        },
+        "result": {
+          "$ref": "#/$defs/CommandResultType"
+        }
+      },
+      "required": [
+        "result"
+      ],
+      "type": "object"
+    },
+    "CommandResultType": {
+      "enum": [
+        "ACCEPTED",
+        "CANCELED_RESERVATION",
+        "EVSE_OCCUPIED",
+        "EVSE_INOPERATIVE",
+        "FAILED",
+        "NOT_SUPPORTED",
+        "REJECTED",
+        "TIMEOUT",
+        "UNKNOWN_RESERVATION"
+      ],
+      "type": "string"
+    },
+    "CommandType": {
+      "enum": [
+        "CANCEL_RESERVATION",
+        "RESERVE_NOW",
+        "START_SESSION",
+        "STOP_SESSION",
+        "UNLOCK_CONNECTOR"
+      ],
+      "format": "open-enum",
+      "type": "string"
+    },
+    "ConnectionStatus": {
+      "enum": [
+        "CONNECTED",
+        "OFFLINE",
+        "PLANNED",
+        "SUSPENDED"
+      ],
+      "type": "string"
+    },
+    "Connector": {
+      "properties": {
+        "capabilities": {
+          "items": {
+            "$ref": "#/$defs/ConnectorCapability"
+          },
+          "type": "array"
+        },
+        "format": {
+          "$ref": "#/$defs/ConnectorFormat"
+        },
+        "id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "max_amperage": {
+          "type": "integer"
+        },
+        "max_electric_power": {
+          "type": "integer"
+        },
+        "max_voltage": {
+          "type": "integer"
+        },
+        "power_type": {
+          "$ref": "#/$defs/PowerType"
+        },
+        "standard": {
+          "$ref": "#/$defs/ConnectorType"
+        },
+        "tariff_ids": {
+          "items": {
+            "maxLength": 36,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "terms_and_conditions": {
+          "format": "uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "standard",
+        "format",
+        "power_type",
+        "max_voltage",
+        "max_amperage",
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "ConnectorCapability": {
+      "enum": [
+        "ISO_15118_2_PLUG_AND_CHARGE",
+        "ISO_15118_20_PLUG_AND_CHARGE"
+      ],
+      "format": "open-enum",
+      "type": "string"
+    },
+    "ConnectorFormat": {
+      "enum": [
+        "SOCKET",
+        "CABLE"
+      ],
+      "type": "string"
+    },
+    "ConnectorPatch": {
+      "properties": {
+        "capabilities": {
+          "items": {
+            "$ref": "#/$defs/ConnectorCapability"
+          },
+          "type": "array"
+        },
+        "format": {
+          "$ref": "#/$defs/ConnectorFormat"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "max_amperage": {
+          "type": "integer"
+        },
+        "max_electric_power": {
+          "type": "integer"
+        },
+        "max_voltage": {
+          "type": "integer"
+        },
+        "power_type": {
+          "$ref": "#/$defs/PowerType"
+        },
+        "standard": {
+          "$ref": "#/$defs/ConnectorType"
+        },
+        "tariff_ids": {
+          "items": {
+            "maxLength": 36,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "terms_and_conditions": {
+          "format": "uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "ConnectorType": {
+      "enum": [
+        "CHADEMO",
+        "CHAOJI",
+        "DOMESTIC_A",
+        "DOMESTIC_B",
+        "DOMESTIC_C",
+        "DOMESTIC_D",
+        "DOMESTIC_E",
+        "DOMESTIC_F",
+        "DOMESTIC_G",
+        "DOMESTIC_H",
+        "DOMESTIC_I",
+        "DOMESTIC_J",
+        "DOMESTIC_K",
+        "DOMESTIC_L",
+        "DOMESTIC_M",
+        "DOMESTIC_N",
+        "DOMESTIC_O",
+        "GBT_AC",
+        "GBT_DC",
+        "IEC_60309_2_single_16",
+        "IEC_60309_2_three_16",
+        "IEC_60309_2_three_32",
+        "IEC_60309_2_three_64",
+        "IEC_62196_T1",
+        "IEC_62196_T1_COMBO",
+        "IEC_62196_T2",
+        "IEC_62196_T2_COMBO",
+        "IEC_62196_T3A",
+        "IEC_62196_T3C",
+        "MCS",
+        "NEMA_5_20",
+        "NEMA_6_30",
+        "NEMA_6_50",
+        "NEMA_10_30",
+        "NEMA_10_50",
+        "NEMA_14_30",
+        "NEMA_14_50",
+        "PANTOGRAPH_BOTTOM_UP",
+        "PANTOGRAPH_TOP_DOWN",
+        "SAE_J3400",
+        "TESLA_R",
+        "TESLA_S"
+      ],
+      "format": "open-enum",
+      "type": "string"
+    },
+    "Credentials": {
+      "properties": {
+        "hub_party_id": {
+          "maxLength": 5,
+          "minLength": 5,
+          "type": "string"
+        },
+        "roles": {
+          "items": {
+            "$ref": "#/$defs/CredentialsRole"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "token": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "token",
+        "url",
+        "roles"
+      ],
+      "type": "object"
+    },
+    "CredentialsRole": {
+      "properties": {
+        "business_details": {
+          "$ref": "#/$defs/BusinessDetails"
+        },
+        "country_code": {
+          "maxLength": 2,
+          "minLength": 2,
+          "type": "string"
+        },
+        "party_id": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/$defs/Role"
+        }
+      },
+      "required": [
+        "role",
+        "business_details",
+        "party_id",
+        "country_code"
+      ],
+      "type": "object"
+    },
+    "DayOfWeek": {
+      "enum": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY",
+        "SUNDAY"
+      ],
+      "type": "string"
+    },
+    "DisplayText": {
+      "properties": {
+        "language": {
+          "maxLength": 2,
+          "minLength": 2,
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 512,
+          "type": "string"
+        }
+      },
+      "required": [
+        "language",
+        "text"
+      ],
+      "type": "object"
+    },
+    "EVSE": {
+      "properties": {
+        "accepted_service_providers": {
+          "items": {
+            "maxLength": 50,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "capabilities": {
+          "items": {
+            "$ref": "#/$defs/Capability"
+          },
+          "type": "array"
+        },
+        "connectors": {
+          "items": {
+            "$ref": "#/$defs/Connector"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "coordinates": {
+          "$ref": "#/$defs/GeoLocation"
+        },
+        "directions": {
+          "items": {
+            "$ref": "#/$defs/DisplayText"
+          },
+          "type": "array"
+        },
+        "evse_id": {
+          "maxLength": 48,
+          "type": "string"
+        },
+        "floor_level": {
+          "maxLength": 4,
+          "type": "string"
+        },
+        "images": {
+          "items": {
+            "$ref": "#/$defs/Image"
+          },
+          "type": "array"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "parking": {
+          "items": {
+            "$ref": "#/$defs/EVSEParking"
+          },
+          "type": "array"
+        },
+        "parking_restrictions": {
+          "items": {
+            "$ref": "#/$defs/ParkingRestriction"
+          },
+          "type": "array"
+        },
+        "physical_reference": {
+          "maxLength": 16,
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/Status"
+        },
+        "status_schedule": {
+          "items": {
+            "$ref": "#/$defs/StatusSchedule"
+          },
+          "type": "array"
+        },
+        "uid": {
+          "maxLength": 36,
+          "type": "string"
+        }
+      },
+      "required": [
+        "uid",
+        "status",
+        "connectors",
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "EVSEParking": {
+      "properties": {
+        "evse_position": {
+          "$ref": "#/$defs/EVSEPosition"
+        },
+        "parking_id": {
+          "maxLength": 36,
+          "type": "string"
+        }
+      },
+      "required": [
+        "parking_id"
+      ],
+      "type": "object"
+    },
+    "EVSEPatch": {
+      "properties": {
+        "accepted_service_providers": {
+          "items": {
+            "maxLength": 50,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "capabilities": {
+          "items": {
+            "$ref": "#/$defs/Capability"
+          },
+          "type": "array"
+        },
+        "connectors": {
+          "items": {
+            "$ref": "#/$defs/Connector"
+          },
+          "type": "array"
+        },
+        "coordinates": {
+          "$ref": "#/$defs/GeoLocation"
+        },
+        "directions": {
+          "items": {
+            "$ref": "#/$defs/DisplayText"
+          },
+          "type": "array"
+        },
+        "evse_id": {
+          "maxLength": 48,
+          "type": "string"
+        },
+        "floor_level": {
+          "maxLength": 4,
+          "type": "string"
+        },
+        "images": {
+          "items": {
+            "$ref": "#/$defs/Image"
+          },
+          "type": "array"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "parking": {
+          "items": {
+            "$ref": "#/$defs/EVSEParking"
+          },
+          "type": "array"
+        },
+        "parking_restrictions": {
+          "items": {
+            "$ref": "#/$defs/ParkingRestriction"
+          },
+          "type": "array"
+        },
+        "physical_reference": {
+          "maxLength": 16,
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/Status"
+        },
+        "status_schedule": {
+          "items": {
+            "$ref": "#/$defs/StatusSchedule"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "EVSEPosition": {
+      "enum": [
+        "LEFT",
+        "RIGHT",
+        "CENTER"
+      ],
+      "type": "string"
+    },
+    "Endpoint": {
+      "properties": {
+        "identifier": {
+          "$ref": "#/$defs/ModuleID"
+        },
+        "role": {
+          "$ref": "#/$defs/InterfaceRole"
+        },
+        "url": {
+          "format": "uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "identifier",
+        "role",
+        "url"
+      ],
+      "type": "object"
+    },
+    "EnergyContract": {
+      "properties": {
+        "contract_id": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "supplier_name": {
+          "maxLength": 64,
+          "type": "string"
+        }
+      },
+      "required": [
+        "supplier_name"
+      ],
+      "type": "object"
+    },
+    "EnergyMix": {
+      "properties": {
+        "energy_product_name": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "energy_sources": {
+          "items": {
+            "$ref": "#/$defs/EnergySource"
+          },
+          "type": "array"
+        },
+        "environ_impact": {
+          "items": {
+            "$ref": "#/$defs/EnvironmentalImpact"
+          },
+          "type": "array"
+        },
+        "is_green_energy": {
+          "type": "boolean"
+        },
+        "supplier_name": {
+          "maxLength": 64,
+          "type": "string"
+        }
+      },
+      "required": [
+        "is_green_energy"
+      ],
+      "type": "object"
+    },
+    "EnergySource": {
+      "properties": {
+        "percentage": {
+          "type": "number"
+        },
+        "source": {
+          "$ref": "#/$defs/EnergySourceCategory"
+        }
+      },
+      "required": [
+        "source",
+        "percentage"
+      ],
+      "type": "object"
+    },
+    "EnergySourceCategory": {
+      "enum": [
+        "NUCLEAR",
+        "GENERAL_FOSSIL",
+        "COAL",
+        "GAS",
+        "GENERAL_GREEN",
+        "SOLAR",
+        "WIND",
+        "WATER"
+      ],
+      "type": "string"
+    },
+    "EnvironmentalImpact": {
+      "properties": {
+        "amount": {
+          "type": "number"
+        },
+        "category": {
+          "$ref": "#/$defs/EnvironmentalImpactCategory"
+        }
+      },
+      "required": [
+        "category",
+        "amount"
+      ],
+      "type": "object"
+    },
+    "EnvironmentalImpactCategory": {
+      "enum": [
+        "NUCLEAR_WASTE",
+        "CARBON_DIOXIDE"
+      ],
+      "format": "open-enum",
+      "type": "string"
+    },
+    "ExceptionalPeriod": {
+      "properties": {
+        "period_begin": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "period_end": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "period_begin",
+        "period_end"
+      ],
+      "type": "object"
+    },
+    "Facility": {
+      "enum": [
+        "HOTEL",
+        "RESTAURANT",
+        "CAFE",
+        "MALL",
+        "SUPERMARKET",
+        "SPORT",
+        "RECREATION_AREA",
+        "NATURE",
+        "MUSEUM",
+        "BIKE_SHARING",
+        "BUS_STOP",
+        "TAXI_STAND",
+        "TRAM_STOP",
+        "METRO_STATION",
+        "TRAIN_STATION",
+        "AIRPORT",
+        "PARKING_LOT",
+        "CARPOOL_PARKING",
+        "FUEL_STATION",
+        "WIFI"
+      ],
+      "format": "open-enum",
+      "type": "string"
+    },
+    "FinancialAdviceConfirmation": {
+      "properties": {
+        "authorization_reference": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "capture_status_code": {
+          "$ref": "#/$defs/CaptureStatusCode"
+        },
+        "capture_status_message": {
+          "maxLength": 255,
+          "type": "string"
+        },
+        "currency": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "eft_data": {
+          "items": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "total_costs": {
+          "$ref": "#/$defs/Price"
+        }
+      },
+      "required": [
+        "id",
+        "authorization_reference",
+        "total_costs",
+        "currency",
+        "eft_data",
+        "capture_status_code",
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "GeoLocation": {
+      "properties": {
+        "latitude": {
+          "maxLength": 10,
+          "type": "string"
+        },
+        "longitude": {
+          "maxLength": 11,
+          "type": "string"
+        }
+      },
+      "required": [
+        "latitude",
+        "longitude"
+      ],
+      "type": "object"
+    },
+    "Hours": {
+      "properties": {
+        "exceptional_closings": {
+          "items": {
+            "$ref": "#/$defs/ExceptionalPeriod"
+          },
+          "type": "array"
+        },
+        "exceptional_openings": {
+          "items": {
+            "$ref": "#/$defs/ExceptionalPeriod"
+          },
+          "type": "array"
+        },
+        "regular_hours": {
+          "items": {
+            "$ref": "#/$defs/RegularHours"
+          },
+          "type": "array"
+        },
+        "twentyfourseven": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "twentyfourseven"
+      ],
+      "type": "object"
+    },
+    "Image": {
+      "properties": {
+        "category": {
+          "$ref": "#/$defs/ImageCategory"
+        },
+        "height": {
+          "type": "integer"
+        },
+        "thumbnail": {
+          "format": "uri",
+          "type": "string"
+        },
+        "type": {
+          "maxLength": 4,
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "type": "string"
+        },
+        "width": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "url",
+        "category",
+        "type"
+      ],
+      "type": "object"
+    },
+    "ImageCategory": {
+      "enum": [
+        "CHARGER",
+        "ENTRANCE",
+        "LOCATION",
+        "NETWORK",
+        "OPERATOR",
+        "OTHER",
+        "OWNER"
+      ],
+      "format": "open-enum",
+      "type": "string"
+    },
+    "InterfaceRole": {
+      "enum": [
+        "SENDER",
+        "RECEIVER"
+      ],
+      "type": "string"
+    },
+    "InvoiceCreator": {
+      "enum": [
+        "CPO",
+        "PTP"
+      ],
+      "type": "string"
+    },
+    "Location": {
+      "properties": {
+        "address": {
+          "maxLength": 45,
+          "type": "string"
+        },
+        "charging_when_closed": {
+          "type": "boolean"
+        },
+        "city": {
+          "maxLength": 45,
+          "type": "string"
+        },
+        "coordinates": {
+          "$ref": "#/$defs/GeoLocation"
+        },
+        "country": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "country_code": {
+          "maxLength": 2,
+          "minLength": 2,
+          "type": "string"
+        },
+        "directions": {
+          "items": {
+            "$ref": "#/$defs/DisplayText"
+          },
+          "type": "array"
+        },
+        "energy_mix": {
+          "$ref": "#/$defs/EnergyMix"
+        },
+        "evses": {
+          "items": {
+            "$ref": "#/$defs/EVSE"
+          },
+          "type": "array"
+        },
+        "facilities": {
+          "items": {
+            "$ref": "#/$defs/Facility"
+          },
+          "type": "array"
+        },
+        "help_phone": {
+          "maxLength": 25,
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "images": {
+          "items": {
+            "$ref": "#/$defs/Image"
+          },
+          "type": "array"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 255,
+          "type": "string"
+        },
+        "opening_times": {
+          "$ref": "#/$defs/Hours"
+        },
+        "operator": {
+          "$ref": "#/$defs/BusinessDetails"
+        },
+        "owner": {
+          "$ref": "#/$defs/BusinessDetails"
+        },
+        "parking_places": {
+          "items": {
+            "$ref": "#/$defs/Parking"
+          },
+          "type": "array"
+        },
+        "parking_type": {
+          "$ref": "#/$defs/ParkingType"
+        },
+        "party_id": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "postal_code": {
+          "maxLength": 10,
+          "type": "string"
+        },
+        "publish": {
+          "type": "boolean"
+        },
+        "publish_allowed_to": {
+          "items": {
+            "$ref": "#/$defs/PublishTokenType"
+          },
+          "type": "array"
+        },
+        "related_locations": {
+          "items": {
+            "$ref": "#/$defs/AdditionalGeoLocation"
+          },
+          "type": "array"
+        },
+        "state": {
+          "maxLength": 20,
+          "type": "string"
+        },
+        "suboperator": {
+          "$ref": "#/$defs/BusinessDetails"
+        },
+        "time_zone": {
+          "maxLength": 255,
+          "type": "string"
+        }
+      },
+      "required": [
+        "country_code",
+        "party_id",
+        "id",
+        "publish",
+        "address",
+        "city",
+        "country",
+        "coordinates",
+        "time_zone",
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "LocationPatch": {
+      "properties": {
+        "address": {
+          "maxLength": 45,
+          "type": "string"
+        },
+        "charging_when_closed": {
+          "type": "boolean"
+        },
+        "city": {
+          "maxLength": 45,
+          "type": "string"
+        },
+        "coordinates": {
+          "$ref": "#/$defs/GeoLocation"
+        },
+        "country": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "directions": {
+          "items": {
+            "$ref": "#/$defs/DisplayText"
+          },
+          "type": "array"
+        },
+        "energy_mix": {
+          "$ref": "#/$defs/EnergyMix"
+        },
+        "evses": {
+          "items": {
+            "$ref": "#/$defs/EVSE"
+          },
+          "type": "array"
+        },
+        "facilities": {
+          "items": {
+            "$ref": "#/$defs/Facility"
+          },
+          "type": "array"
+        },
+        "help_phone": {
+          "maxLength": 25,
+          "type": "string"
+        },
+        "images": {
+          "items": {
+            "$ref": "#/$defs/Image"
+          },
+          "type": "array"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 255,
+          "type": "string"
+        },
+        "opening_times": {
+          "$ref": "#/$defs/Hours"
+        },
+        "operator": {
+          "$ref": "#/$defs/BusinessDetails"
+        },
+        "owner": {
+          "$ref": "#/$defs/BusinessDetails"
+        },
+        "parking_places": {
+          "items": {
+            "$ref": "#/$defs/Parking"
+          },
+          "type": "array"
+        },
+        "parking_type": {
+          "$ref": "#/$defs/ParkingType"
+        },
+        "postal_code": {
+          "maxLength": 10,
+          "type": "string"
+        },
+        "publish": {
+          "type": "boolean"
+        },
+        "publish_allowed_to": {
+          "items": {
+            "$ref": "#/$defs/PublishTokenType"
+          },
+          "type": "array"
+        },
+        "related_locations": {
+          "items": {
+            "$ref": "#/$defs/AdditionalGeoLocation"
+          },
+          "type": "array"
+        },
+        "state": {
+          "maxLength": 20,
+          "type": "string"
+        },
+        "suboperator": {
+          "$ref": "#/$defs/BusinessDetails"
+        },
+        "time_zone": {
+          "maxLength": 255,
+          "type": "string"
+        }
+      },
+      "required": [
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "LocationReferences": {
+      "properties": {
+        "evse_uids": {
+          "items": {
+            "maxLength": 36,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "location_id": {
+          "maxLength": 36,
+          "type": "string"
+        }
+      },
+      "required": [
+        "location_id"
+      ],
+      "type": "object"
+    },
+    "ModuleID": {
+      "enum": [
+        "cdrs",
+        "chargingprofiles",
+        "commands",
+        "credentials",
+        "hubclientinfo",
+        "locations",
+        "sessions",
+        "tariffs",
+        "tokens",
+        "bookings",
+        "payments"
+      ],
+      "format": "open-enum",
+      "type": "string"
+    },
+    "Parking": {
+      "properties": {
+        "apds_reference": {
+          "type": "string"
+        },
+        "dangerous_goods_allowed": {
+          "type": "boolean"
+        },
+        "direction": {
+          "$ref": "#/$defs/ParkingDirection"
+        },
+        "drive_through": {
+          "type": "boolean"
+        },
+        "id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "images": {
+          "items": {
+            "$ref": "#/$defs/Image"
+          },
+          "type": "array"
+        },
+        "lighting": {
+          "type": "boolean"
+        },
+        "max_vehicle_height": {
+          "type": "number"
+        },
+        "max_vehicle_length": {
+          "type": "number"
+        },
+        "max_vehicle_weight": {
+          "type": "number"
+        },
+        "max_vehicle_width": {
+          "type": "number"
+        },
+        "parking_space_length": {
+          "type": "number"
+        },
+        "parking_space_width": {
+          "type": "number"
+        },
+        "physical_reference": {
+          "maxLength": 12,
+          "type": "string"
+        },
+        "refrigeration_outlet": {
+          "type": "boolean"
+        },
+        "reservation_required": {
+          "type": "boolean"
+        },
+        "restricted_to_type": {
+          "type": "boolean"
+        },
+        "roofed": {
+          "type": "boolean"
+        },
+        "standards": {
+          "items": {
+            "maxLength": 36,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "time_limit": {
+          "type": "number"
+        },
+        "vehicle_types": {
+          "items": {
+            "$ref": "#/$defs/VehicleType"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "vehicle_types",
+        "restricted_to_type",
+        "reservation_required"
+      ],
+      "type": "object"
+    },
+    "ParkingDirection": {
+      "enum": [
+        "PARALLEL",
+        "PERPENDICULAR",
+        "ANGLE"
+      ],
+      "type": "string"
+    },
+    "ParkingRestriction": {
+      "enum": [
+        "CUSTOMERS",
+        "DISABLED",
+        "EMPLOYEES",
+        "EV_ONLY",
+        "MOTORCYCLES",
+        "PLUGGED",
+        "TAXIS",
+        "TENANTS"
+      ],
+      "format": "open-enum",
+      "type": "string"
+    },
+    "ParkingType": {
+      "enum": [
+        "ALONG_MOTORWAY",
+        "PARKING_GARAGE",
+        "PARKING_LOT",
+        "ON_DRIVEWAY",
+        "ON_STREET",
+        "UNDERGROUND_GARAGE"
+      ],
+      "format": "open-enum",
+      "type": "string"
+    },
+    "Period": {
+      "properties": {
+        "end_date_time": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "start_date_time": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_date_time",
+        "end_date_time"
+      ],
+      "type": "object"
+    },
+    "Policy": {
+      "properties": {
+        "ad_hoc": {
+          "type": "number"
+        },
+        "reservation_required": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "reservation_required"
+      ],
+      "type": "object"
+    },
+    "PowerType": {
+      "enum": [
+        "AC_1_PHASE",
+        "AC_2_PHASE",
+        "AC_2_PHASE_SPLIT",
+        "AC_3_PHASE",
+        "DC"
+      ],
+      "type": "string"
+    },
+    "Price": {
+      "properties": {
+        "before_taxes": {
+          "type": "number"
+        },
+        "taxes": {
+          "items": {
+            "$ref": "#/$defs/TaxAmount"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "before_taxes"
+      ],
+      "type": "object"
+    },
+    "PriceComponent": {
+      "properties": {
+        "price": {
+          "type": "number"
+        },
+        "step_size": {
+          "type": "integer"
+        },
+        "type": {
+          "$ref": "#/$defs/TariffDimensionType"
+        },
+        "vat": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "type",
+        "price",
+        "step_size"
+      ],
+      "type": "object"
+    },
+    "PriceLimit": {
+      "properties": {
+        "after_taxes": {
+          "type": "number"
+        },
+        "before_taxes": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "before_taxes"
+      ],
+      "type": "object"
+    },
+    "ProfileType": {
+      "enum": [
+        "CHEAP",
+        "FAST",
+        "GREEN",
+        "REGULAR"
+      ],
+      "type": "string"
+    },
+    "PublishTokenType": {
+      "properties": {
+        "group_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "issuer": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/TokenType"
+        },
+        "uid": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "visual_number": {
+          "maxLength": 64,
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "RegularHours": {
+      "properties": {
+        "period_begin": {
+          "type": "string"
+        },
+        "period_end": {
+          "type": "string"
+        },
+        "weekday": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "weekday",
+        "period_begin",
+        "period_end"
+      ],
+      "type": "object"
+    },
+    "ReservationRequestStatus": {
+      "enum": [
+        "PENDING",
+        "ACCEPTED",
+        "DECLINED",
+        "FAILED"
+      ],
+      "type": "string"
+    },
+    "ReservationRestrictionType": {
+      "enum": [
+        "RESERVATION",
+        "RESERVATION_EXPIRES"
+      ],
+      "type": "string"
+    },
+    "ReservationStatus": {
+      "enum": [
+        "PENDING",
+        "RESERVED",
+        "CANCELED",
+        "FAILED",
+        "NO_SHOW",
+        "FULFILLED",
+        "REJECTED",
+        "UNKNOWN"
+      ],
+      "type": "string"
+    },
+    "ReserveNow": {
+      "properties": {
+        "authorization_reference": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "evse_uid": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "expiry_date": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "location_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "reservation_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "response_url": {
+          "format": "uri",
+          "type": "string"
+        },
+        "token": {
+          "$ref": "#/$defs/Token"
+        }
+      },
+      "required": [
+        "response_url",
+        "token",
+        "expiry_date",
+        "reservation_id",
+        "location_id"
+      ],
+      "type": "object"
+    },
+    "Role": {
+      "enum": [
+        "CPO",
+        "EMSP",
+        "NAP",
+        "NSP",
+        "OTHER",
+        "SCSP"
+      ],
+      "type": "string"
+    },
+    "Session": {
+      "properties": {
+        "auth_method": {
+          "$ref": "#/$defs/AuthMethod"
+        },
+        "authorization_reference": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "cdr_token": {
+          "$ref": "#/$defs/CdrToken"
+        },
+        "charging_periods": {
+          "items": {
+            "$ref": "#/$defs/ChargingPeriod"
+          },
+          "type": "array"
+        },
+        "connector_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "country_code": {
+          "maxLength": 2,
+          "minLength": 2,
+          "type": "string"
+        },
+        "currency": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "end_date_time": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "evse_uid": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "kwh": {
+          "type": "number"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "location_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "meter_id": {
+          "maxLength": 255,
+          "type": "string"
+        },
+        "party_id": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "start_date_time": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/SessionStatus"
+        },
+        "total_cost": {
+          "$ref": "#/$defs/Price"
+        }
+      },
+      "required": [
+        "country_code",
+        "party_id",
+        "id",
+        "start_date_time",
+        "kwh",
+        "cdr_token",
+        "auth_method",
+        "location_id",
+        "evse_uid",
+        "connector_id",
+        "currency",
+        "status",
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "SessionPatch": {
+      "properties": {
+        "auth_method": {
+          "$ref": "#/$defs/AuthMethod"
+        },
+        "authorization_reference": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "cdr_token": {
+          "$ref": "#/$defs/CdrToken"
+        },
+        "charging_periods": {
+          "items": {
+            "$ref": "#/$defs/ChargingPeriod"
+          },
+          "type": "array"
+        },
+        "connector_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "currency": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "end_date_time": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "evse_uid": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "kwh": {
+          "type": "number"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "location_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "meter_id": {
+          "maxLength": 255,
+          "type": "string"
+        },
+        "start_date_time": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/SessionStatus"
+        },
+        "total_cost": {
+          "$ref": "#/$defs/Price"
+        }
+      },
+      "required": [
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "SessionStatus": {
+      "enum": [
+        "ACTIVE",
+        "COMPLETED",
+        "INVALID",
+        "PENDING",
+        "RESERVATION"
+      ],
+      "type": "string"
+    },
+    "SetChargingProfile": {
+      "properties": {
+        "charging_profile": {
+          "$ref": "#/$defs/ChargingProfile"
+        },
+        "response_url": {
+          "format": "uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "charging_profile",
+        "response_url"
+      ],
+      "type": "object"
+    },
+    "SignedData": {
+      "properties": {
+        "encoding_method": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "encoding_method_version": {
+          "type": "integer"
+        },
+        "public_key": {
+          "maxLength": 512,
+          "type": "string"
+        },
+        "signed_values": {
+          "items": {
+            "$ref": "#/$defs/SignedValue"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "url": {
+          "maxLength": 512,
+          "type": "string"
+        }
+      },
+      "required": [
+        "encoding_method",
+        "signed_values"
+      ],
+      "type": "object"
+    },
+    "SignedValue": {
+      "properties": {
+        "nature": {
+          "maxLength": 32,
+          "type": "string"
+        },
+        "plain_data": {
+          "maxLength": 512,
+          "type": "string"
+        },
+        "signed_data": {
+          "maxLength": 5000,
+          "type": "string"
+        }
+      },
+      "required": [
+        "nature",
+        "plain_data",
+        "signed_data"
+      ],
+      "type": "object"
+    },
+    "StartSession": {
+      "properties": {
+        "authorization_reference": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "connector_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "evse_uid": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "location_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "response_url": {
+          "format": "uri",
+          "type": "string"
+        },
+        "token": {
+          "$ref": "#/$defs/Token"
+        }
+      },
+      "required": [
+        "response_url",
+        "token",
+        "location_id"
+      ],
+      "type": "object"
+    },
+    "Status": {
+      "enum": [
+        "AVAILABLE",
+        "BLOCKED",
+        "CHARGING",
+        "INOPERATIVE",
+        "OUTOFORDER",
+        "PLANNED",
+        "REMOVED",
+        "RESERVED",
+        "UNKNOWN"
+      ],
+      "type": "string"
+    },
+    "StatusSchedule": {
+      "properties": {
+        "period_begin": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "period_end": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/Status"
+        }
+      },
+      "required": [
+        "period_begin",
+        "status"
+      ],
+      "type": "object"
+    },
+    "StopSession": {
+      "properties": {
+        "response_url": {
+          "format": "uri",
+          "type": "string"
+        },
+        "session_id": {
+          "maxLength": 36,
+          "type": "string"
+        }
+      },
+      "required": [
+        "response_url",
+        "session_id"
+      ],
+      "type": "object"
+    },
+    "Tariff": {
+      "properties": {
+        "country_code": {
+          "maxLength": 2,
+          "minLength": 2,
+          "type": "string"
+        },
+        "currency": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "elements": {
+          "items": {
+            "$ref": "#/$defs/TariffElement"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "end_date_time": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "energy_mix": {
+          "$ref": "#/$defs/EnergyMix"
+        },
+        "id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "max_price": {
+          "$ref": "#/$defs/PriceLimit"
+        },
+        "min_price": {
+          "$ref": "#/$defs/PriceLimit"
+        },
+        "party_id": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "preauthorize_amount": {
+          "type": "number"
+        },
+        "start_date_time": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "tariff_alt_text": {
+          "items": {
+            "$ref": "#/$defs/DisplayText"
+          },
+          "type": "array"
+        },
+        "tariff_alt_url": {
+          "format": "uri",
+          "type": "string"
+        },
+        "tax_included": {
+          "$ref": "#/$defs/TaxIncluded"
+        },
+        "type": {
+          "$ref": "#/$defs/TariffType"
+        }
+      },
+      "required": [
+        "country_code",
+        "party_id",
+        "id",
+        "currency",
+        "elements",
+        "tax_included",
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "TariffDimensionType": {
+      "enum": [
+        "ENERGY",
+        "FLAT",
+        "PARKING_TIME",
+        "TIME"
+      ],
+      "type": "string"
+    },
+    "TariffElement": {
+      "properties": {
+        "price_components": {
+          "items": {
+            "$ref": "#/$defs/PriceComponent"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "restrictions": {
+          "$ref": "#/$defs/TariffRestrictions"
+        }
+      },
+      "required": [
+        "price_components"
+      ],
+      "type": "object"
+    },
+    "TariffRestrictions": {
+      "properties": {
+        "booking": {
+          "$ref": "#/$defs/BookingRestrictionType"
+        },
+        "day_of_week": {
+          "items": {
+            "$ref": "#/$defs/DayOfWeek"
+          },
+          "type": "array"
+        },
+        "end_date": {
+          "type": "string"
+        },
+        "end_time": {
+          "type": "string"
+        },
+        "max_current": {
+          "type": "number"
+        },
+        "max_duration": {
+          "type": "integer"
+        },
+        "max_kwh": {
+          "type": "number"
+        },
+        "max_power": {
+          "type": "number"
+        },
+        "min_current": {
+          "type": "number"
+        },
+        "min_duration": {
+          "type": "integer"
+        },
+        "min_kwh": {
+          "type": "number"
+        },
+        "min_power": {
+          "type": "number"
+        },
+        "reservation": {
+          "$ref": "#/$defs/ReservationRestrictionType"
+        },
+        "start_date": {
+          "type": "string"
+        },
+        "start_time": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "TariffType": {
+      "enum": [
+        "AD_HOC_PAYMENT",
+        "PROFILE_CHEAP",
+        "PROFILE_FAST",
+        "PROFILE_GREEN",
+        "REGULAR"
+      ],
+      "type": "string"
+    },
+    "TaxAmount": {
+      "properties": {
+        "account_number": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        },
+        "percentage": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "amount"
+      ],
+      "type": "object"
+    },
+    "TaxIncluded": {
+      "enum": [
+        "YES",
+        "NO",
+        "N/A"
+      ],
+      "type": "string"
+    },
+    "Terminal": {
+      "properties": {
+        "address": {
+          "maxLength": 45,
+          "type": "string"
+        },
+        "city": {
+          "maxLength": 45,
+          "type": "string"
+        },
+        "coordinates": {
+          "$ref": "#/$defs/GeoLocation"
+        },
+        "country": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "country_code": {
+          "maxLength": 2,
+          "minLength": 2,
+          "type": "string"
+        },
+        "customer_reference": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "evse_uids": {
+          "items": {
+            "maxLength": 36,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "invoice_base_url": {
+          "format": "uri",
+          "type": "string"
+        },
+        "invoice_creator": {
+          "$ref": "#/$defs/InvoiceCreator"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "location_ids": {
+          "items": {
+            "maxLength": 36,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "party_id": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "postal_code": {
+          "maxLength": 10,
+          "type": "string"
+        },
+        "reference": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "state": {
+          "maxLength": 20,
+          "type": "string"
+        },
+        "terminal_id": {
+          "maxLength": 36,
+          "type": "string"
+        }
+      },
+      "required": [
+        "terminal_id",
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "TerminalActivation": {
+      "properties": {
+        "address": {
+          "maxLength": 45,
+          "type": "string"
+        },
+        "city": {
+          "maxLength": 45,
+          "type": "string"
+        },
+        "coordinates": {
+          "$ref": "#/$defs/GeoLocation"
+        },
+        "country": {
+          "maxLength": 3,
+          "type": "string"
+        },
+        "country_code": {
+          "maxLength": 2,
+          "type": "string"
+        },
+        "customer_reference": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "evse_uids": {
+          "items": {
+            "maxLength": 36,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "invoice_base_url": {
+          "format": "uri",
+          "type": "string"
+        },
+        "invoice_creator": {
+          "$ref": "#/$defs/InvoiceCreator"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "location_ids": {
+          "items": {
+            "maxLength": 36,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "party_id": {
+          "maxLength": 3,
+          "type": "string"
+        },
+        "postal_code": {
+          "maxLength": 10,
+          "type": "string"
+        },
+        "reference": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "state": {
+          "maxLength": 20,
+          "type": "string"
+        },
+        "terminal_id": {
+          "maxLength": 36,
+          "type": "string"
+        }
+      },
+      "required": [
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "TerminalPatch": {
+      "properties": {
+        "evse_uids": {
+          "items": {
+            "maxLength": 36,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "location_ids": {
+          "items": {
+            "maxLength": 36,
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "Timeslot": {
+      "properties": {
+        "end_date_time": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "green_energy_support": {
+          "type": "boolean"
+        },
+        "max_power": {
+          "type": "number"
+        },
+        "min_power": {
+          "type": "number"
+        },
+        "start_date_time": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_date_time",
+        "end_date_time"
+      ],
+      "type": "object"
+    },
+    "Token": {
+      "properties": {
+        "contract_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "country_code": {
+          "maxLength": 2,
+          "minLength": 2,
+          "type": "string"
+        },
+        "default_profile_type": {
+          "$ref": "#/$defs/ProfileType"
+        },
+        "energy_contract": {
+          "$ref": "#/$defs/EnergyContract"
+        },
+        "group_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "issuer": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "language": {
+          "maxLength": 2,
+          "minLength": 2,
+          "type": "string"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "party_id": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/TokenType"
+        },
+        "uid": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "visual_number": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "whitelist": {
+          "$ref": "#/$defs/WhitelistType"
+        }
+      },
+      "required": [
+        "country_code",
+        "party_id",
+        "uid",
+        "type",
+        "contract_id",
+        "issuer",
+        "valid",
+        "whitelist",
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "TokenPatch": {
+      "properties": {
+        "contract_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "country_code": {
+          "maxLength": 2,
+          "minLength": 2,
+          "type": "string"
+        },
+        "default_profile_type": {
+          "$ref": "#/$defs/ProfileType"
+        },
+        "energy_contract": {
+          "$ref": "#/$defs/EnergyContract"
+        },
+        "group_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "issuer": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "language": {
+          "maxLength": 2,
+          "minLength": 2,
+          "type": "string"
+        },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "party_id": {
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/TokenType"
+        },
+        "uid": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "visual_number": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "whitelist": {
+          "$ref": "#/$defs/WhitelistType"
+        }
+      },
+      "required": [
+        "last_updated"
+      ],
+      "type": "object"
+    },
+    "TokenType": {
+      "enum": [
+        "AD_HOC_USER",
+        "APP_USER",
+        "EMAID",
+        "OTHER",
+        "RFID"
+      ],
+      "format": "open-enum",
+      "type": "string"
+    },
+    "UnlockConnector": {
+      "properties": {
+        "connector_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "evse_uid": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "location_id": {
+          "maxLength": 36,
+          "type": "string"
+        },
+        "response_url": {
+          "format": "uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "response_url",
+        "location_id",
+        "evse_uid",
+        "connector_id"
+      ],
+      "type": "object"
+    },
+    "VehicleType": {
+      "enum": [
+        "MOTORCYCLE",
+        "PERSONAL_VEHICLE",
+        "PERSONAL_VEHICLE_WITH_TRAILER",
+        "VAN",
+        "SEMI_TRACTOR",
+        "RIGID",
+        "TRUCK_WITH_TRAILER",
+        "BUS",
+        "DISABLED"
+      ],
+      "format": "open-enum",
+      "type": "string"
+    },
+    "Version": {
+      "properties": {
+        "url": {
+          "format": "uri",
+          "type": "string"
+        },
+        "version": {
+          "$ref": "#/$defs/VersionNumber"
+        }
+      },
+      "required": [
+        "version",
+        "url"
+      ],
+      "type": "object"
+    },
+    "VersionDetails": {
+      "properties": {
+        "endpoints": {
+          "items": {
+            "$ref": "#/$defs/Endpoint"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "version": {
+          "$ref": "#/$defs/VersionNumber"
+        }
+      },
+      "required": [
+        "version",
+        "endpoints"
+      ],
+      "type": "object"
+    },
+    "VersionNumber": {
+      "enum": [
+        "2.0",
+        "2.1",
+        "2.1.1",
+        "2.2",
+        "2.2.1",
+        "2.3.0"
+      ],
+      "format": "open-enum",
+      "type": "string"
+    },
+    "WhitelistType": {
+      "enum": [
+        "ALWAYS",
+        "ALLOWED",
+        "ALLOWED_OFFLINE",
+        "NEVER"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

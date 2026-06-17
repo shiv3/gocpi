@@ -1,0 +1,254 @@
+openapi: 3.1.0
+components:
+  schemas:
+    Token:
+      type: object
+      description: |
+        The Token object describes the token information of an eMSP. CPOs can use this to build
+        a cache of known Tokens. When a request to authorize comes from a Charge Point, the CPO
+        can check against this cache to know to which eMSP they can later send a CDR.
+      properties:
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: ISO-3166 alpha-2 country code of the MSP that 'owns' this Token.
+        party_id:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ID of the eMSP that 'owns' this Token (following the ISO-15118 standard).
+        uid:
+          type: string
+          maxLength: 36
+          description: |
+            Unique ID by which this Token, combined with the Token type, can be identified.
+            This is the field used by CPO system (RFID reader on the Charge Point) to identify
+            this token. Currently, in most cases: type=RFID, this is the RFID hidden ID as read
+            by the RFID reader, but that is not a requirement. If this is a APP_USER or AD_HOC_USER
+            Token, it will be a uniquely, by the eMSP, generated ID.
+            This field is named `uid` instead of `id` to prevent confusion with: `contract_id`.
+        type:
+          $ref: "#/components/schemas/TokenType"
+          description: Type of the token
+        contract_id:
+          type: string
+          maxLength: 36
+          description: |
+            Uniquely identifies the EV Driver contract token within the eMSP's platform (and
+            suboperator platforms). Recommended to follow the specification for eMA ID from
+            "E-mobility ID-codes: the purpose of IDs, ID usage and ID format" (https://evroaming.org/contract-evse-ids/).
+        visual_number:
+          type: string
+          maxLength: 64
+          description: Visual readable number/identification as printed on the Token (RFID card), might be equal to the contract_id.
+        issuer:
+          type: string
+          maxLength: 64
+          description: Issuing company, most of the times the name of the company printed on the token (RFID card), not necessarily the eMSP.
+        group_id:
+          type: string
+          maxLength: 36
+          description: |
+            This ID groups a couple of tokens. This can be used to make two or more tokens work
+            as one, so that a session can be started with one token and stopped with another,
+            handy when a card and key-fob are given to the EV-driver. Beware that OCPP 1.5/1.6
+            only support group_ids (it is called parentId in OCPP 1.5/1.6) with a maximum length of 20.
+        valid:
+          type: boolean
+          description: Is this Token valid
+        whitelist:
+          $ref: "#/components/schemas/WhitelistType"
+          description: Indicates what type of white-listing is allowed.
+        language:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: |
+            Language Code ISO 639-1. This optional field indicates the Token owner's preferred
+            interface language. If the language is not provided or not supported then the CPO is
+            free to choose its own language.
+        default_profile_type:
+          $ref: "../sessions/schema.yaml#/components/schemas/ProfileType"
+          description: |
+            The default Charging Preference. When this is provided, and a charging session is
+            started on an Charge Point that support Preference base Smart Charging and support
+            this ProfileType, the Charge Point can start using this ProfileType, without this
+            having to be set via: Set Charging Preferences.
+        energy_contract:
+          $ref: "#/components/schemas/EnergyContract"
+          description: |
+            When the Charge Point supports using your own energy supplier/contract at a Charge
+            Point, information about the energy supplier/contract is needed so the CPO knows
+            which energy supplier to use. NOTE: In a lot of countries it is currently not
+            allowed/possible to use a drivers own energy supplier/contract at a Charge Point.
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp when this Token was last updated (or created).
+      required:
+        - country_code
+        - party_id
+        - uid
+        - type
+        - contract_id
+        - issuer
+        - valid
+        - whitelist
+        - last_updated
+
+    TokenPatch:
+      type: object
+      description: |
+        Partial Token object for PATCH requests. Only fields present will be updated.
+        The last_updated field is required.
+      properties:
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+        party_id:
+          type: string
+          minLength: 3
+          maxLength: 3
+        uid:
+          type: string
+          maxLength: 36
+        type:
+          $ref: "#/components/schemas/TokenType"
+        contract_id:
+          type: string
+          maxLength: 36
+        visual_number:
+          type: string
+          maxLength: 64
+        issuer:
+          type: string
+          maxLength: 64
+        group_id:
+          type: string
+          maxLength: 36
+        valid:
+          type: boolean
+        whitelist:
+          $ref: "#/components/schemas/WhitelistType"
+        language:
+          type: string
+          minLength: 2
+          maxLength: 2
+        default_profile_type:
+          $ref: "../sessions/schema.yaml#/components/schemas/ProfileType"
+        energy_contract:
+          $ref: "#/components/schemas/EnergyContract"
+        last_updated:
+          type: string
+          format: date-time
+      required:
+        - last_updated
+
+    AuthorizationInfo:
+      type: object
+      description: Contains information about the authorization, if the Token is allowed to charge and optionally which EVSEs are allowed to be used.
+      properties:
+        allowed:
+          $ref: "#/components/schemas/AllowedType"
+          description: Status of the Token, and whether charging is allowed at the optionally given location.
+        token:
+          $ref: "#/components/schemas/Token"
+          description: The complete Token object for which this authorization was requested.
+        location:
+          $ref: "#/components/schemas/LocationReferences"
+          description: Optional reference to the location if it was included in the request, and if the EV driver is allowed to charge at that location. Only the EVSEs the EV driver is allowed to charge at are returned.
+        authorization_reference:
+          type: string
+          maxLength: 36
+          description: Reference to the authorization given by the eMSP, when given, this reference will be provided in the relevant Session and/or CDR.
+        info:
+          $ref: "../../components/schema.yaml#/components/schemas/DisplayText"
+          description: Optional display text, additional information to the EV driver.
+      required:
+        - allowed
+        - token
+
+    EnergyContract:
+      type: object
+      description: Information about an energy contract that belongs to a Token so a driver could use his/her own energy contract when charging at a Charge Point.
+      properties:
+        supplier_name:
+          type: string
+          maxLength: 64
+          description: Name of the energy supplier for this token.
+        contract_id:
+          type: string
+          maxLength: 64
+          description: Contract ID at the energy supplier, that belongs to the owner of this token.
+      required:
+        - supplier_name
+
+    LocationReferences:
+      type: object
+      description: References to location details.
+      properties:
+        location_id:
+          type: string
+          maxLength: 36
+          description: Unique identifier for the location.
+        evse_uids:
+          type: array
+          description: Unique identifiers for EVSEs within the CPO's platform for the EVSE within the given location.
+          items:
+            type: string
+            maxLength: 36
+      required:
+        - location_id
+
+    # ---- Enums ----
+
+    AllowedType:
+      type: string
+      format: enum
+      description: Defines the allowed status of a Token.
+      enum:
+        - ALLOWED
+        - BLOCKED
+        - EXPIRED
+        - NO_CREDIT
+        - NOT_ALLOWED
+      x-enumDescriptions:
+        ALLOWED: This Token is allowed to charge (at this location).
+        BLOCKED: This Token is blocked.
+        EXPIRED: This Token has expired.
+        NO_CREDIT: This Token belongs to an account that has not enough credits to charge (at the given location).
+        NOT_ALLOWED: Token is valid, but is not allowed to charge at the given location.
+
+    TokenType:
+      type: string
+      format: open-enum
+      description: The type of token.
+      enum:
+        - AD_HOC_USER
+        - APP_USER
+        - EMAID
+        - OTHER
+        - RFID
+      x-enumDescriptions:
+        AD_HOC_USER: One time use Token ID generated by a server (or App.) The eMSP uses this to bind a Session to a customer, probably an app user.
+        APP_USER: Token ID generated by a server (or App.) to identify a user of an App. The same user uses the same Token for every Session.
+        EMAID: An EMAID. EMAIDs are used as Tokens when the Charging Station and the vehicle are using ISO 15118 for communication.
+        OTHER: Other type of token
+        RFID: RFID Token
+
+    WhitelistType:
+      type: string
+      format: enum
+      description: Defines when authorization of a Token by the CPO is allowed.
+      enum:
+        - ALWAYS
+        - ALLOWED
+        - ALLOWED_OFFLINE
+        - NEVER
+      x-enumDescriptions:
+        ALWAYS: Token always has to be whitelisted, realtime authorization is not possible/allowed. CPO shall always allow any use of this Token.
+        ALLOWED: It is allowed to whitelist the token, realtime authorization is also allowed. The CPO may choose which version of authorization to use.
+        ALLOWED_OFFLINE: In normal situations realtime authorization shall be used. But when the CPO cannot get a response from the eMSP (communication between CPO and eMSP is offline), the CPO shall allow this Token to be used.
+        NEVER: Whitelisting is forbidden, only realtime authorization is allowed. CPO shall always send a realtime authorization for any use of this Token to the eMSP.

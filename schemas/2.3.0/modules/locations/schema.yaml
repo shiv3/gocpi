@@ -1,0 +1,1142 @@
+openapi: 3.1.0
+components:
+  schemas:
+    Location:
+      type: object
+      description: |
+        The Location object describes the location and its properties where a group of EVSEs
+        that belong together are installed. Typically, the Location object is the exact location
+        of the group of EVSEs, but it can also be the entrance of a parking garage which contains
+        these EVSEs. The exact way to reach each EVSE can be further specified by its own properties.
+      properties:
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: ISO-3166 alpha-2 country code of the CPO that 'owns' this Location.
+        party_id:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ID of the CPO that 'owns' this Location (following the ISO-15118 standard).
+        id:
+          type: string
+          maxLength: 36
+          description: Uniquely identifies the location within the CPOs platform (and suboperator platforms). This field can never be changed, modified or renamed.
+        publish:
+          type: boolean
+          description: |
+            Defines if a Location may be published on a website or app etc.
+            When this is set to false, only tokens identified in the field publish_allowed_to are
+            allowed to be shown this Location.
+            When the same location has EVSEs that may be published and may not be published,
+            two 'Locations' should be created.
+        publish_allowed_to:
+          type: array
+          description: |
+            This field may only be used when the publish field is set to false.
+            Only owners of Tokens that match all the set fields of one PublishToken in the list
+            are allowed to be shown this location.
+          items:
+            $ref: "#/components/schemas/PublishTokenType"
+        name:
+          type: string
+          maxLength: 255
+          description: Display name of the location.
+        address:
+          type: string
+          maxLength: 45
+          description: Street/block name and house number if available.
+        city:
+          type: string
+          maxLength: 45
+          description: City or town.
+        postal_code:
+          type: string
+          maxLength: 10
+          description: Postal code of the location, may only be omitted when the location has no postal code.
+        state:
+          type: string
+          maxLength: 20
+          description: State or province of the location, only to be used when relevant.
+        country:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ISO 3166-1 alpha-3 code for the country of this location.
+        coordinates:
+          $ref: "#/components/schemas/GeoLocation"
+          description: Coordinates of the location.
+        related_locations:
+          type: array
+          description: Geographical location of related points relevant to the user.
+          items:
+            $ref: "#/components/schemas/AdditionalGeoLocation"
+        parking_type:
+          $ref: "#/components/schemas/ParkingType"
+          description: The general type of parking at the charge point location.
+        evses:
+          type: array
+          description: List of EVSEs that belong to this Location.
+          items:
+            $ref: "#/components/schemas/EVSE"
+        parking_places:
+          type: array
+          description: List of parking places at this location. New in OCPI 2.3.0.
+          items:
+            $ref: "#/components/schemas/Parking"
+        directions:
+          type: array
+          description: Human-readable directions on how to reach the location.
+          items:
+            $ref: "../../components/schema.yaml#/components/schemas/DisplayText"
+        operator:
+          $ref: "../../components/schema.yaml#/components/schemas/BusinessDetails"
+          description: Information of the operator. When not specified, the information retrieved from the Credentials module should be used instead.
+        suboperator:
+          $ref: "../../components/schema.yaml#/components/schemas/BusinessDetails"
+          description: Information of the suboperator if available.
+        owner:
+          $ref: "../../components/schema.yaml#/components/schemas/BusinessDetails"
+          description: Information of the owner if available.
+        facilities:
+          type: array
+          description: Optional list of facilities this charging location directly belongs to.
+          items:
+            $ref: "#/components/schemas/Facility"
+        time_zone:
+          type: string
+          maxLength: 255
+          description: One of IANA tzdata's TZ-values representing the time zone of the location. Examples "Europe/Oslo", "Europe/Zurich".
+        opening_times:
+          $ref: "#/components/schemas/Hours"
+          description: The times when the EVSEs at the location can be accessed for charging.
+        charging_when_closed:
+          type: boolean
+          description: Indicates if the EVSEs are still charging outside the opening hours of the location. Default is true.
+        images:
+          type: array
+          description: Links to images related to the location such as photos or logos.
+          items:
+            $ref: "../../components/schema.yaml#/components/schemas/Image"
+        energy_mix:
+          $ref: "#/components/schemas/EnergyMix"
+          description: Details on the energy supplied at this location.
+        help_phone:
+          type: string
+          maxLength: 25
+          description: A telephone number that a Driver using the Location may call for assistance. Calling this number will typically connect the caller to the CPO's customer service department.
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp when this Location or one of its EVSEs or Connectors were last updated (or created).
+      required:
+        - country_code
+        - party_id
+        - id
+        - publish
+        - address
+        - city
+        - country
+        - coordinates
+        - time_zone
+        - last_updated
+
+    LocationPatch:
+      type: object
+      description: Partial Location object for PATCH requests. Only fields present will be updated. The last_updated field is required.
+      properties:
+        publish:
+          type: boolean
+        publish_allowed_to:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublishTokenType"
+        name:
+          type: string
+          maxLength: 255
+        address:
+          type: string
+          maxLength: 45
+        city:
+          type: string
+          maxLength: 45
+        postal_code:
+          type: string
+          maxLength: 10
+        state:
+          type: string
+          maxLength: 20
+        country:
+          type: string
+          minLength: 3
+          maxLength: 3
+        coordinates:
+          $ref: "#/components/schemas/GeoLocation"
+        related_locations:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdditionalGeoLocation"
+        parking_type:
+          $ref: "#/components/schemas/ParkingType"
+        evses:
+          type: array
+          items:
+            $ref: "#/components/schemas/EVSE"
+        parking_places:
+          type: array
+          items:
+            $ref: "#/components/schemas/Parking"
+        directions:
+          type: array
+          items:
+            $ref: "../../components/schema.yaml#/components/schemas/DisplayText"
+        operator:
+          $ref: "../../components/schema.yaml#/components/schemas/BusinessDetails"
+        suboperator:
+          $ref: "../../components/schema.yaml#/components/schemas/BusinessDetails"
+        owner:
+          $ref: "../../components/schema.yaml#/components/schemas/BusinessDetails"
+        facilities:
+          type: array
+          items:
+            $ref: "#/components/schemas/Facility"
+        time_zone:
+          type: string
+          maxLength: 255
+        opening_times:
+          $ref: "#/components/schemas/Hours"
+        charging_when_closed:
+          type: boolean
+        images:
+          type: array
+          items:
+            $ref: "../../components/schema.yaml#/components/schemas/Image"
+        energy_mix:
+          $ref: "#/components/schemas/EnergyMix"
+        help_phone:
+          type: string
+          maxLength: 25
+        last_updated:
+          type: string
+          format: date-time
+      required:
+        - last_updated
+
+    EVSE:
+      type: object
+      description: |
+        The EVSE object describes the part that controls the power supply to a single EV in a single session.
+        It always belongs to a Location object. The object only contains directions to get from the location
+        itself to the EVSE (i.e. floor, physical_reference or directions).
+        An EVSE object has a list of Connectors which can not be used simultaneously: only one connector
+        per EVSE can be used at the time.
+      properties:
+        uid:
+          type: string
+          maxLength: 36
+          description: |
+            Uniquely identifies the EVSE within the CPOs platform (and suboperator platforms).
+            This field can never be changed, modified or renamed. This is the 'technical' identification
+            of the EVSE, not to be used as 'human readable' identification, use the field evse_id for that.
+        evse_id:
+          type: string
+          maxLength: 48
+          description: |
+            Compliant with the following specification for EVSE ID: "E-mobility ID-codes: the purpose of IDs, ID usage and ID format" (https://evroaming.org/contract-evse-ids/).
+            Optional because: if an evse_id is to be re-used in the real world, the evse_id can be removed
+            from an EVSE object if the status is set to REMOVED.
+        status:
+          $ref: "#/components/schemas/Status"
+          description: Indicates the current status of the EVSE.
+        status_schedule:
+          type: array
+          description: Indicates a planned status update of the EVSE.
+          items:
+            $ref: "#/components/schemas/StatusSchedule"
+        capabilities:
+          type: array
+          description: List of functionalities that the EVSE is capable of.
+          items:
+            $ref: "#/components/schemas/Capability"
+        connectors:
+          type: array
+          description: List of available connectors on the EVSE.
+          items:
+            $ref: "#/components/schemas/Connector"
+          minItems: 1
+        floor_level:
+          type: string
+          maxLength: 4
+          description: Level on which the Charge Point is located (in garage buildings) in the locally displayed numbering scheme.
+        coordinates:
+          $ref: "#/components/schemas/GeoLocation"
+          description: Coordinates of the EVSE.
+        physical_reference:
+          type: string
+          maxLength: 16
+          description: A number/string printed on the outside of the EVSE for visual identification.
+        directions:
+          type: array
+          description: Multi-language human-readable directions when more detailed information on how to reach the EVSE from the Location is required.
+          items:
+            $ref: "../../components/schema.yaml#/components/schemas/DisplayText"
+        parking_restrictions:
+          type: array
+          description: All applicable restrictions on who can charge at the EVSE, apart from those related to the vehicle type.
+          items:
+            $ref: "#/components/schemas/ParkingRestriction"
+        parking:
+          type: array
+          description: List of parking place references for this EVSE. New in OCPI 2.3.0.
+          items:
+            $ref: "#/components/schemas/EVSEParking"
+        accepted_service_providers:
+          type: array
+          description: List of service provider identifiers accepted at this EVSE. New in OCPI 2.3.0.
+          items:
+            type: string
+            maxLength: 50
+        images:
+          type: array
+          description: Links to images related to the EVSE such as photos or logos.
+          items:
+            $ref: "../../components/schema.yaml#/components/schemas/Image"
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp when this EVSE or one of its Connectors was last updated (or created).
+      required:
+        - uid
+        - status
+        - connectors
+        - last_updated
+
+    EVSEPatch:
+      type: object
+      description: Partial EVSE object for PATCH requests. Only fields present will be updated. The last_updated field is required.
+      properties:
+        evse_id:
+          type: string
+          maxLength: 48
+        status:
+          $ref: "#/components/schemas/Status"
+        status_schedule:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatusSchedule"
+        capabilities:
+          type: array
+          items:
+            $ref: "#/components/schemas/Capability"
+        connectors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Connector"
+        floor_level:
+          type: string
+          maxLength: 4
+        coordinates:
+          $ref: "#/components/schemas/GeoLocation"
+        physical_reference:
+          type: string
+          maxLength: 16
+        directions:
+          type: array
+          items:
+            $ref: "../../components/schema.yaml#/components/schemas/DisplayText"
+        parking_restrictions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParkingRestriction"
+        parking:
+          type: array
+          items:
+            $ref: "#/components/schemas/EVSEParking"
+        accepted_service_providers:
+          type: array
+          items:
+            type: string
+            maxLength: 50
+        images:
+          type: array
+          items:
+            $ref: "../../components/schema.yaml#/components/schemas/Image"
+        last_updated:
+          type: string
+          format: date-time
+      required:
+        - last_updated
+
+    Connector:
+      type: object
+      description: |
+        A Connector is the socket or cable and plug available for the EV to use.
+        A single EVSE may provide multiple Connectors but only one of them can be in use at the same time.
+        A Connector always belongs to an EVSE object.
+      properties:
+        id:
+          type: string
+          maxLength: 36
+          description: Identifier of the Connector within the EVSE. Two Connectors may have the same id as long as they do not belong to the same EVSE object.
+        standard:
+          $ref: "#/components/schemas/ConnectorType"
+          description: The standard of the installed connector.
+        format:
+          $ref: "#/components/schemas/ConnectorFormat"
+          description: The format (socket/cable) of the installed connector.
+        power_type:
+          $ref: "#/components/schemas/PowerType"
+          description: The type of power at the connector.
+        max_voltage:
+          type: integer
+          description: Maximum voltage of the connector (line to neutral for AC_3_PHASE), in volt [V]. For example DC Chargers might vary the voltage during charging when battery almost full.
+        max_amperage:
+          type: integer
+          description: Maximum amperage of the connector, in ampere [A].
+        max_electric_power:
+          type: integer
+          description: |
+            Maximum electric power that can be delivered by this connector, in Watts (W).
+            When the maximum electric power is lower than the calculated value from voltage and amperage,
+            this value should be set.
+        tariff_ids:
+          type: array
+          description: |
+            Identifiers of the currently valid charging tariffs.
+            Multiple tariffs are possible, but only one of each Tariff.type can be active at the same time.
+            Tariffs with the same type are only allowed if they are not active at the same time:
+            start_date_time and end_date_time period not overlapping.
+            For a "free of charge" tariff, this field should be set and point to a defined
+            "free of charge" tariff.
+          items:
+            type: string
+            maxLength: 36
+        terms_and_conditions:
+          type: string
+          format: uri
+          description: URL to the operator's terms and conditions.
+        capabilities:
+          type: array
+          description: A list of functionalities that the connector is capable of.
+          items:
+            $ref: "#/components/schemas/ConnectorCapability"
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp when this Connector was last updated (or created).
+      required:
+        - id
+        - standard
+        - format
+        - power_type
+        - max_voltage
+        - max_amperage
+        - last_updated
+
+    ConnectorPatch:
+      type: object
+      description: Partial Connector object for PATCH requests. Only fields present will be updated. The last_updated field is required.
+      properties:
+        standard:
+          $ref: "#/components/schemas/ConnectorType"
+        format:
+          $ref: "#/components/schemas/ConnectorFormat"
+        power_type:
+          $ref: "#/components/schemas/PowerType"
+        max_voltage:
+          type: integer
+        max_amperage:
+          type: integer
+        max_electric_power:
+          type: integer
+        tariff_ids:
+          type: array
+          items:
+            type: string
+            maxLength: 36
+        terms_and_conditions:
+          type: string
+          format: uri
+        capabilities:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConnectorCapability"
+        last_updated:
+          type: string
+          format: date-time
+      required:
+        - last_updated
+
+    # ---- 2.3.0 New Types ----
+
+    Parking:
+      type: object
+      description: Describes a parking space that a vehicle can be parked in while charging.
+      properties:
+        id:
+          type: string
+          maxLength: 36
+          description: Unique identifier of the parking place.
+        physical_reference:
+          type: string
+          maxLength: 12
+          description: Physical reference (e.g. parking spot number).
+        vehicle_types:
+          type: array
+          description: Types of vehicles that can use this parking place.
+          items:
+            $ref: "#/components/schemas/VehicleType"
+          minItems: 1
+        max_vehicle_weight:
+          type: number
+          description: Maximum vehicle weight in kg.
+        max_vehicle_height:
+          type: number
+          description: Maximum vehicle height in centimeters.
+        max_vehicle_length:
+          type: number
+          description: Maximum vehicle length in centimeters.
+        max_vehicle_width:
+          type: number
+          description: Maximum vehicle width in centimeters.
+        parking_space_length:
+          type: number
+          description: Length of the parking space in centimeters.
+        parking_space_width:
+          type: number
+          description: Width of the parking space in centimeters.
+        dangerous_goods_allowed:
+          type: boolean
+          description: Whether dangerous goods are allowed.
+        direction:
+          $ref: "#/components/schemas/ParkingDirection"
+          description: Parking direction/orientation.
+        drive_through:
+          type: boolean
+          description: Whether drive-through is possible.
+        restricted_to_type:
+          type: boolean
+          description: Whether access is restricted to specific vehicle types.
+        reservation_required:
+          type: boolean
+          description: Whether reservation is required.
+        time_limit:
+          type: number
+          description: Maximum parking duration in minutes.
+        roofed:
+          type: boolean
+          description: Whether the parking place is roofed.
+        images:
+          type: array
+          items:
+            $ref: "../../components/schema.yaml#/components/schemas/Image"
+        lighting:
+          type: boolean
+          description: Whether the parking place has lighting.
+        refrigeration_outlet:
+          type: boolean
+          description: Whether a refrigeration outlet is available.
+        standards:
+          type: array
+          description: A list of standards that the parking space conforms to, e.g. PAS 1899.
+          items:
+            type: string
+            maxLength: 36
+        apds_reference:
+          type: string
+          description: Reference to an Alliance for Parking Data Standards (APDS) element describing this parking. The referenced element may be a Place, Space or other hierarchy element defined by APDS.
+      required:
+        - id
+        - vehicle_types
+        - restricted_to_type
+        - reservation_required
+
+    EVSEParking:
+      type: object
+      description: Reference to a parking place from an EVSE. New in OCPI 2.3.0.
+      properties:
+        parking_id:
+          type: string
+          maxLength: 36
+          description: Reference to Parking.id.
+        evse_position:
+          $ref: "#/components/schemas/EVSEPosition"
+          description: Position of the EVSE relative to the parking place.
+      required:
+        - parking_id
+
+    ConnectorCapability:
+      type: string
+      format: open-enum
+      description: Functionalities that a Connector may or may not support.
+      enum:
+        - ISO_15118_2_PLUG_AND_CHARGE
+        - ISO_15118_20_PLUG_AND_CHARGE
+      x-enumDescriptions:
+        ISO_15118_2_PLUG_AND_CHARGE: The Connector supports authentication of the Driver using a contract certificate stored in the vehicle according to ISO 15118-2.
+        ISO_15118_20_PLUG_AND_CHARGE: The Connector supports authentication of the Driver using a contract certificate stored in the vehicle according to ISO 15118-20.
+
+    VehicleType:
+      type: string
+      format: open-enum
+      description: A categorization of vehicles to indicate which type of vehicles can use a certain EVSE.
+      enum:
+        - MOTORCYCLE
+        - PERSONAL_VEHICLE
+        - PERSONAL_VEHICLE_WITH_TRAILER
+        - VAN
+        - SEMI_TRACTOR
+        - RIGID
+        - TRUCK_WITH_TRAILER
+        - BUS
+        - DISABLED
+      x-enumDescriptions:
+        MOTORCYCLE: A motorcycle.
+        PERSONAL_VEHICLE: A personal vehicle, a passenger car.
+        PERSONAL_VEHICLE_WITH_TRAILER: A personal vehicle with a trailer attached.
+        VAN: A light-duty van with a height smaller than 275 cm.
+        SEMI_TRACTOR: A heavy-duty tractor unit without a trailer.
+        RIGID: A heavy-duty truck without an articulation point.
+        TRUCK_WITH_TRAILER: A heavy-duty truck (tractor or rigid) with a trailer attached.
+        BUS: A bus or a motor coach.
+        DISABLED: A vehicle with a permit for parking spaces for people with disabilities.
+
+    ParkingDirection:
+      type: string
+      format: enum
+      description: Indicates the direction in which parking occurs relative to the roadway on which vehicles approach the EVSE.
+      enum:
+        - PARALLEL
+        - PERPENDICULAR
+        - ANGLE
+      x-enumDescriptions:
+        PARALLEL: Parking happens parallel to the roadway on which vehicles approach the EVSE.
+        PERPENDICULAR: Parking happens perpendicular to the roadway on which vehicles approach the EVSE.
+        ANGLE: Parking happens at an angle to the roadway on which vehicles approach the EVSE (i.e. echelon parking).
+
+    EVSEPosition:
+      type: string
+      format: enum
+      description: The position of an EVSE relative to the EVSE's parking space.
+      enum:
+        - LEFT
+        - RIGHT
+        - CENTER
+      x-enumDescriptions:
+        LEFT: The EVSE is to the left of the vehicle.
+        RIGHT: The EVSE is to the right of the vehicle when parked.
+        CENTER: The EVSE is at the center of the impassable narrow end of a parking space.
+
+    # ---- Supporting Classes ----
+
+    AdditionalGeoLocation:
+      type: object
+      description: This class defines an additional geo location that is relevant for the Charge Point. The geodetic system to be used is WGS 84.
+      properties:
+        latitude:
+          type: string
+          maxLength: 10
+          pattern: '^-?[0-9]{1,2}\.[0-9]{5,7}$'
+          description: Latitude of the point in decimal degree. Example 50.770774. Decimal separator "." required.
+        longitude:
+          type: string
+          maxLength: 11
+          pattern: '^-?[0-9]{1,3}\.[0-9]{5,7}$'
+          description: Longitude of the point in decimal degree. Example -126.104965. Decimal separator "." required.
+        name:
+          $ref: "../../components/schema.yaml#/components/schemas/DisplayText"
+          description: Name of the point in local language or as written at the location. For example the street name of a parking lot entrance or its number.
+      required:
+        - latitude
+        - longitude
+
+    GeoLocation:
+      type: object
+      description: |
+        This class defines the geo location of the Charge Point. The geodetic system to be used is WGS 84.
+        Five decimal places is seen as a minimum for GPS coordinates as this gives approximately 1 meter precision.
+        More is always better. Seven decimal places gives approximately 1cm precision.
+      properties:
+        latitude:
+          type: string
+          maxLength: 10
+          pattern: '^-?[0-9]{1,2}\.[0-9]{5,7}$'
+          description: Latitude of the point in decimal degree. Example 50.770774. Decimal separator "." required.
+        longitude:
+          type: string
+          maxLength: 11
+          pattern: '^-?[0-9]{1,3}\.[0-9]{5,7}$'
+          description: Longitude of the point in decimal degree. Example -126.104965. Decimal separator "." required.
+      required:
+        - latitude
+        - longitude
+
+    PublishTokenType:
+      type: object
+      description: |
+        Defines the set of values that identify a token to which a Location might be published.
+        At least one of the following fields SHALL be set: uid, visual_number, or group_id.
+        When uid is set, type SHALL also be set.
+        When visual_number is set, issuer SHALL also be set.
+      properties:
+        uid:
+          type: string
+          maxLength: 36
+          description: Unique ID by which this Token can be identified.
+        type:
+          $ref: "../tokens/schema.yaml#/components/schemas/TokenType"
+          description: Type of the token.
+        visual_number:
+          type: string
+          maxLength: 64
+          description: Visual readable number/identification as printed on the Token (RFID card).
+        issuer:
+          type: string
+          maxLength: 64
+          description: Issuing company, most of the times the name of the company printed on the token (RFID card), not necessarily the eMSP.
+        group_id:
+          type: string
+          maxLength: 36
+          description: This ID groups a couple of tokens. This can be used to make two or more tokens work as one.
+
+    Hours:
+      type: object
+      description: Opening and access hours of the location.
+      properties:
+        twentyfourseven:
+          type: boolean
+          description: True to represent 24 hours a day and 7 days a week, except the given exceptions.
+        regular_hours:
+          type: array
+          description: Regular hours, weekday-based. Only to be used if twentyfourseven=false, then this field needs to contain at least one RegularHours object.
+          items:
+            $ref: "#/components/schemas/RegularHours"
+        exceptional_openings:
+          type: array
+          description: Exceptions for specified calendar dates, time-range based. Periods the station is operating/accessible. Additional to regular_hours. May overlap regular rules.
+          items:
+            $ref: "#/components/schemas/ExceptionalPeriod"
+        exceptional_closings:
+          type: array
+          description: Exceptions for specified calendar dates, time-range based. Periods the station is not operating/accessible. Overwriting regular_hours and exceptional_openings.
+          items:
+            $ref: "#/components/schemas/ExceptionalPeriod"
+      required:
+        - twentyfourseven
+
+    RegularHours:
+      type: object
+      description: Regular recurring operation or access hours.
+      properties:
+        weekday:
+          type: integer
+          minimum: 1
+          maximum: 7
+          description: Number of day in the week, from Monday (1) till Sunday (7).
+        period_begin:
+          type: string
+          pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$'
+          description: Begin of the regular period, in local time, given in hours and minutes. Must be in 24h format with leading zeros. Example "18:15".
+        period_end:
+          type: string
+          pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$'
+          description: End of the regular period, in local time, syntax as for period_begin. Must be later than period_begin.
+      required:
+        - weekday
+        - period_begin
+        - period_end
+
+    ExceptionalPeriod:
+      type: object
+      description: Specifies one exceptional period for opening or access hours.
+      properties:
+        period_begin:
+          type: string
+          format: date-time
+          description: Begin of the exception. In UTC, time_zone field of the Location can be used to convert to local time.
+        period_end:
+          type: string
+          format: date-time
+          description: End of the exception. In UTC, time_zone field of the Location can be used to convert to local time.
+      required:
+        - period_begin
+        - period_end
+
+    EnergyMix:
+      type: object
+      description: This type is used to specify the energy mix and environmental impact of the supplied energy at a location or in a tariff.
+      properties:
+        is_green_energy:
+          type: boolean
+          description: True if 100% from regenerative sources. (CO2 and nuclear waste is zero)
+        energy_sources:
+          type: array
+          description: Key-value pairs (enum + percentage) of energy sources of this location's tariff.
+          items:
+            $ref: "#/components/schemas/EnergySource"
+        environ_impact:
+          type: array
+          description: Key-value pairs (enum + percentage) of nuclear waste and CO2 exhaust of this location's tariff.
+          items:
+            $ref: "#/components/schemas/EnvironmentalImpact"
+        supplier_name:
+          type: string
+          maxLength: 64
+          description: Name of the energy supplier, delivering the energy for this location or tariff.
+        energy_product_name:
+          type: string
+          maxLength: 64
+          description: Name of the energy supplier's product/tariff plan used at this location.
+      required:
+        - is_green_energy
+
+    EnergySource:
+      type: object
+      description: Key-value pairs (enum + percentage) of energy sources. All given values of all categories should add up to 100 percent.
+      properties:
+        source:
+          $ref: "#/components/schemas/EnergySourceCategory"
+          description: The type of energy source.
+        percentage:
+          type: number
+          description: Percentage of this source (0-100) in the mix.
+      required:
+        - source
+        - percentage
+
+    EnvironmentalImpact:
+      type: object
+      description: Amount of waste produced/emitted per kWh.
+      properties:
+        category:
+          $ref: "#/components/schemas/EnvironmentalImpactCategory"
+          description: The environmental impact category of this value.
+        amount:
+          type: number
+          description: Amount of this portion in g/kWh.
+      required:
+        - category
+        - amount
+
+    StatusSchedule:
+      type: object
+      description: This type is used to schedule status periods in the future. The eMSP can provide this information to the EV user for trip planning purposes. A period MAY have no end.
+      properties:
+        period_begin:
+          type: string
+          format: date-time
+          description: Begin of the scheduled period.
+        period_end:
+          type: string
+          format: date-time
+          description: End of the scheduled period, if known.
+        status:
+          $ref: "#/components/schemas/Status"
+          description: Status value during the scheduled period.
+      required:
+        - period_begin
+        - status
+
+    # ---- Enums ----
+
+    Status:
+      type: string
+      format: enum
+      description: The status of an EVSE.
+      enum:
+        - AVAILABLE
+        - BLOCKED
+        - CHARGING
+        - INOPERATIVE
+        - OUTOFORDER
+        - PLANNED
+        - REMOVED
+        - RESERVED
+        - UNKNOWN
+      x-enumDescriptions:
+        AVAILABLE: The EVSE/Connector is able to start a new charging session.
+        BLOCKED: The EVSE/Connector is not accessible because of a physical barrier, i.e. a car.
+        CHARGING: The EVSE/Connector is in use.
+        INOPERATIVE: The EVSE/Connector is not yet active, or temporarily not available for use, but not broken or defect.
+        OUTOFORDER: The EVSE/Connector is currently out of order, some part/components may be broken/defect.
+        PLANNED: The EVSE/Connector is planned, will be operating soon.
+        REMOVED: The EVSE/Connector was discontinued/removed.
+        RESERVED: The EVSE/Connector is reserved for a particular EV driver and is unavailable for other drivers.
+        UNKNOWN: No status information available (also used when offline).
+
+    Capability:
+      type: string
+      format: open-enum
+      description: The capabilities of an EVSE.
+      enum:
+        - CHARGING_PROFILE_CAPABLE
+        - CHARGING_PREFERENCES_CAPABLE
+        - CHIP_CARD_SUPPORT
+        - CONTACTLESS_CARD_SUPPORT
+        - CREDIT_CARD_PAYABLE
+        - DEBIT_CARD_PAYABLE
+        - PED_TERMINAL
+        - REMOTE_START_STOP_CAPABLE
+        - RESERVABLE
+        - RFID_READER
+        - START_SESSION_CONNECTOR_REQUIRED
+        - TOKEN_GROUP_CAPABLE
+        - UNLOCK_CAPABLE
+      x-enumDescriptions:
+        CHARGING_PROFILE_CAPABLE: The EVSE supports charging profiles.
+        CHARGING_PREFERENCES_CAPABLE: The EVSE supports charging preferences.
+        CHIP_CARD_SUPPORT: EVSE has a payment terminal that supports chip cards.
+        CONTACTLESS_CARD_SUPPORT: EVSE has a payment terminal that supports contactless cards.
+        CREDIT_CARD_PAYABLE: EVSE has a payment terminal that makes it possible to pay for charging using a credit card.
+        DEBIT_CARD_PAYABLE: EVSE has a payment terminal that makes it possible to pay for charging using a debit card.
+        PED_TERMINAL: EVSE has a payment terminal with a pin-code entry device.
+        REMOTE_START_STOP_CAPABLE: The EVSE can remotely be started/stopped.
+        RESERVABLE: The EVSE can be reserved.
+        RFID_READER: Charging at this EVSE can be authorized with an RFID token.
+        START_SESSION_CONNECTOR_REQUIRED: When a StartSession is sent to this EVSE, the MSP is required to add the optional connector_id field in the StartSession object.
+        TOKEN_GROUP_CAPABLE: This EVSE supports token groups, two or more tokens work as one, so that a session can be started with one token and stopped with another (handy when a card and key-fob are given to the EV-driver).
+        UNLOCK_CAPABLE: Connectors have mechanical lock that can be requested by the eMSP to be unlocked.
+
+    ConnectorFormat:
+      type: string
+      format: enum
+      description: The format of the connector, whether it is a socket or a plug.
+      enum:
+        - SOCKET
+        - CABLE
+      x-enumDescriptions:
+        SOCKET: The connector is a socket; the EV user needs to bring a fitting plug.
+        CABLE: The connector is an attached cable; the EV users car needs to have a fitting inlet.
+
+    ConnectorType:
+      type: string
+      format: open-enum
+      description: The socket or plug standard of the charging point.
+      enum:
+        - CHADEMO
+        - CHAOJI
+        - DOMESTIC_A
+        - DOMESTIC_B
+        - DOMESTIC_C
+        - DOMESTIC_D
+        - DOMESTIC_E
+        - DOMESTIC_F
+        - DOMESTIC_G
+        - DOMESTIC_H
+        - DOMESTIC_I
+        - DOMESTIC_J
+        - DOMESTIC_K
+        - DOMESTIC_L
+        - DOMESTIC_M
+        - DOMESTIC_N
+        - DOMESTIC_O
+        - GBT_AC
+        - GBT_DC
+        - IEC_60309_2_single_16
+        - IEC_60309_2_three_16
+        - IEC_60309_2_three_32
+        - IEC_60309_2_three_64
+        - IEC_62196_T1
+        - IEC_62196_T1_COMBO
+        - IEC_62196_T2
+        - IEC_62196_T2_COMBO
+        - IEC_62196_T3A
+        - IEC_62196_T3C
+        - MCS
+        - NEMA_5_20
+        - NEMA_6_30
+        - NEMA_6_50
+        - NEMA_10_30
+        - NEMA_10_50
+        - NEMA_14_30
+        - NEMA_14_50
+        - PANTOGRAPH_BOTTOM_UP
+        - PANTOGRAPH_TOP_DOWN
+        - SAE_J3400
+        - TESLA_R
+        - TESLA_S
+      x-enumDescriptions:
+        CHADEMO: The connector type is CHAdeMO, DC.
+        CHAOJI: The ChaoJi connector. The new generation charging connector, harmonized between CHAdeMO and GB/T. DC.
+        DOMESTIC_A: Standard/Domestic household, type "A", NEMA 1-15, 2 pins.
+        DOMESTIC_B: Standard/Domestic household, type "B", NEMA 5-15, 3 pins.
+        DOMESTIC_C: Standard/Domestic household, type "C", CEE 7/17, 2 pins.
+        DOMESTIC_D: Standard/Domestic household, type "D", 3 pin.
+        DOMESTIC_E: Standard/Domestic household, type "E", CEE 7/5 3 pins.
+        DOMESTIC_F: Standard/Domestic household, type "F", CEE 7/4, Schuko, 3 pins.
+        DOMESTIC_G: Standard/Domestic household, type "G", BS 1363, Commonwealth, 3 pins.
+        DOMESTIC_H: Standard/Domestic household, type "H", SI-32, 3 pins.
+        DOMESTIC_I: Standard/Domestic household, type "I", AS 3112, 3 pins.
+        DOMESTIC_J: Standard/Domestic household, type "J", SEV 1011, 3 pins.
+        DOMESTIC_K: Standard/Domestic household, type "K", DS 60884-2-D1, 3 pins.
+        DOMESTIC_L: Standard/Domestic household, type "L", CEI 23-16-VII, 3 pins.
+        DOMESTIC_M: Standard/Domestic household, type "M", BS 546, 3 pins.
+        DOMESTIC_N: Standard/Domestic household, type "N", NBR 14136, 3 pins.
+        DOMESTIC_O: Standard/Domestic household, type "O", TIS 166-2549, 3 pins.
+        GBT_AC: Guobiao GB/T 20234.2 AC socket/connector.
+        GBT_DC: Guobiao GB/T 20234.3 DC connector.
+        IEC_60309_2_single_16: IEC 60309-2 Industrial Connector single phase 16 amperes (usually blue).
+        IEC_60309_2_three_16: IEC 60309-2 Industrial Connector three phases 16 amperes (usually red).
+        IEC_60309_2_three_32: IEC 60309-2 Industrial Connector three phases 32 amperes (usually red).
+        IEC_60309_2_three_64: IEC 60309-2 Industrial Connector three phases 64 amperes (usually red).
+        IEC_62196_T1: IEC 62196 Type 1 "SAE J1772".
+        IEC_62196_T1_COMBO: Combo Type 1 based, DC.
+        IEC_62196_T2: IEC 62196 Type 2 "Mennekes".
+        IEC_62196_T2_COMBO: Combo Type 2 based, DC.
+        IEC_62196_T3A: IEC 62196 Type 3A.
+        IEC_62196_T3C: IEC 62196 Type 3C "Scame".
+        MCS: The MegaWatt Charging System (MCS) connector as developed by CharIN.
+        NEMA_5_20: NEMA 5-20, 3 pins.
+        NEMA_6_30: NEMA 6-30, 3 pins.
+        NEMA_6_50: NEMA 6-50, 3 pins.
+        NEMA_10_30: NEMA 10-30, 3 pins.
+        NEMA_10_50: NEMA 10-50, 3 pins.
+        NEMA_14_30: NEMA 14-30, 3 pins, rating of 30 A.
+        NEMA_14_50: NEMA 14-50, 3 pins, rating of 50 A.
+        PANTOGRAPH_BOTTOM_UP: On-board Bottom-up-Pantograph typically for bus charging.
+        PANTOGRAPH_TOP_DOWN: Off-board Top-down-Pantograph typically for bus charging.
+        SAE_J3400: SAE J3400, also known as North American Charging Standard (NACS), developed by Tesla, Inc in 2021.
+        TESLA_R: Tesla Connector "Roadster"-type (round, 4 pin).
+        TESLA_S: Tesla Connector "Model-S"-type (oval, 5 pin). Mechanically compatible with SAE J3400 but uses CAN bus for communication instead of power line communication.
+
+    PowerType:
+      type: string
+      format: enum
+      description: The type of power at the connector.
+      enum:
+        - AC_1_PHASE
+        - AC_2_PHASE
+        - AC_2_PHASE_SPLIT
+        - AC_3_PHASE
+        - DC
+      x-enumDescriptions:
+        AC_1_PHASE: AC single phase.
+        AC_2_PHASE: AC two phases, only two of the three available phases connected.
+        AC_2_PHASE_SPLIT: AC two phases using split phase system.
+        AC_3_PHASE: AC three phases.
+        DC: Direct Current.
+
+    ParkingType:
+      type: string
+      format: open-enum
+      description: Reflects the general type of the charge point's location. May be used for user information.
+      enum:
+        - ALONG_MOTORWAY
+        - PARKING_GARAGE
+        - PARKING_LOT
+        - ON_DRIVEWAY
+        - ON_STREET
+        - UNDERGROUND_GARAGE
+      x-enumDescriptions:
+        ALONG_MOTORWAY: Location on a parking facility/rest area along a motorway, freeway, interstate, highway etc.
+        PARKING_GARAGE: Multistorey car park.
+        PARKING_LOT: A cleared area that is intended for parking vehicles, i.e. at super markets, bars, etc.
+        ON_DRIVEWAY: Location is on the driveway of a house/building.
+        ON_STREET: Parking in public space along a street.
+        UNDERGROUND_GARAGE: Multistorey car park, mainly underground.
+
+    ParkingRestriction:
+      type: string
+      format: open-enum
+      description: This value, if provided, represents the restriction to the parking spot for different purposes.
+      enum:
+        - CUSTOMERS
+        - DISABLED
+        - EMPLOYEES
+        - EV_ONLY
+        - MOTORCYCLES
+        - PLUGGED
+        - TAXIS
+        - TENANTS
+      x-enumDescriptions:
+        CUSTOMERS: Parking spot for customers or guests only, for example in case of a hotel or shop.
+        DISABLED: Reserved parking spot for disabled people with valid ID.
+        EMPLOYEES: Parking only for people who work at a site, building, or complex that the Location belongs to.
+        EV_ONLY: Reserved parking spot for electric vehicles.
+        MOTORCYCLES: Parking spot only suitable for (electric) motorcycles or scooters.
+        PLUGGED: Parking is only allowed while plugged in (charging).
+        TAXIS: Parking only for taxi vehicles.
+        TENANTS: Parking only for people who live in a complex that the Location belongs to.
+
+    Facility:
+      type: string
+      format: open-enum
+      description: Facilities available at or near the charging location.
+      enum:
+        - HOTEL
+        - RESTAURANT
+        - CAFE
+        - MALL
+        - SUPERMARKET
+        - SPORT
+        - RECREATION_AREA
+        - NATURE
+        - MUSEUM
+        - BIKE_SHARING
+        - BUS_STOP
+        - TAXI_STAND
+        - TRAM_STOP
+        - METRO_STATION
+        - TRAIN_STATION
+        - AIRPORT
+        - PARKING_LOT
+        - CARPOOL_PARKING
+        - FUEL_STATION
+        - WIFI
+      x-enumDescriptions:
+        HOTEL: A hotel.
+        RESTAURANT: A restaurant.
+        CAFE: A cafe.
+        MALL: A mall or shopping center.
+        SUPERMARKET: A supermarket.
+        SPORT: "Sport facilities: gym, field etc."
+        RECREATION_AREA: A recreation area.
+        NATURE: Located in, or close to, a park, nature reserve etc.
+        MUSEUM: A museum.
+        BIKE_SHARING: A bike/e-bike/e-scooter sharing location.
+        BUS_STOP: A bus stop.
+        TAXI_STAND: A taxi stand.
+        TRAM_STOP: A tram stop/station.
+        METRO_STATION: A metro station.
+        TRAIN_STATION: A train station.
+        AIRPORT: An airport.
+        PARKING_LOT: A parking lot.
+        CARPOOL_PARKING: A carpool parking.
+        FUEL_STATION: A Fuel station.
+        WIFI: Wifi or other type of internet available.
+
+    EnergySourceCategory:
+      type: string
+      format: enum
+      description: Categories of energy sources.
+      enum:
+        - NUCLEAR
+        - GENERAL_FOSSIL
+        - COAL
+        - GAS
+        - GENERAL_GREEN
+        - SOLAR
+        - WIND
+        - WATER
+      x-enumDescriptions:
+        NUCLEAR: Nuclear power sources.
+        GENERAL_FOSSIL: All kinds of fossil power sources.
+        COAL: Fossil power from coal.
+        GAS: Fossil power from gas.
+        GENERAL_GREEN: All kinds of regenerative power sources.
+        SOLAR: Regenerative power from PV.
+        WIND: Regenerative power from wind turbines.
+        WATER: Regenerative power from water turbines.
+
+    EnvironmentalImpactCategory:
+      type: string
+      format: open-enum
+      description: Categories of environmental impact values.
+      enum:
+        - NUCLEAR_WASTE
+        - CARBON_DIOXIDE
+      x-enumDescriptions:
+        NUCLEAR_WASTE: Produced nuclear waste in grams per kilowatthour.
+        CARBON_DIOXIDE: Exhausted carbon dioxide in grams per kilowatthour.
+

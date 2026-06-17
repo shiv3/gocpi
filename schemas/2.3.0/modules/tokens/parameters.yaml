@@ -1,0 +1,18 @@
+openapi: 3.1.0
+components:
+  parameters:
+    TokenUidParameter:
+      in: path
+      name: token_uid
+      description: Token.uid of the Token object.
+      required: true
+      schema:
+        type: string
+        maxLength: 36
+    TokenTypeQueryParameter:
+      in: query
+      name: type
+      description: "Token.type of the Token to retrieve. Default if omitted: RFID"
+      required: false
+      schema:
+        $ref: "./schema.yaml#/components/schemas/TokenType"
