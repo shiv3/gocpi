@@ -1,5 +1,9 @@
 # gocpi
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/shiv3/gocpi.svg)](https://pkg.go.dev/github.com/shiv3/gocpi)
+[![CI](https://github.com/shiv3/gocpi/actions/workflows/ci.yml/badge.svg)](https://github.com/shiv3/gocpi/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A generics-first **OCPI** (Open Charge Point Interface) implementation in Go for
 **OCPI 2.2.1 and 2.3.0** — the HTTP/JSON REST protocol for e-mobility roaming
 between CPOs, eMSPs and Hubs.
