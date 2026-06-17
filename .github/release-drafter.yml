@@ -1,0 +1,29 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+categories:
+  - title: 'Features'
+    labels: [feature, enhancement, feat]
+  - title: 'Bug Fixes'
+    labels: [fix, bug]
+  - title: 'Maintenance'
+    labels: [chore, ci, docs, refactor, test, build, perf, deps]
+
+change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
+change-title-escapes: '\<*_&'
+
+version-resolver:
+  major:
+    labels: [major, breaking]
+  minor:
+    labels: [minor, feature, enhancement]
+  patch:
+    labels: [patch, fix, bug, chore]
+  default: patch
+
+template: |
+  ## What's Changed
+
+  $CHANGES
+
+  **Full Changelog**: https://github.com/shiv3/gocpi/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION

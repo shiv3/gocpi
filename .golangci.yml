@@ -1,0 +1,37 @@
+version: "2"
+run:
+  # golangci-lint's release binary may be built with an older Go than our go.mod
+  # targets; pin the analysis Go version so it doesn't refuse to run. Package
+  # loading still uses the runner's real toolchain.
+  go: "1.24"
+  timeout: 5m
+linters:
+  enable:
+    - errorlint
+    - copyloopvar
+    - gocritic
+    - misspell
+    - revive
+    - unconvert
+    - unparam
+  settings:
+    errorlint:
+      errorf: true
+      asserts: true
+      comparison: true
+  exclusions:
+    rules:
+      # The project deliberately avoids "what" doc-comments on every exported
+      # symbol (see CONTRIBUTING/style), so don't enforce revive's exported rule.
+      - linters: [revive]
+        text: "^exported:"
+      # Unused params are common in interface-satisfying methods and table tests.
+      - linters: [revive]
+        text: "^unused-parameter:"
+      # Generated module code (v221/, v230/, ...) is exempt from style linting.
+      - path: ^v2[0-9][0-9]/
+        linters: [revive, gocritic, unparam, unconvert, misspell]
+      # Examples idiomatically use log.Fatal for brevity.
+      - path: ^examples/
+        linters: [gocritic]
+        text: exitAfterDefer
