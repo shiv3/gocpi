@@ -229,6 +229,9 @@ func (g *apiGen) emit(mod, iface string, ops []operation) []byte {
 	handlerT := pascalWord(mod) + pascalWord(iface) + "Handler"
 	regFn := "Register" + pascalWord(mod) + pascalWord(iface)
 
+	// Register normalizes basePath through url.Parse, so net/url is always used.
+	g.needsURL = true
+
 	var b bytes.Buffer
 
 	fmt.Fprintf(&b, "// %s calls the %s %s interface on a peer.\n", clientT, pascalWord(mod), iface)
@@ -248,7 +251,9 @@ func (g *apiGen) emit(mod, iface string, ops []operation) []byte {
 
 	fmt.Fprintf(&b, "// %s registers h's routes on mux under basePath (the module mount path).\n", regFn)
 	fmt.Fprintf(&b, "func %s(mux *core.Mux, basePath string, h %s) {\n", regFn, handlerT)
-	b.WriteString("\tbase := strings.TrimRight(basePath, \"/\")\n")
+	b.WriteString("\t// basePath may be a full URL or a path; routes use its path.\n")
+	b.WriteString("\tbu, _ := url.Parse(basePath)\n")
+	b.WriteString("\tbase := strings.TrimRight(bu.Path, \"/\")\n")
 	for _, op := range ops {
 		g.emitRoute(&b, op)
 	}

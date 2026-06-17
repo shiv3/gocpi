@@ -52,7 +52,9 @@ type ChargingprofilesSenderHandler interface {
 
 // RegisterChargingprofilesSender registers h's routes on mux under basePath (the module mount path).
 func RegisterChargingprofilesSender(mux *core.Mux, basePath string, h ChargingprofilesSenderHandler) {
-	base := strings.TrimRight(basePath, "/")
+	// basePath may be a full URL or a path; routes use its path.
+	bu, _ := url.Parse(basePath)
+	base := strings.TrimRight(bu.Path, "/")
 	mux.Handle(http.MethodPost, base+"/response", func(w http.ResponseWriter, r *http.Request) {
 		if herr := h.PostChargingProfileCallback(r.Context()); herr != nil {
 			_ = core.WriteError(w, herr)

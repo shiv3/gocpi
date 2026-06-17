@@ -66,7 +66,9 @@ type ChargingprofilesReceiverHandler interface {
 
 // RegisterChargingprofilesReceiver registers h's routes on mux under basePath (the module mount path).
 func RegisterChargingprofilesReceiver(mux *core.Mux, basePath string, h ChargingprofilesReceiverHandler) {
-	base := strings.TrimRight(basePath, "/")
+	// basePath may be a full URL or a path; routes use its path.
+	bu, _ := url.Parse(basePath)
+	base := strings.TrimRight(bu.Path, "/")
 	mux.Handle(http.MethodGet, base+"/{session_id}", func(w http.ResponseWriter, r *http.Request) {
 		data, herr := h.GetActiveChargingProfile(r.Context(), r.PathValue("session_id"))
 		if herr != nil {

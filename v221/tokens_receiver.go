@@ -64,7 +64,9 @@ type TokensReceiverHandler interface {
 
 // RegisterTokensReceiver registers h's routes on mux under basePath (the module mount path).
 func RegisterTokensReceiver(mux *core.Mux, basePath string, h TokensReceiverHandler) {
-	base := strings.TrimRight(basePath, "/")
+	// basePath may be a full URL or a path; routes use its path.
+	bu, _ := url.Parse(basePath)
+	base := strings.TrimRight(bu.Path, "/")
 	mux.Handle(http.MethodGet, base+"/{country_code}/{party_id}/{token_uid}", func(w http.ResponseWriter, r *http.Request) {
 		data, herr := h.GetToken(r.Context(), r.PathValue("country_code"), r.PathValue("party_id"), r.PathValue("token_uid"))
 		if herr != nil {

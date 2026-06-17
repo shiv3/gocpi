@@ -53,7 +53,9 @@ type CdrsReceiverHandler interface {
 
 // RegisterCdrsReceiver registers h's routes on mux under basePath (the module mount path).
 func RegisterCdrsReceiver(mux *core.Mux, basePath string, h CdrsReceiverHandler) {
-	base := strings.TrimRight(basePath, "/")
+	// basePath may be a full URL or a path; routes use its path.
+	bu, _ := url.Parse(basePath)
+	base := strings.TrimRight(bu.Path, "/")
 	mux.Handle(http.MethodPost, base, func(w http.ResponseWriter, r *http.Request) {
 		var body CDR
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {

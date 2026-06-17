@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/shiv3/gocpi/core"
@@ -40,7 +41,9 @@ type CommandsSenderHandler interface {
 
 // RegisterCommandsSender registers h's routes on mux under basePath (the module mount path).
 func RegisterCommandsSender(mux *core.Mux, basePath string, h CommandsSenderHandler) {
-	base := strings.TrimRight(basePath, "/")
+	// basePath may be a full URL or a path; routes use its path.
+	bu, _ := url.Parse(basePath)
+	base := strings.TrimRight(bu.Path, "/")
 	mux.Handle(http.MethodPost, base, func(w http.ResponseWriter, r *http.Request) {
 		var body CommandResult
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {

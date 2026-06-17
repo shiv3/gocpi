@@ -132,7 +132,9 @@ type LocationsReceiverHandler interface {
 
 // RegisterLocationsReceiver registers h's routes on mux under basePath (the module mount path).
 func RegisterLocationsReceiver(mux *core.Mux, basePath string, h LocationsReceiverHandler) {
-	base := strings.TrimRight(basePath, "/")
+	// basePath may be a full URL or a path; routes use its path.
+	bu, _ := url.Parse(basePath)
+	base := strings.TrimRight(bu.Path, "/")
 	mux.Handle(http.MethodGet, base+"/{country_code}/{party_id}/{location_id}", func(w http.ResponseWriter, r *http.Request) {
 		data, herr := h.GetLocation(r.Context(), r.PathValue("country_code"), r.PathValue("party_id"), r.PathValue("location_id"))
 		if herr != nil {

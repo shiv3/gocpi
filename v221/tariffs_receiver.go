@@ -64,7 +64,9 @@ type TariffsReceiverHandler interface {
 
 // RegisterTariffsReceiver registers h's routes on mux under basePath (the module mount path).
 func RegisterTariffsReceiver(mux *core.Mux, basePath string, h TariffsReceiverHandler) {
-	base := strings.TrimRight(basePath, "/")
+	// basePath may be a full URL or a path; routes use its path.
+	bu, _ := url.Parse(basePath)
+	base := strings.TrimRight(bu.Path, "/")
 	mux.Handle(http.MethodGet, base+"/{country_code}/{party_id}/{tariff_id}", func(w http.ResponseWriter, r *http.Request) {
 		data, herr := h.GetTariff(r.Context(), r.PathValue("country_code"), r.PathValue("party_id"), r.PathValue("tariff_id"))
 		if herr != nil {

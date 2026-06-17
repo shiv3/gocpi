@@ -5,6 +5,7 @@ package v221
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -47,7 +48,9 @@ type HubclientinfoSenderHandler interface {
 
 // RegisterHubclientinfoSender registers h's routes on mux under basePath (the module mount path).
 func RegisterHubclientinfoSender(mux *core.Mux, basePath string, h HubclientinfoSenderHandler) {
-	base := strings.TrimRight(basePath, "/")
+	// basePath may be a full URL or a path; routes use its path.
+	bu, _ := url.Parse(basePath)
+	base := strings.TrimRight(bu.Path, "/")
 	mux.Handle(http.MethodGet, base, func(w http.ResponseWriter, r *http.Request) {
 		req, perr := core.ParsePageReq(r.URL.Query())
 		if perr != nil {
