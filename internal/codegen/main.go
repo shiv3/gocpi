@@ -73,6 +73,7 @@ func main() {
 	}
 
 	generateAPI(schemasDir, pkg)
+	generateRoles(schemasDir, pkg)
 }
 
 // versionPkg maps "2.2.1" -> "v221".

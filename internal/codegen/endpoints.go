@@ -22,7 +22,7 @@ type apiModuleGen struct {
 // functional modules expose a Sender and a Receiver interface.
 var apiModules = func() []apiModuleGen {
 	var out []apiModuleGen
-	for _, m := range []string{"locations", "sessions", "cdrs", "tariffs", "tokens", "commands", "chargingprofiles"} {
+	for _, m := range []string{"locations", "sessions", "cdrs", "tariffs", "tokens", "commands", "chargingprofiles", "hubclientinfo"} {
 		out = append(out,
 			apiModuleGen{Module: m, Iface: "sender", Schema: "modules/" + m + "/sender-interface.yaml"},
 			apiModuleGen{Module: m, Iface: "receiver", Schema: "modules/" + m + "/receiver-interface.yaml"},
