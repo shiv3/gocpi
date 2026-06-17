@@ -1,6 +1,11 @@
 package core
 
-import "context"
+import (
+	"context"
+	"encoding/base64"
+	"errors"
+	"strings"
+)
 
 // Party identifies an OCPI party (a role of a platform), keyed by country code
 // and party id.
@@ -18,16 +23,29 @@ type TokenStore interface {
 
 // EncodeToken base64-encodes a credentials token for use in the Authorization
 // header: "Token <base64>" (OCPI 2.2.1 §4.1.2).
-//
-// TODO(core, M1-A): implement.
 func EncodeToken(credentialsToken string) string {
-	panic("not implemented: core.EncodeToken")
+	return base64.StdEncoding.EncodeToString([]byte(credentialsToken))
 }
 
 // DecodeToken parses an "Authorization: Token <value>" header and returns the
-// credentials token. It must tolerate non-base64 (2.1.1/2.2-era) tokens.
-//
-// TODO(core, M1-A): implement.
+// credentials token. Per OCPI 2.2.1 §4.1.2 the value is Base64-encoded, but for
+// compatibility with non-encoding 2.1.1/2.2 implementations the raw value is
+// returned when it is not valid Base64.
 func DecodeToken(authHeader string) (string, error) {
-	panic("not implemented: core.DecodeToken")
+	authHeader = strings.TrimSpace(authHeader)
+	if authHeader == "" {
+		return "", errors.New("core: empty Authorization header")
+	}
+	const scheme = "token "
+	if len(authHeader) < len(scheme) || !strings.EqualFold(authHeader[:len(scheme)], scheme) {
+		return "", errors.New("core: Authorization header is not a Token credential")
+	}
+	value := strings.TrimSpace(authHeader[len(scheme):])
+	if value == "" {
+		return "", errors.New("core: empty token value")
+	}
+	if decoded, err := base64.StdEncoding.DecodeString(value); err == nil {
+		return string(decoded), nil
+	}
+	return value, nil
 }
