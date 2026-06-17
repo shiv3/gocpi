@@ -71,6 +71,8 @@ func main() {
 		writeGoFile(out, src)
 		fmt.Printf("generated %s\n", out)
 	}
+
+	generateAPI(schemasDir, pkg)
 }
 
 // versionPkg maps "2.2.1" -> "v221".
