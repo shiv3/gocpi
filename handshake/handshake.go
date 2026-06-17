@@ -15,21 +15,20 @@ import (
 
 	"github.com/shiv3/gocpi/core"
 	"github.com/shiv3/gocpi/core/status"
-	"github.com/shiv3/gocpi/v221/credentials"
-	"github.com/shiv3/gocpi/v221/versions"
+	"github.com/shiv3/gocpi/v221"
 )
 
 // Peer is the outcome of registering with another OCPI platform: the negotiated
 // version, the peer's advertised endpoints, and the credentials (including the
 // token to use for subsequent requests) the peer returned.
 type Peer struct {
-	Version     versions.VersionNumber
-	Endpoints   []versions.Endpoint
-	Credentials credentials.Credentials
+	Version     v221.VersionNumber
+	Endpoints   []v221.Endpoint
+	Credentials v221.Credentials
 }
 
 // Endpoint returns the URL the peer advertised for the given module, if any.
-func (p Peer) Endpoint(id versions.ModuleID) (string, bool) {
+func (p Peer) Endpoint(id v221.ModuleID) (string, bool) {
 	for _, e := range p.Endpoints {
 		if e.Identifier == id {
 			return e.URL, true
@@ -44,13 +43,13 @@ type ServerConfig struct {
 	// "https://example.com/ocpi". Its path determines the registered routes.
 	BaseURL string
 	// Versions is advertised at GET {base}/versions.
-	Versions []versions.Version
+	Versions []v221.Version
 	// Details returns the VersionDetails for a requested version number.
-	Details func(versions.VersionNumber) (versions.VersionDetails, bool)
+	Details func(v221.VersionNumber) (v221.VersionDetails, bool)
 	// OnRegister handles an inbound credentials POST (registration). It receives
 	// the caller's credentials and returns this platform's credentials — with a
 	// freshly generated token — to hand back.
-	OnRegister func(ctx context.Context, peer credentials.Credentials) (credentials.Credentials, error)
+	OnRegister func(ctx context.Context, peer v221.Credentials) (v221.Credentials, error)
 }
 
 // Mount registers the Versions and Credentials endpoints on mux at the path of
@@ -67,7 +66,7 @@ func Mount(mux *core.Mux, cfg ServerConfig) error {
 	})
 
 	mux.Handle(http.MethodGet, base+"/{version}", func(w http.ResponseWriter, r *http.Request) {
-		d, ok := cfg.Details(versions.VersionNumber(r.PathValue("version")))
+		d, ok := cfg.Details(v221.VersionNumber(r.PathValue("version")))
 		if !ok {
 			_ = core.WriteError(w, &status.Error{Code: status.UnsupportedVersion, Message: "unsupported version", HTTPStatus: http.StatusNotFound})
 			return
@@ -76,7 +75,7 @@ func Mount(mux *core.Mux, cfg ServerConfig) error {
 	})
 
 	mux.Handle(http.MethodPost, base+"/{version}/credentials", func(w http.ResponseWriter, r *http.Request) {
-		var peer credentials.Credentials
+		var peer v221.Credentials
 		if err := json.NewDecoder(r.Body).Decode(&peer); err != nil {
 			_ = core.WriteError(w, status.GenericClient("invalid credentials body"))
 			return
@@ -94,20 +93,20 @@ func Mount(mux *core.Mux, cfg ServerConfig) error {
 // RegisterRequest holds the inputs for registering with a peer.
 type RegisterRequest struct {
 	PeerVersionsURL string
-	PreferVersion   versions.VersionNumber
-	OurCredentials  credentials.Credentials
+	PreferVersion   v221.VersionNumber
+	OurCredentials  v221.Credentials
 }
 
 // Discover fetches the peer's supported versions, selects the preferred version,
 // and returns its details (endpoints).
-func Discover(ctx context.Context, c *core.Client, versionsURL string, prefer versions.VersionNumber) (versions.VersionDetails, error) {
+func Discover(ctx context.Context, c *core.Client, versionsURL string, prefer v221.VersionNumber) (v221.VersionDetails, error) {
 	resp, err := c.Do(ctx, http.MethodGet, versionsURL, nil)
 	if err != nil {
-		return versions.VersionDetails{}, err
+		return v221.VersionDetails{}, err
 	}
-	vs, err := core.Decode[[]versions.Version](resp)
+	vs, err := core.Decode[[]v221.Version](resp)
 	if err != nil {
-		return versions.VersionDetails{}, err
+		return v221.VersionDetails{}, err
 	}
 	var detailsURL string
 	for _, v := range vs.Data {
@@ -116,15 +115,15 @@ func Discover(ctx context.Context, c *core.Client, versionsURL string, prefer ve
 		}
 	}
 	if detailsURL == "" {
-		return versions.VersionDetails{}, fmt.Errorf("handshake: peer does not offer version %s", prefer)
+		return v221.VersionDetails{}, fmt.Errorf("handshake: peer does not offer version %s", prefer)
 	}
 	resp2, err := c.Do(ctx, http.MethodGet, detailsURL, nil)
 	if err != nil {
-		return versions.VersionDetails{}, err
+		return v221.VersionDetails{}, err
 	}
-	det, err := core.Decode[versions.VersionDetails](resp2)
+	det, err := core.Decode[v221.VersionDetails](resp2)
 	if err != nil {
-		return versions.VersionDetails{}, err
+		return v221.VersionDetails{}, err
 	}
 	return det.Data, nil
 }
@@ -139,7 +138,7 @@ func Register(ctx context.Context, c *core.Client, req RegisterRequest) (*Peer, 
 	}
 	var credURL string
 	for _, e := range det.Endpoints {
-		if e.Identifier == versions.ModuleIDCredentials {
+		if e.Identifier == v221.ModuleIDCredentials {
 			credURL = e.URL
 		}
 	}
@@ -150,7 +149,7 @@ func Register(ctx context.Context, c *core.Client, req RegisterRequest) (*Peer, 
 	if err != nil {
 		return nil, err
 	}
-	out, err := core.Decode[credentials.Credentials](resp)
+	out, err := core.Decode[v221.Credentials](resp)
 	if err != nil {
 		return nil, err
 	}
