@@ -4,6 +4,8 @@
 *.test
 .DS_Store
 /coverage.txt
+# stray codegen binary from `go build ./internal/codegen`
+/codegen
 # internal planning/spec docs — not part of the public release
 /docs/superpowers/
 # local Claude Code config (skills, etc.)
