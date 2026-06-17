@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/shiv3/gocpi/core/observability"
 	"github.com/shiv3/gocpi/core/status"
@@ -65,10 +66,33 @@ func (s *Server) Metrics() observability.Metrics { return s.metrics }
 // echo, etc. (use http.StripPrefix when mounting under a prefix).
 func (s *Server) Handler() http.Handler {
 	h := http.Handler(s.mux)
+	h = s.metricsMiddleware(h)
 	h = s.authMiddleware(h)
 	h = s.contextMiddleware(h)
 	h = s.recoverMiddleware(h)
 	return h
+}
+
+// statusRecorder captures the response status code for metrics.
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (s *statusRecorder) WriteHeader(code int) {
+	s.status = code
+	s.ResponseWriter.WriteHeader(code)
+}
+
+// metricsMiddleware records server request observations. It wraps the mux so the
+// matched route pattern (r.Pattern) is available.
+func (s *Server) metricsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		start := time.Now()
+		next.ServeHTTP(rec, r)
+		s.metrics.ObserveServer(r.Method, r.Pattern, rec.status, time.Since(start))
+	})
 }
 
 // recoverMiddleware converts handler panics into an OCPI 3000 error envelope.
