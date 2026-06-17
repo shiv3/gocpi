@@ -1,0 +1,403 @@
+openapi: 3.1.0
+components:
+  schemas:
+    CDR:
+      type: object
+      description: |
+        The CDR object describes the charging session and its costs, how these costs are composed, etc.
+        The CDR can be thought of as sealed, preserving the information valid at the moment in time
+        the underlying session was started. This is a requirement of the main use case for CDRs, namely invoicing.
+        The CDR object shall always contain information like Location, EVSE, Tariffs and Token
+        as they were at the start of the charging session.
+      properties:
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: ISO-3166 alpha-2 country code of the CPO that 'owns' this CDR.
+        party_id:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ID of the CPO that 'owns' this CDR (following the ISO-15118 standard).
+        id:
+          type: string
+          maxLength: 39
+          description: |
+            Uniquely identifies the CDR, the ID SHALL be unique per country_code/party_id combination.
+            This field is longer than the usual 36 characters to allow for credit CDRs to have
+            something appended to the original ID. Normal (non-credit) CDRs SHALL only have an ID
+            with a maximum length of 36.
+        start_date_time:
+          type: string
+          format: date-time
+          description: Start timestamp of the charging session, or in-case of a reservation (before the start of a session) the start of the reservation.
+        end_date_time:
+          type: string
+          format: date-time
+          description: "The timestamp when the session was completed/finished, charging might have finished before the session ends, for example: EV is full, but parking cost also has to be paid."
+        session_id:
+          type: string
+          maxLength: 36
+          description: "Unique ID of the Session for which this CDR is sent. Is only allowed to be omitted when the CPO has not implemented the Sessions module or this CDR is the result of a reservation that never became a charging session, thus no OCPI Session."
+        cdr_token:
+          $ref: "#/components/schemas/CdrToken"
+          description: Token used to start this charging session, including all the relevant information to identify the unique token.
+        auth_method:
+          $ref: "#/components/schemas/AuthMethod"
+          description: "Method used for authentication. Multiple AuthMethods are possible during a charging sessions, for example when the session was started with a reservation: ReserveNow: COMMAND. When the driver arrives and starts charging using a Token that is whitelisted: WHITELIST. The last method SHALL be used in the CDR."
+        authorization_reference:
+          type: string
+          maxLength: 36
+          description: |
+            Reference to the authorization given by the eMSP. When the eMSP provided an
+            authorization_reference in either real-time authorization, StartSession or ReserveNow,
+            this field SHALL contain the same value. When different authorization_reference values
+            have been given by the eMSP that are relevant to this Session, the last given value
+            SHALL be used here.
+        cdr_location:
+          $ref: "#/components/schemas/CdrLocation"
+          description: Location where the charging session took place, including only the relevant EVSE and Connector.
+        meter_id:
+          type: string
+          maxLength: 255
+          description: Identification of the Meter inside the Charge Point.
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: Currency of the CDR in ISO 4217 Code.
+        tariffs:
+          type: array
+          description: "List of relevant Tariffs, see: Tariff. When relevant, a Free of Charge tariff should also be in this list, and point to a defined Free of Charge Tariff."
+          items:
+            $ref: "../tariffs/schema.yaml#/components/schemas/Tariff"
+        charging_periods:
+          type: array
+          description: List of Charging Periods that make up this charging session.
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ChargingPeriod"
+        signed_data:
+          $ref: "#/components/schemas/SignedData"
+          description: Signed data that belongs to this charging Session.
+        total_cost:
+          $ref: "../../components/schema.yaml#/components/schemas/Price"
+          description: Total sum of all the costs of this transaction in the specified currency.
+        total_fixed_cost:
+          $ref: "../../components/schema.yaml#/components/schemas/Price"
+          description: Total sum of all the fixed costs in the specified currency, except fixed price components of parking and reservation. The cost not depending on amount of time/energy used etc. Can contain costs like a start tariff.
+        total_energy:
+          type: number
+          description: Total energy charged, in kWh.
+        total_energy_cost:
+          $ref: "../../components/schema.yaml#/components/schemas/Price"
+          description: Total sum of all the cost of all the energy used, in the specified currency.
+        total_time:
+          type: number
+          description: Total duration of the charging session (including the duration of charging and not charging), in hours.
+        total_time_cost:
+          $ref: "../../components/schema.yaml#/components/schemas/Price"
+          description: Total sum of all the cost related to duration of charging during this transaction, in the specified currency.
+        total_parking_time:
+          type: number
+          description: Total duration of the charging session where the EV was not charging (no energy was transferred between EVSE and EV), in hours.
+        total_parking_cost:
+          $ref: "../../components/schema.yaml#/components/schemas/Price"
+          description: Total sum of all the cost related to parking of this transaction, including fixed price components, in the specified currency.
+        total_reservation_cost:
+          $ref: "../../components/schema.yaml#/components/schemas/Price"
+          description: Total sum of all the cost related to a reservation of a Charge Point, including fixed price components, in the specified currency.
+        remark:
+          type: string
+          maxLength: 255
+          description: "Optional remark, can be used to provide additional human readable information to the CDR, for example: reason why a transaction was stopped."
+        invoice_reference_id:
+          type: string
+          maxLength: 39
+          description: This field can be used to reference an invoice, that will later be send for this CDR. Making it easier to link a CDR to a given invoice. Maybe even group CDRs that will be on the same invoice.
+        credit:
+          type: boolean
+          description: When set to true, this is a Credit CDR, and the field credit_reference_id needs to be set as well.
+        credit_reference_id:
+          type: string
+          maxLength: 39
+          description: Is required to be set for a Credit CDR. This SHALL contain the id of the CDR for which this is a Credit CDR.
+        home_charging_compensation:
+          type: boolean
+          description: When set to true, this CDR is for a charging session using the home charger of the EV Driver for which the energy cost needs to be financial compensated to the EV Driver.
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp when this CDR was last updated (or created).
+      required:
+        - country_code
+        - party_id
+        - id
+        - start_date_time
+        - end_date_time
+        - cdr_token
+        - auth_method
+        - cdr_location
+        - currency
+        - charging_periods
+        - total_cost
+        - total_energy
+        - total_time
+        - last_updated
+
+    # ---- CDR-specific types ----
+
+    CdrLocation:
+      type: object
+      description: |
+        The CdrLocation class contains only the relevant information from the Location object
+        that is needed in a CDR.
+      properties:
+        id:
+          type: string
+          maxLength: 36
+          description: Uniquely identifies the location within the CPO's platform (and suboperator platforms). This field can never be changed, modified or renamed.
+        name:
+          type: string
+          maxLength: 255
+          description: Display name of the location.
+        address:
+          type: string
+          maxLength: 45
+          description: Street/block name and house number if available.
+        city:
+          type: string
+          maxLength: 45
+          description: City or town.
+        postal_code:
+          type: string
+          maxLength: 10
+          description: "Postal code of the location, may only be omitted when the location has no postal code: in some countries charging locations at highways don't have postal codes."
+        state:
+          type: string
+          maxLength: 20
+          description: State or province of the location, only to be used when relevant.
+        country:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ISO 3166-1 alpha-3 code for the country of this location.
+        coordinates:
+          $ref: "../locations/schema.yaml#/components/schemas/GeoLocation"
+          description: Coordinates of the location.
+        evse_uid:
+          type: string
+          maxLength: 36
+          description: "Uniquely identifies the EVSE within the CPO's platform (and suboperator platforms). For example a database unique ID or the actual EVSE ID. This field can never be changed, modified or renamed. This is the technical identification of the EVSE, not to be used as human readable identification, use the field: evse_id for that. Allowed to be set to: #NA when this CDR is created for a reservation that never resulted in a charging session."
+        evse_id:
+          type: string
+          maxLength: 48
+          description: "Compliant with the following specification for EVSE ID: \"E-mobility ID-codes: the purpose of IDs, ID usage and ID format\" (https://evroaming.org/contract-evse-ids/). Allowed to be set to: #NA when this CDR is created for a reservation that never resulted in a charging session."
+        connector_id:
+          type: string
+          maxLength: 36
+          description: "Identifier of the connector within the EVSE. Allowed to be set to: #NA when this CDR is created for a reservation that never resulted in a charging session."
+        connector_standard:
+          $ref: "../locations/schema.yaml#/components/schemas/ConnectorType"
+          description: The standard of the installed connector. When this CDR is created for a reservation that never resulted in a charging session, this field can be set to any value and should be ignored by the Receiver.
+        connector_format:
+          $ref: "../locations/schema.yaml#/components/schemas/ConnectorFormat"
+          description: The format (socket/cable) of the installed connector. When this CDR is created for a reservation that never resulted in a charging session, this field can be set to any value and should be ignored by the Receiver.
+        connector_power_type:
+          $ref: "../locations/schema.yaml#/components/schemas/PowerType"
+          description: When this CDR is created for a reservation that never resulted in a charging session, this field can be set to any value and should be ignored by the Receiver.
+      required:
+        - id
+        - address
+        - city
+        - country
+        - coordinates
+        - evse_uid
+        - evse_id
+        - connector_id
+        - connector_standard
+        - connector_format
+        - connector_power_type
+
+    CdrToken:
+      type: object
+      description: Token information used to start a charging session, containing all relevant information to identify the unique token.
+      properties:
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: ISO-3166 alpha-2 country code of the MSP that 'owns' this Token.
+        party_id:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ID of the eMSP that 'owns' this Token (following the ISO-15118 standard).
+        uid:
+          type: string
+          maxLength: 36
+          description: "Unique ID by which this Token can be identified. This is the field used by the CPO's system (RFID reader on the Charge Point) to identify this token. Currently, in most cases: type=RFID, this is the RFID hidden ID as read by the RFID reader, but that is not a requirement. If this is a type=APP_USER Token, it will be a unique, by the eMSP, generated ID."
+        type:
+          $ref: "../tokens/schema.yaml#/components/schemas/TokenType"
+          description: Type of the token
+        contract_id:
+          type: string
+          maxLength: 36
+          description: 'Uniquely identifies the EV Driver contract token within the eMSP''s platform (and suboperator platforms). Recommended to follow the specification for eMA ID from "E-mobility ID-codes: the purpose of IDs, ID usage and ID format" (https://evroaming.org/contract-evse-ids/).'
+      required:
+        - country_code
+        - party_id
+        - uid
+        - type
+        - contract_id
+
+    ChargingPeriod:
+      type: object
+      description: |
+        A Charging Period consists of a start timestamp and a list of possible values that influence
+        this period, for example: amount of energy charged this period, maximum current during this
+        period etc.
+      properties:
+        start_date_time:
+          type: string
+          format: date-time
+          description: Start timestamp of the charging period. A period ends when the next period starts. The last period ends when the session ends.
+        dimensions:
+          type: array
+          description: List of relevant values for this charging period.
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CdrDimension"
+        tariff_id:
+          type: string
+          maxLength: 36
+          description: Unique identifier of the Tariff that is relevant for this Charging Period. If not provided, no Tariff is relevant during this period.
+      required:
+        - start_date_time
+        - dimensions
+
+    CdrDimension:
+      type: object
+      description: A dimension value for a charging period.
+      properties:
+        type:
+          $ref: "#/components/schemas/CdrDimensionType"
+          description: Type of CDR dimension.
+        volume:
+          type: number
+          description: Volume of the dimension consumed, measured according to the dimension type.
+      required:
+        - type
+        - volume
+
+    SignedData:
+      type: object
+      description: |
+        This class contains all the information of the signed data. Which encoding method is used,
+        if needed, the public key and a list of signed values.
+      properties:
+        encoding_method:
+          type: string
+          maxLength: 36
+          description: The name of the encoding used in the SignedData field. This is the name given to the encoding by a company or group of companies. For the German Eichrecht, different solutions are used, all have (somewhat) different encodings like OCMF, Alfen Eichrecht, EDL40 E-Mobility Extension or EDL40 Mennekes .
+        encoding_method_version:
+          type: integer
+          description: Version of the EncodingMethod (when applicable).
+        public_key:
+          type: string
+          maxLength: 512
+          description: Public key used to sign the data, base64 encoded.
+        signed_values:
+          type: array
+          description: One or more signed values.
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/SignedValue"
+        url:
+          type: string
+          maxLength: 512
+          description: URL that can be shown to an EV driver. This URL gives the EV driver the possibility to check the signed data from a charging session.
+      required:
+        - encoding_method
+        - signed_values
+
+    SignedValue:
+      type: object
+      description: |
+        This class contains the signed and the plain/unsigned data.
+        By decoding the data, the receiver can check if the content has not been altered.
+      properties:
+        nature:
+          type: string
+          maxLength: 32
+          description: |
+            Nature of the value, in other words, the event this value belongs to.
+            Possible values at moment of writing:
+            - Start (value at the start of the Session)
+            - End (signed value at the end of the Session)
+            - Intermediate (signed values take during the Session, after Start, before End)
+            Others might be added later.
+        plain_data:
+          type: string
+          maxLength: 512
+          description: The un-encoded string of data. The format of the content depends on the EncodingMethod field.
+        signed_data:
+          type: string
+          maxLength: 5000
+          description: Blob of signed data, base64 encoded. The format of the content depends on the EncodingMethod field.
+      required:
+        - nature
+        - plain_data
+        - signed_data
+
+    # ---- Enums ----
+
+    AuthMethod:
+      type: string
+      format: enum
+      description: Method used for authentication.
+      enum:
+        - AUTH_REQUEST
+        - COMMAND
+        - WHITELIST
+      x-enumDescriptions:
+        AUTH_REQUEST: Authentication request has been sent to the eMSP.
+        COMMAND: Command like StartSession or ReserveNow used to start the Session, the Token provided in the Command was used as authorization.
+        WHITELIST: Whitelist used for authentication, no request to the eMSP has been performed.
+
+    CdrDimensionType:
+      type: string
+      format: enum
+      description: |
+        Defines the type of a CDR dimension. Some of these values are not useful for CDRs,
+        and SHALL therefore only be used in Sessions (marked as Session Only).
+      enum:
+        - CURRENT
+        - ENERGY
+        - ENERGY_EXPORT
+        - ENERGY_IMPORT
+        - MAX_CURRENT
+        - MIN_CURRENT
+        - MAX_POWER
+        - MIN_POWER
+        - PARKING_TIME
+        - POWER
+        - RESERVATION_TIME
+        - STATE_OF_CHARGE
+        - TIME
+      x-enumDescriptions:
+        CURRENT: "(Session Only) Average charging current during this ChargingPeriod: defined in A (Ampere). When negative, the current is flowing from the EV to the grid."
+        ENERGY: "Total amount of energy (dis-)charged during this ChargingPeriod: defined in kWh. When negative, more energy was fed into the grid than charged into the EV. Default step_size is 1."
+        ENERGY_EXPORT: "(Session Only) Total amount of energy fed back into the grid: defined in kWh."
+        ENERGY_IMPORT: "(Session Only) Total amount of energy charged, defined in kWh."
+        MAX_CURRENT: "Sum of the maximum current over all phases, reached during this ChargingPeriod: defined in A (Ampere)."
+        MIN_CURRENT: "Sum of the minimum current over all phases, reached during this ChargingPeriod, when negative, current has flowed from the EV to the grid. Defined in A (Ampere)."
+        MAX_POWER: "Maximum power reached during this ChargingPeriod: defined in kW (Kilowatt)."
+        MIN_POWER: "Minimum power reached during this ChargingPeriod: defined in kW (Kilowatt), when negative, the power has flowed from the EV to the grid."
+        PARKING_TIME: "Time during this ChargingPeriod not charging: defined in hours, default step_size multiplier is 1 second."
+        POWER: "(Session Only) Average power during this ChargingPeriod: defined in kW (Kilowatt). When negative, the power is flowing from the EV to the grid."
+        RESERVATION_TIME: "Time during this ChargingPeriod the Charge Point has been reserved and not yet been in use for this customer: defined in hours, default step_size multiplier is 1 second."
+        STATE_OF_CHARGE: "(Session Only) Current state of charge of the EV, in percentage, values allowed: 0 to 100."
+        TIME: "Time charging during this ChargingPeriod: defined in hours, default step_size multiplier is 1 second."
+

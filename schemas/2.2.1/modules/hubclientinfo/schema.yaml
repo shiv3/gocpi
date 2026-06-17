@@ -1,0 +1,69 @@
+openapi: 3.1.0
+components:
+  schemas:
+    ClientInfo:
+      type: object
+      description: Contains info about a connected party.
+      properties:
+        party_id:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: "CPO or eMSP ID of this party (following the 15118 ISO standard), as used in the credentials exchange."
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: "Country code of the country this party is operating in, as used in the credentials exchange."
+        role:
+          $ref: "#/components/schemas/Role"
+          description: The role of the connected party.
+        status:
+          $ref: "#/components/schemas/ConnectionStatus"
+          description: Status of the connection to the party.
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp when this ClientInfo object was last updated.
+      required:
+        - party_id
+        - country_code
+        - role
+        - status
+        - last_updated
+
+    ConnectionStatus:
+      type: string
+      format: enum
+      description: Status of the connection to a party.
+      enum:
+        - CONNECTED
+        - OFFLINE
+        - PLANNED
+        - SUSPENDED
+      x-enumDescriptions:
+        CONNECTED: Party is connected.
+        OFFLINE: Party is currently not connected.
+        PLANNED: "Connection to this party is planned, but has never been connected."
+        SUSPENDED: "Party is now longer active, will never connect anymore."
+
+    Role:
+      type: string
+      format: enum
+      description: The role of a party in the OCPI ecosystem.
+      enum:
+        - CPO
+        - EMSP
+        - HUB
+        - NAP
+        - NSP
+        - OTHER
+        - SCSP
+      x-enumDescriptions:
+        CPO: Charge Point Operator Role.
+        EMSP: eMobility Service Provider Role.
+        HUB: Hub role.
+        NAP: National Access Point Role (national Database with all Location information of a country).
+        NSP: "Navigation Service Provider Role, role like an eMSP (probably only interested in Location information)."
+        OTHER: Other role.
+        SCSP: Smart Charging Service Provider Role.

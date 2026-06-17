@@ -1,0 +1,313 @@
+openapi: 3.1.0
+components:
+  schemas:
+    Tariff:
+      type: object
+      description: |
+        A Tariff object consists of a list of one or more Tariff Elements, which in turn consist of
+        Price Components. A Tariff Element is a group of Price Components that apply under the same
+        conditions. The rules for the conditions under which a Tariff Element applies are known as
+        its "restrictions". A Price Component describes how the usage of a particular dimension
+        (time, energy, etcetera) is mapped to an amount of money owed.
+
+        When the list of Tariff Elements contains more than one Element that has a Price Component
+        for a certain dimension, then the first Tariff Element with a Price Component for that
+        dimension in the list with matching Tariff Restrictions will be used.
+
+        To define a "Free of Charge" tariff in OCPI, a Tariff containing one Tariff Element with
+        no restrictions containing one Price Component with type = FLAT and price = 0.00 has to
+        be provided.
+      properties:
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: ISO-3166 alpha-2 country code of the CPO that 'owns' this Tariff.
+        party_id:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ID of the CPO that 'owns' this Tariff (following the ISO-15118 standard).
+        id:
+          type: string
+          maxLength: 36
+          description: Uniquely identifies the tariff within the CPO's platform (and suboperator platforms).
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ISO-4217 code of the currency of this tariff.
+        type:
+          $ref: "#/components/schemas/TariffType"
+          description: |
+            Defines the type of the tariff. This allows for distinction in case of given
+            Charging Preferences. When omitted, this tariff is valid for all sessions.
+        tariff_alt_text:
+          type: array
+          description: List of multi-language alternative tariff info texts.
+          items:
+            $ref: "../../components/schema.yaml#/components/schemas/DisplayText"
+        tariff_alt_url:
+          type: string
+          format: uri
+          description: URL to a web page that contains an explanation of the tariff information in human readable form.
+        min_price:
+          $ref: "../../components/schema.yaml#/components/schemas/Price"
+          description: |
+            When this field is set, a Charging Session with this tariff will at least cost this
+            amount. This is different from a FLAT fee (Start Tariff, Transaction Fee), as a FLAT
+            fee is a fixed amount that has to be paid for any Charging Session. A minimum price
+            indicates that when the cost of a Charging Session is lower than this amount, the cost
+            of the Session will be equal to this amount.
+        max_price:
+          $ref: "../../components/schema.yaml#/components/schemas/Price"
+          description: When this field is set, a Charging Session with this tariff will NOT cost more than this amount.
+        elements:
+          type: array
+          description: List of Tariff Elements.
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/TariffElement"
+        start_date_time:
+          type: string
+          format: date-time
+          description: |
+            The time when this tariff becomes active, in UTC. time_zone field of the Location can
+            be used to convert to local time. Typically used for a new tariff that is already given
+            with the location, before it becomes active.
+        end_date_time:
+          type: string
+          format: date-time
+          description: |
+            The time after which this tariff is no longer valid, in UTC. time_zone field of the
+            Location can be used to convert to local time. Typically used when this tariff is going
+            to be replaced with a different tariff in the near future.
+        energy_mix:
+          $ref: "../locations/schema.yaml#/components/schemas/EnergyMix"
+          description: Details on the energy supplied with this tariff.
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp when this Tariff was last updated (or created).
+      required:
+        - country_code
+        - party_id
+        - id
+        - currency
+        - elements
+        - last_updated
+
+    TariffElement:
+      type: object
+      description: |
+        A Tariff Element is a group of Price Components that share a set of restrictions under
+        which they apply. That the Price Components share the same restrictions does not mean that
+        at any time, they either all apply or all do not apply. Applicable Price Components are
+        looked up separately for each dimension.
+      properties:
+        price_components:
+          type: array
+          description: List of Price Components that each describe how a certain dimension is priced.
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/PriceComponent"
+        restrictions:
+          $ref: "#/components/schemas/TariffRestrictions"
+          description: Restrictions that describe under which circumstances the Price Components of this Tariff Element apply.
+      required:
+        - price_components
+
+    PriceComponent:
+      type: object
+      description: A Price Component describes how a certain amount of a certain dimension being consumed translates into an amount of money owed.
+      properties:
+        type:
+          $ref: "#/components/schemas/TariffDimensionType"
+          description: The dimension that is being priced.
+        price:
+          type: number
+          description: Price per unit (excl. VAT) for this dimension.
+        vat:
+          type: number
+          description: Applicable VAT percentage for this tariff dimension. If omitted, no VAT is applicable. Not providing a VAT is different from 0% VAT, which would be a value of 0.0 here.
+        step_size:
+          type: integer
+          description: |
+            Minimum amount to be billed. That is, the dimension will be billed in this step_size
+            blocks. Consumed amounts are rounded up to the smallest multiple of step_size that is
+            greater than the consumed amount. For example: if type is TIME and step_size has a
+            value of 300, then time will be billed in blocks of 5 minutes. If 6 minutes were
+            consumed, 10 minutes (2 blocks of step_size) will be billed.
+      required:
+        - type
+        - price
+        - step_size
+
+    TariffRestrictions:
+      type: object
+      description: |
+        A TariffRestrictions object describes if and when a Tariff Element becomes active or
+        inactive during a Charging Session. These restrictions are not to be interpreted as making
+        the Tariff Element applicable or not applicable for the entire Charging Session. When more
+        than one restriction is set, they are to be treated as a logical AND.
+      properties:
+        start_time:
+          type: string
+          pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$'
+          description: |
+            Start time of day in local time, the time zone is defined in the time_zone field of
+            the Location, for example 13:30, valid from this time of the day. Must be in 24h
+            format with leading zeros. Hour/Minute separator ":".
+        end_time:
+          type: string
+          pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$'
+          description: |
+            End time of day in local time, the time zone is defined in the time_zone field of
+            the Location, for example 19:45, valid until this time of the day. Same syntax as
+            start_time. If end_time < start_time then the period wraps around to the next day.
+            To stop at end of the day use 00:00.
+        start_date:
+          type: string
+          pattern: '^([12][0-9]{3})-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'
+          description: |
+            Start date in local time, the time zone is defined in the time_zone field of the
+            Location, for example 2015-12-24, valid from this day (inclusive). Format YYYY-MM-DD.
+        end_date:
+          type: string
+          pattern: '^([12][0-9]{3})-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'
+          description: |
+            End date in local time, the time zone is defined in the time_zone field of the
+            Location, for example 2015-12-27, valid until this day (exclusive). Format YYYY-MM-DD.
+        min_kwh:
+          type: number
+          description: Minimum consumed energy in kWh, for example 20, valid from this amount of energy (inclusive) being used.
+        max_kwh:
+          type: number
+          description: Maximum consumed energy in kWh, for example 50, valid until this amount of energy (exclusive) being used.
+        min_current:
+          type: number
+          description: |
+            Sum of the minimum current (in Amperes) over all phases, for example 5.
+            When the EV is charging with more than, or equal to, the defined amount of current,
+            this TariffElement is/becomes active. If the charging current is or becomes lower,
+            this TariffElement is not or no longer valid and becomes inactive.
+            This describes NOT the minimum current over the entire Charging Session.
+            This restriction can make a TariffElement become active when the charging current is
+            above the defined value, but the TariffElement MUST no longer be active when the
+            charging current drops below the defined value.
+        max_current:
+          type: number
+          description: |
+            Sum of the maximum current (in Amperes) over all phases, for example 20.
+            When the EV is charging with less than the defined amount of current, this
+            TariffElement becomes/is active. If the charging current is or becomes higher,
+            this TariffElement is not or no longer valid and becomes inactive.
+            This describes NOT the maximum current over the entire Charging Session.
+            This restriction can make a TariffElement become active when the charging current is
+            below this value, but the TariffElement MUST no longer be active when the charging
+            current raises above the defined value.
+        min_power:
+          type: number
+          description: |
+            Minimum power in kW, for example 5.
+            When the EV is charging with more than, or equal to, the defined amount of power,
+            this TariffElement is/becomes active. If the charging power is or becomes lower,
+            this TariffElement is not or no longer valid and becomes inactive.
+            This describes NOT the minimum power over the entire Charging Session.
+            This restriction can make a TariffElement become active when the charging power is
+            above this value, but the TariffElement MUST no longer be active when the charging
+            power drops below the defined value.
+        max_power:
+          type: number
+          description: |
+            Maximum power in kW, for example 20.
+            When the EV is charging with less than the defined amount of power, this TariffElement
+            becomes/is active. If the charging power is or becomes higher, this TariffElement is
+            not or no longer valid and becomes inactive.
+            This describes NOT the maximum power over the entire Charging Session.
+            This restriction can make a TariffElement become active when the charging power is
+            below this value, but the TariffElement MUST no longer be active when the charging
+            power raises above the defined value.
+        min_duration:
+          type: integer
+          description: |
+            Minimum duration in seconds the Charging Session MUST last (inclusive). When the
+            duration of a Charging Session is longer than the defined value, this TariffElement
+            is or becomes active. Before that moment, this TariffElement is not yet active.
+        max_duration:
+          type: integer
+          description: |
+            Maximum duration in seconds the Charging Session MUST last (exclusive). When the
+            duration of a Charging Session is shorter than the defined value, this TariffElement
+            is or becomes active. After that moment, this TariffElement is no longer active.
+        day_of_week:
+          type: array
+          description: Which day(s) of the week this TariffElement is active.
+          items:
+            $ref: "#/components/schemas/DayOfWeek"
+        reservation:
+          $ref: "#/components/schemas/ReservationRestrictionType"
+          description: |
+            When this field is present, the TariffElement describes reservation costs.
+            A reservation starts when the reservation is made, and ends when the driver starts
+            charging on the reserved EVSE/Location, or when the reservation expires. A reservation
+            can only have FLAT and TIME TariffDimensions, where TIME is for the duration of the
+            reservation.
+
+    # ---- Enums ----
+
+    TariffType:
+      type: string
+      format: enum
+      description: Type of tariff.
+      enum:
+        - AD_HOC_PAYMENT
+        - PROFILE_CHEAP
+        - PROFILE_FAST
+        - PROFILE_GREEN
+        - REGULAR
+      x-enumDescriptions:
+        AD_HOC_PAYMENT: "Used to describe that a Tariff is valid when ad-hoc payment is used at the Charge Point (for example: Debit or Credit card payment terminal)."
+        PROFILE_CHEAP: "Used to describe that a Tariff is valid when Charging Preference: CHEAP is set for the session."
+        PROFILE_FAST: "Used to describe that a Tariff is valid when Charging Preference: FAST is set for the session."
+        PROFILE_GREEN: "Used to describe that a Tariff is valid when Charging Preference: GREEN is set for the session."
+        REGULAR: "Used to describe that a Tariff is valid when using an RFID, without any Charging Preference, or when Charging Preference: REGULAR is set for the session."
+
+    TariffDimensionType:
+      type: string
+      format: enum
+      description: Defines the dimension of a tariff.
+      enum:
+        - ENERGY
+        - FLAT
+        - PARKING_TIME
+        - TIME
+      x-enumDescriptions:
+        ENERGY: "Defined in kWh, step_size multiplier: 1 Wh"
+        FLAT: "Flat fee without unit for step_size"
+        PARKING_TIME: "Time not charging: defined in hours, step_size multiplier: 1 second"
+        TIME: "Time charging: defined in hours, step_size multiplier: 1 second. Can also be used in combination with a RESERVATION restriction to describe the price of the reservation time."
+
+    DayOfWeek:
+      type: string
+      format: enum
+      description: Day of the week.
+      enum:
+        - MONDAY
+        - TUESDAY
+        - WEDNESDAY
+        - THURSDAY
+        - FRIDAY
+        - SATURDAY
+        - SUNDAY
+
+    ReservationRestrictionType:
+      type: string
+      format: enum
+      description: Defines if a TariffElement is applicable for a reservation.
+      enum:
+        - RESERVATION
+        - RESERVATION_EXPIRES
+      x-enumDescriptions:
+        RESERVATION: Used in Tariff Elements to describe costs for a reservation.
+        RESERVATION_EXPIRES: Used in Tariff Elements to describe costs for a reservation that expires (i.e. driver does not start a charging session before expiry_date of the reservation).

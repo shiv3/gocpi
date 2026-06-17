@@ -1,0 +1,233 @@
+openapi: 3.1.0
+info:
+  title: OCPI 2.2.1 Locations Sender Interface
+  description: |
+    The Sender Interface is typically implemented by market roles like the CPO.
+    This interface allows receivers (eMSPs) to fetch Location data.
+
+    The Sender interface is meant to be used when the connection between two parties is
+    established for the first time, to retrieve the current list of Location objects with the
+    current status, and when the Receiver is not 100% sure the Location cache is entirely
+    up-to-date (i.e. to perform a full sync).
+
+    The Receiver can also use the GET Object interface to retrieve a specific Location, EVSE
+    or Connector.
+  version: 2.2.1
+  contact:
+    name: EVRoaming Foundation
+    url: https://evroaming.org
+externalDocs:
+  description: OCPI 2.2.1 Specification
+  url: https://github.com/ocpi/ocpi/blob/master/mod_locations.asciidoc
+security:
+  - ocpiAuthorization: []
+components:
+  securitySchemes:
+    ocpiAuthorization:
+      $ref: "../../components/schema.yaml#/components/securitySchemes/ocpiAuthorization"
+paths:
+  /locations:
+    get:
+      operationId: senderGetLocations
+      summary: Get list of Locations
+      description: |
+        Fetch a list of Locations (paginated) and optionally filter on last_updated using date_from/date_to.
+
+        If the optional parameters date_from and/or date_to are provided, only Locations with
+        last_updated between the given date_from (including) and date_to (excluding) will be returned.
+
+        In order for this to work properly, the following logic MUST be implemented accordingly:
+        If an EVSE is updated, also the 'parent' Location's last_updated field needs to be updated.
+        Similarly, if a Connector is updated, the EVSE's last_updated and the Location's last_updated
+        fields need to be updated.
+      tags: [ Locations ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/DateFromParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/DateToParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/LimitParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OffsetParameter"
+      responses:
+        "200":
+          description: |
+            Successful response containing a list of Location objects.
+            The header will contain the pagination related headers.
+            Each object must contain all required fields. Fields that are not specified
+            may be considered as null values.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+            X-Total-Count:
+              $ref: "../../components/schema.yaml#/components/headers/X-Total-Count"
+            X-Limit:
+              $ref: "../../components/schema.yaml#/components/headers/X-Limit"
+            Link:
+              $ref: "../../components/schema.yaml#/components/headers/Link"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - properties:
+                      data:
+                        type: array
+                        description: List of Location objects with valid EVSEs.
+                        items:
+                          $ref: "./schema.yaml#/components/schemas/Location"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+
+  /locations/{location_id}:
+    get:
+      operationId: senderGetLocation
+      summary: Get a Location
+      description: Retrieve a specific Location object by its location_id.
+      tags: [ Locations ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "./parameters.yaml#/components/parameters/LocationIdParameter"
+      responses:
+        "200":
+          description: Successful response containing the requested Location object.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - properties:
+                      data:
+                        $ref: "./schema.yaml#/components/schemas/Location"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"
+
+  /locations/{location_id}/{evse_uid}:
+    get:
+      operationId: senderGetEvse
+      summary: Get an EVSE
+      description: Retrieve a specific EVSE object by its location_id and evse_uid.
+      tags: [ Locations ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "./parameters.yaml#/components/parameters/LocationIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/EvseUidParameter"
+      responses:
+        "200":
+          description: Successful response containing the requested EVSE object.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - properties:
+                      data:
+                        $ref: "./schema.yaml#/components/schemas/EVSE"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"
+
+  /locations/{location_id}/{evse_uid}/{connector_id}:
+    get:
+      operationId: senderGetConnector
+      summary: Get a Connector
+      description: Retrieve a specific Connector object by its location_id, evse_uid and connector_id.
+      tags: [ Locations ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "./parameters.yaml#/components/parameters/LocationIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/EvseUidParameter"
+        - $ref: "./parameters.yaml#/components/parameters/ConnectorIdParameter"
+      responses:
+        "200":
+          description: Successful response containing the requested Connector object.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - properties:
+                      data:
+                        $ref: "./schema.yaml#/components/schemas/Connector"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"

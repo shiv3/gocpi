@@ -1,0 +1,11 @@
+openapi: 3.1.0
+components:
+  parameters:
+    TariffIdParameter:
+      in: path
+      name: tariff_id
+      description: Tariff.id of the Tariff object to retrieve, update or delete.
+      required: true
+      schema:
+        type: string
+        maxLength: 36

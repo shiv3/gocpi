@@ -1,0 +1,110 @@
+openapi: 3.1.0
+components:
+  schemas:
+    Version:
+      type: object
+      description: A supported OCPI version and its URL.
+      properties:
+        version:
+          $ref: "#/components/schemas/VersionNumber"
+          description: The version number.
+        url:
+          type: string
+          format: uri
+          description: URL to the endpoint containing version specific information.
+      required:
+        - version
+        - url
+
+    VersionDetails:
+      type: object
+      description: Details of a specific OCPI version including its supported endpoints.
+      properties:
+        version:
+          $ref: "#/components/schemas/VersionNumber"
+          description: The version number.
+        endpoints:
+          type: array
+          minItems: 1
+          description: A list of supported endpoints for this version.
+          items:
+            $ref: "#/components/schemas/Endpoint"
+      required:
+        - version
+        - endpoints
+
+    Endpoint:
+      type: object
+      description: An endpoint supported by a platform for a specific OCPI version.
+      properties:
+        identifier:
+          $ref: "#/components/schemas/ModuleID"
+          description: Endpoint identifier.
+        role:
+          $ref: "#/components/schemas/InterfaceRole"
+          description: Interface role this endpoint implements.
+        url:
+          type: string
+          format: uri
+          description: URL to the endpoint.
+      required:
+        - identifier
+        - role
+        - url
+
+    # ---- Enums ----
+
+    VersionNumber:
+      type: string
+      format: enum
+      description: List of known versions.
+      enum:
+        - "2.0"
+        - "2.1"
+        - "2.1.1"
+        - "2.2"
+        - "2.2.1"
+      x-enumDescriptions:
+        "2.0": OCPI version 2.0
+        "2.1": OCPI version 2.1 (DEPRECATED, do not use, use 2.1.1 instead)
+        "2.1.1": OCPI version 2.1.1
+        "2.2": OCPI version 2.2 (DEPRECATED, do not use, use 2.2.1 instead)
+        "2.2.1": OCPI version 2.2.1 (this version)
+
+    InterfaceRole:
+      type: string
+      format: enum
+      description: The interface role of an endpoint.
+      enum:
+        - SENDER
+        - RECEIVER
+      x-enumDescriptions:
+        SENDER: Sender Interface implementation. Interface implemented by the owner of data, so the Receiver can Pull information from the data Sender/owner.
+        RECEIVER: Receiver Interface implementation. Interface implemented by the receiver of data, so the Sender/owner can Push information to the Receiver.
+
+    ModuleID:
+      type: string
+      format: enum
+      description: |
+        The Module identifiers for each endpoint. Most modules (except Credentials & Registration)
+        are optional, but there might be dependencies between modules.
+      enum:
+        - cdrs
+        - chargingprofiles
+        - commands
+        - credentials
+        - hubclientinfo
+        - locations
+        - sessions
+        - tariffs
+        - tokens
+      x-enumDescriptions:
+        cdrs: CDRs module
+        chargingprofiles: Charging Profiles module
+        commands: Commands module
+        credentials: Credentials & Registration module (required for all implementations). The `role` field has no function for this module.
+        hubclientinfo: Hub Client Info module
+        locations: Locations module
+        sessions: Sessions module
+        tariffs: Tariffs module
+        tokens: Tokens module

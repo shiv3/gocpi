@@ -1,0 +1,27 @@
+openapi: 3.1.0
+components:
+  parameters:
+    LocationIdParameter:
+      in: path
+      name: location_id
+      description: Location.id of the Location object to retrieve or update.
+      required: true
+      schema:
+        type: string
+        maxLength: 36
+    EvseUidParameter:
+      in: path
+      name: evse_uid
+      description: EVSE.uid of the EVSE object to retrieve or update.
+      required: true
+      schema:
+        type: string
+        maxLength: 36
+    ConnectorIdParameter:
+      in: path
+      name: connector_id
+      description: Connector.id of the Connector object to retrieve or update.
+      required: true
+      schema:
+        type: string
+        maxLength: 36

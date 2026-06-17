@@ -1,0 +1,463 @@
+// Command codegen generates Go types (and, later, clients and server handlers)
+// for a gocpi OCPI version from the vendored official OpenAPI specification under
+// schemas/<version>/.
+//
+// Usage: go run ./internal/codegen -version 2.2.1
+//
+// The generator parses the per-module OpenAPI schema files directly (the spec's
+// $refs are mapped to Go types by name/package) rather than fully resolving the
+// document, which keeps it simple and dependency-light.
+package main
+
+import (
+	"bytes"
+	"flag"
+	"fmt"
+	"go/format"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+)
+
+const modulePath = "github.com/shiv3/gocpi"
+
+// moduleGen describes one generated Go package.
+type moduleGen struct {
+	Pkg    string // Go package name and directory under the version package
+	Schema string // schema YAML path relative to the version's schemas dir
+}
+
+// schemas handled by core and therefore never generated.
+var skipSchemas = map[string]bool{
+	"OCPIResponse": true, // core.Response[T]
+	"StatusCode":   true, // core/status.Code
+}
+
+// modules generated in the current proof-of-concept scope (the configuration
+// module cluster needed by the Versions + Credentials handshake).
+var modules = []moduleGen{
+	{Pkg: "types", Schema: "components/schema.yaml"},
+	{Pkg: "versions", Schema: "modules/versions/schema.yaml"},
+	{Pkg: "credentials", Schema: "modules/credentials/schema.yaml"},
+	{Pkg: "hubclientinfo", Schema: "modules/hubclientinfo/schema.yaml"},
+}
+
+func main() {
+	version := flag.String("version", "2.2.1", "OCPI version to generate")
+	flag.Parse()
+
+	schemasDir := filepath.Join("schemas", *version)
+	verPkg := versionPkg(*version)
+
+	docs := map[string]*schemaDoc{}
+	reg := map[string]string{} // schema name -> package
+	for _, m := range modules {
+		doc, err := parseSchemaFile(filepath.Join(schemasDir, m.Schema))
+		if err != nil {
+			fatal(err)
+		}
+		docs[m.Pkg] = doc
+		for _, ns := range doc.Schemas {
+			if skipSchemas[ns.Name] {
+				continue
+			}
+			reg[ns.Name] = m.Pkg
+		}
+	}
+
+	for _, m := range modules {
+		g := &generator{curPkg: m.Pkg, verPkg: verPkg, reg: reg, imports: map[string]string{}}
+		src := g.genTypes(m, docs[m.Pkg])
+		out := filepath.Join(verPkg, m.Pkg, "types.go")
+		writeGoFile(out, src)
+		fmt.Printf("generated %s\n", out)
+	}
+}
+
+// versionPkg maps "2.2.1" -> "v221".
+func versionPkg(v string) string { return "v" + strings.ReplaceAll(v, ".", "") }
+
+func fatal(err error) {
+	fmt.Fprintln(os.Stderr, "codegen:", err)
+	os.Exit(1)
+}
+
+func writeGoFile(path string, src []byte) {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		fatal(err)
+	}
+	formatted, err := format.Source(src)
+	if err != nil {
+		_ = os.WriteFile(path+".broken", src, 0o644)
+		fatal(fmt.Errorf("format %s: %w (wrote %s.broken)", path, err, path))
+	}
+	if err := os.WriteFile(path, formatted, 0o644); err != nil {
+		fatal(err)
+	}
+}
+
+// ---- schema model + parsing ----
+
+type schemaDoc struct{ Schemas []namedSchema }
+
+type namedSchema struct {
+	Name string
+	Sch  *jsonSchema
+}
+
+type jsonSchema struct {
+	Type        string
+	Format      string
+	Description string
+	Ref         string
+	Enum        []any
+	Properties  []namedSchema
+	Required    []string
+	Items       *jsonSchema
+	MaxLength   *int
+	MinLength   *int
+	MinItems    *int
+}
+
+func parseSchemaFile(path string) (*schemaDoc, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var root yaml.Node
+	if err := yaml.Unmarshal(data, &root); err != nil {
+		return nil, fmt.Errorf("parse %s: %w", path, err)
+	}
+	if len(root.Content) == 0 {
+		return &schemaDoc{}, nil
+	}
+	schemas := mapGet(mapGet(root.Content[0], "components"), "schemas")
+	if schemas == nil {
+		return &schemaDoc{}, nil
+	}
+	doc := &schemaDoc{}
+	for i := 0; i+1 < len(schemas.Content); i += 2 {
+		doc.Schemas = append(doc.Schemas, namedSchema{
+			Name: schemas.Content[i].Value,
+			Sch:  decodeSchema(schemas.Content[i+1]),
+		})
+	}
+	return doc, nil
+}
+
+func mapGet(n *yaml.Node, key string) *yaml.Node {
+	if n == nil || n.Kind != yaml.MappingNode {
+		return nil
+	}
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if n.Content[i].Value == key {
+			return n.Content[i+1]
+		}
+	}
+	return nil
+}
+
+func decodeSchema(n *yaml.Node) *jsonSchema {
+	var raw struct {
+		Type        string   `yaml:"type"`
+		Format      string   `yaml:"format"`
+		Description string   `yaml:"description"`
+		Ref         string   `yaml:"$ref"`
+		Required    []string `yaml:"required"`
+		MaxLength   *int     `yaml:"maxLength"`
+		MinLength   *int     `yaml:"minLength"`
+		MinItems    *int     `yaml:"minItems"`
+	}
+	_ = n.Decode(&raw)
+	s := &jsonSchema{
+		Type: raw.Type, Format: raw.Format, Description: raw.Description, Ref: raw.Ref,
+		Required: raw.Required, MaxLength: raw.MaxLength, MinLength: raw.MinLength, MinItems: raw.MinItems,
+	}
+	if en := mapGet(n, "enum"); en != nil {
+		for _, c := range en.Content {
+			s.Enum = append(s.Enum, c.Value)
+		}
+	}
+	if it := mapGet(n, "items"); it != nil {
+		s.Items = decodeSchema(it)
+	}
+	if props := mapGet(n, "properties"); props != nil {
+		for i := 0; i+1 < len(props.Content); i += 2 {
+			s.Properties = append(s.Properties, namedSchema{
+				Name: props.Content[i].Value,
+				Sch:  decodeSchema(props.Content[i+1]),
+			})
+		}
+	}
+	return s
+}
+
+// ---- generation ----
+
+type generator struct {
+	curPkg      string
+	verPkg      string
+	reg         map[string]string
+	imports     map[string]string // import path -> package name
+	needTime    bool
+	needDecimal bool
+}
+
+func (g *generator) genTypes(m moduleGen, doc *schemaDoc) []byte {
+	var body bytes.Buffer
+	for _, ns := range doc.Schemas {
+		if skipSchemas[ns.Name] {
+			continue
+		}
+		s := ns.Sch
+		switch {
+		case isStringEnum(s):
+			g.emitEnum(&body, ns.Name, s)
+		case s.Type == "object" || len(s.Properties) > 0:
+			g.emitStruct(&body, ns.Name, s)
+		default:
+			g.emitAlias(&body, ns.Name, s)
+		}
+		body.WriteString("\n")
+	}
+
+	var hdr bytes.Buffer
+	hdr.WriteString("// Code generated by gocpi codegen. DO NOT EDIT.\n\n")
+	fmt.Fprintf(&hdr, "package %s\n\n", m.Pkg)
+
+	var imps []string
+	if g.needTime {
+		imps = append(imps, "time")
+	}
+	if g.needDecimal {
+		imps = append(imps, "github.com/shopspring/decimal")
+	}
+	for p := range g.imports {
+		imps = append(imps, p)
+	}
+	sort.Strings(imps)
+	if len(imps) > 0 {
+		hdr.WriteString("import (\n")
+		for _, p := range imps {
+			fmt.Fprintf(&hdr, "\t%q\n", p)
+		}
+		hdr.WriteString(")\n\n")
+	}
+	return append(hdr.Bytes(), body.Bytes()...)
+}
+
+func (g *generator) emitStruct(b *bytes.Buffer, name string, s *jsonSchema) {
+	writeDoc(b, name, s.Description)
+	fmt.Fprintf(b, "type %s struct {\n", name)
+	req := toSet(s.Required)
+	for _, p := range s.Properties {
+		typ := g.goType(p.Sch)
+		required := req[p.Name]
+		jsonTag := p.Name
+		if !required {
+			if !strings.HasPrefix(typ, "[]") {
+				typ = "*" + typ
+			}
+			jsonTag += ",omitempty"
+		}
+		tag := fmt.Sprintf("json:%q", jsonTag)
+		if v := buildValidate(p.Sch, required); v != "" {
+			tag += fmt.Sprintf(" validate:%q", v)
+		}
+		fmt.Fprintf(b, "\t%s %s `%s`\n", goFieldName(p.Name), typ, tag)
+	}
+	b.WriteString("}\n")
+}
+
+func (g *generator) emitEnum(b *bytes.Buffer, name string, s *jsonSchema) {
+	writeDoc(b, name, s.Description)
+	fmt.Fprintf(b, "type %s string\n\n", name)
+	b.WriteString("const (\n")
+	for _, e := range s.Enum {
+		val := fmt.Sprint(e)
+		fmt.Fprintf(b, "\t%s %s = %q\n", enumConstName(name, val), name, val)
+	}
+	b.WriteString(")\n")
+}
+
+func (g *generator) emitAlias(b *bytes.Buffer, name string, s *jsonSchema) {
+	writeDoc(b, name, s.Description)
+	fmt.Fprintf(b, "type %s %s\n", name, g.goType(s))
+}
+
+func (g *generator) goType(s *jsonSchema) string {
+	if s.Ref != "" {
+		pkg, name := g.resolveRef(s.Ref)
+		if pkg == g.curPkg {
+			return name
+		}
+		g.imports[modulePath+"/"+g.verPkg+"/"+pkg] = pkg
+		return pkg + "." + name
+	}
+	switch s.Type {
+	case "string":
+		if s.Format == "date-time" {
+			g.needTime = true
+			return "time.Time"
+		}
+		return "string"
+	case "integer":
+		return "int"
+	case "number":
+		g.needDecimal = true
+		return "decimal.Decimal"
+	case "boolean":
+		return "bool"
+	case "array":
+		if s.Items != nil {
+			return "[]" + g.goType(s.Items)
+		}
+		return "[]any"
+	default:
+		return "any"
+	}
+}
+
+// resolveRef maps an OpenAPI $ref to a (package, typeName) pair.
+func (g *generator) resolveRef(ref string) (pkg, name string) {
+	file := ref
+	ptr := ""
+	if i := strings.IndexByte(ref, '#'); i >= 0 {
+		file, ptr = ref[:i], ref[i+1:]
+	}
+	name = ptr[strings.LastIndexByte(ptr, '/')+1:]
+	switch {
+	case file == "":
+		return g.curPkg, name
+	case strings.Contains(file, "components/schema.yaml"):
+		return "types", name
+	case strings.HasPrefix(file, "./"):
+		return g.curPkg, name
+	default:
+		segs := strings.Split(file, "/")
+		for i, s := range segs {
+			if s == "schema.yaml" && i > 0 {
+				return segs[i-1], name
+			}
+		}
+		return "types", name
+	}
+}
+
+func buildValidate(s *jsonSchema, required bool) string {
+	var v []string
+	if required {
+		v = append(v, "required")
+	}
+	if s.Ref == "" {
+		switch s.Type {
+		case "string":
+			switch {
+			case s.MinLength != nil && s.MaxLength != nil && *s.MinLength == *s.MaxLength:
+				v = append(v, fmt.Sprintf("len=%d", *s.MaxLength))
+			default:
+				if s.MinLength != nil {
+					v = append(v, fmt.Sprintf("min=%d", *s.MinLength))
+				}
+				if s.MaxLength != nil {
+					v = append(v, fmt.Sprintf("max=%d", *s.MaxLength))
+				}
+			}
+		case "array":
+			if s.MinItems != nil {
+				v = append(v, fmt.Sprintf("min=%d", *s.MinItems))
+			}
+		}
+	}
+	if len(v) == 0 {
+		return ""
+	}
+	if !required {
+		v = append([]string{"omitempty"}, v...)
+	}
+	return strings.Join(v, ",")
+}
+
+// ---- naming + helpers ----
+
+var initialisms = map[string]string{
+	"id": "ID", "url": "URL", "uid": "UID", "evse": "EVSE",
+	"cdr": "CDR", "api": "API", "vat": "VAT", "iso": "ISO",
+}
+
+func goFieldName(snake string) string {
+	parts := strings.Split(snake, "_")
+	for i, p := range parts {
+		if up, ok := initialisms[strings.ToLower(p)]; ok {
+			parts[i] = up
+		} else {
+			parts[i] = pascalWord(p)
+		}
+	}
+	return strings.Join(parts, "")
+}
+
+func enumConstName(typeName, val string) string {
+	var parts []string
+	var cur strings.Builder
+	flush := func() {
+		if cur.Len() > 0 {
+			parts = append(parts, cur.String())
+			cur.Reset()
+		}
+	}
+	for _, r := range val {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9':
+			cur.WriteRune(r)
+		default:
+			flush()
+		}
+	}
+	flush()
+	id := ""
+	for _, p := range parts {
+		id += pascalWord(p)
+	}
+	if id == "" {
+		id = "Empty"
+	}
+	return typeName + id
+}
+
+func pascalWord(w string) string {
+	if w == "" {
+		return ""
+	}
+	return strings.ToUpper(w[:1]) + strings.ToLower(w[1:])
+}
+
+func isStringEnum(s *jsonSchema) bool {
+	return s.Ref == "" && s.Type == "string" && len(s.Enum) > 0
+}
+
+func toSet(ss []string) map[string]bool {
+	m := make(map[string]bool, len(ss))
+	for _, s := range ss {
+		m[s] = true
+	}
+	return m
+}
+
+func writeDoc(b *bytes.Buffer, name, desc string) {
+	desc = strings.TrimSpace(desc)
+	if desc == "" {
+		fmt.Fprintf(b, "// %s is an OCPI 2.2.1 type.\n", name)
+		return
+	}
+	lines := strings.Split(desc, "\n")
+	fmt.Fprintf(b, "// %s: %s\n", name, strings.TrimSpace(lines[0]))
+	for _, l := range lines[1:] {
+		if l = strings.TrimSpace(l); l != "" {
+			fmt.Fprintf(b, "// %s\n", l)
+		}
+	}
+}

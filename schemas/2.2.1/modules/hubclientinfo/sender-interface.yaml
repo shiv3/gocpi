@@ -1,0 +1,79 @@
+openapi: 3.1.0
+info:
+  title: OCPI 2.2.1 - HubClientInfo Module - Sender Interface
+  description: |
+    The Sender Interface is typically implemented by the Hub.
+    It enables Receivers (connected parties) to request the current list of ClientInfo objects
+    from the Hub, when needed.
+
+    This is typically used when a connected party is not sure about the state of the list
+    of known connected parties, or wants to request the full list at the start-up of their system.
+
+    Note: HubClientInfo is a configuration module. Message routing headers (OCPI-to/from-*)
+    SHALL NOT be used with this module.
+  version: 2.2.1
+  contact:
+    name: EVRoaming Foundation
+    url: https://evroaming.org
+externalDocs:
+  description: OCPI 2.2.1 Specification
+  url: https://github.com/ocpi/ocpi/blob/master/mod_hub_client_info.asciidoc
+security:
+  - ocpiAuthorization: []
+components:
+  securitySchemes:
+    ocpiAuthorization:
+      $ref: "../../components/schema.yaml#/components/securitySchemes/ocpiAuthorization"
+
+paths:
+  /hubclientinfo:
+    get:
+      operationId: senderGetClientInfoList
+      summary: Get list of ClientInfo objects
+      description: |
+        Fetch information about clients connected to a Hub (paginated).
+        Optionally filter on last_updated using date_from/date_to.
+
+        If additional parameters date_from and/or date_to are provided, only ClientInfo objects
+        with last_updated between the given date_from (including) and date_to (excluding)
+        will be returned.
+      tags: [ HubClientInfo ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/DateFromParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/DateToParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/LimitParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OffsetParameter"
+      responses:
+        "200":
+          description: |
+            Successful response containing a list of ClientInfo objects.
+            The header will contain the pagination related headers.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            X-Total-Count:
+              $ref: "../../components/schema.yaml#/components/headers/X-Total-Count"
+            X-Limit:
+              $ref: "../../components/schema.yaml#/components/headers/X-Limit"
+            Link:
+              $ref: "../../components/schema.yaml#/components/headers/Link"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: List of ClientInfo objects.
+                        items:
+                          $ref: "./schema.yaml#/components/schemas/ClientInfo"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIConfigurationErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIConfigurationUnauthorizedResponse"

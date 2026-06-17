@@ -1,0 +1,11 @@
+openapi: 3.1.0
+components:
+  parameters:
+    SessionIdParameter:
+      in: path
+      name: session_id
+      description: Session.id of the Session object.
+      required: true
+      schema:
+        type: string
+        maxLength: 36

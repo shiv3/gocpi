@@ -1,0 +1,89 @@
+openapi: 3.1.0
+info:
+  title: OCPI 2.2.1 - HubClientInfo Module - Receiver Interface
+  description: |
+    Typically implemented by all parties connecting to a Hub.
+    With this interface the Hub can push the ClientInfo information to a connected client (eMSP/CPO etc) 
+    Example endpoint structure: /ocpi/cpo/2.0/clientinfo/{country_code}/{party_id}
+  version: 2.2.1
+  contact:
+    name: EVRoaming Foundation
+    url: https://evroaming.org
+externalDocs:
+  description: OCPI 2.2.1 Specification
+  url: https://github.com/ocpi/ocpi/blob/master/mod_hub_client_info.asciidoc
+security:
+  - ocpiAuthorization: []
+components:
+  securitySchemes:
+    ocpiAuthorization:
+      $ref: "../../components/schema.yaml#/components/securitySchemes/ocpiAuthorization"
+
+paths:
+  /hubclientinfo/{country_code}/{party_id}:
+    get:
+      operationId: receiverGetClientInfo
+      summary: Get a ClientInfo object
+      description: |
+        If the Hub wants to check the status of a ClientInfo object in the connected client's
+        system it might GET the object from the connected client's system for validation purposes.
+        The Hub is the owner of the objects, so it would be illogical if the connected client
+        system had a different status or was missing an object.
+      tags: [ HubClientInfo ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+      responses:
+        "200":
+          description: Successful response containing the requested ClientInfo.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "./schema.yaml#/components/schemas/ClientInfo"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIConfigurationErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIConfigurationUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIConfigurationNotFoundResponse"
+
+    put:
+      operationId: receiverPutClientInfo
+      summary: Push new/updated ClientInfo object to the connect client.
+      tags: [ HubClientInfo ]
+      description: New or updated ClientInfo objects are pushed from the Hub to a connected client.
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+          description: Country code of the eMSP sending this PUT request to the CPO system.
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+          description: Party ID (Provider ID) of the eMSP sending this PUT request to the CPO system.
+      requestBody:
+        description: New or updated ClientInfo object.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/ClientInfo"
+      responses:
+        "200":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIConfigurationSuccessResponse"
+        "201":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIConfigurationCreatedResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIConfigurationErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIConfigurationUnauthorizedResponse"

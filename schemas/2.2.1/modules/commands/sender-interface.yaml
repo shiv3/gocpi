@@ -1,0 +1,61 @@
+openapi: 3.1.0
+info:
+  title: OCPI 2.2.1 - Commands Module - Sender Interface
+  description: |
+    The Sender Interface is typically implemented by market roles like the eMSP.
+    It receives the asynchronous responses from the Charge Point via the CPO.
+
+    The URL structure is open for the Sender to define. The URL is provided to the Receiver
+    by the Sender in the POST to the Receiver interface via the response_url field.
+    Therefore OCPI does not define fixed URL variables.
+
+    The path shown here is a typical implementation pattern.
+  version: 2.2.1
+  contact:
+    name: EVRoaming Foundation
+    url: https://evroaming.org
+externalDocs:
+  description: OCPI 2.2.1 Specification
+  url: https://github.com/ocpi/ocpi/blob/master/mod_commands.asciidoc
+security:
+  - ocpiAuthorization: []
+components:
+  securitySchemes:
+    ocpiAuthorization:
+      $ref: "../../components/schema.yaml#/components/securitySchemes/ocpiAuthorization"
+
+paths:
+  /commands:
+    post:
+      operationId: senderPostCommandResult
+      summary: Receive asynchronous command result
+      tags: [ Commands ]
+      description: |
+        It is up to the implementation of the eMSP to determine what parameters are put in the URL. The eMSP sends a URL
+        in the POST method body to the CPO. The CPO is required to use this URL for the asynchronous response by the
+        Charge Point. It is advised to make this URL unique for every request to differentiate simultaneous commands, for
+        example by adding a unique id as a URL segment.
+        
+        No structure defined. This is open to the Sender to define, the URL is provided to the Receiver by the Sender in the
+        POST to the Receiver interface. Therefor OCPI does not define variables.
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+      requestBody:
+        description: Result of the command request, from the Charge Point.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/CommandResult"
+      responses:
+        "200":
+          $ref: "../../components/schema.yaml#/components/responses/OCPISuccessResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"

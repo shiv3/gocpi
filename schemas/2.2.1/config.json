@@ -1,0 +1,81 @@
+{
+  "modules": {
+    "credentials": {
+      "label": "Credentials",
+      "description": "Credential exchange and registration.",
+      "interfaces": ["interface"]
+    },
+    "versions": {
+      "label": "Versions",
+      "description": "Version discovery and information.",
+      "interfaces": ["interface"]
+    },
+    "cdrs": {
+      "label": "CDRs",
+      "description": "Charge Detail Records.",
+      "interfaces": ["sender-interface", "receiver-interface"]
+    },
+    "chargingprofiles": {
+      "label": "ChargingProfiles",
+      "description": "Smart charging profiles.",
+      "interfaces": ["sender-interface", "receiver-interface"]
+    },
+    "commands": {
+      "label": "Commands",
+      "description": "Remote start/stop, reservations, unlock, etc.",
+      "interfaces": ["sender-interface", "receiver-interface"]
+    },
+    "hubclientinfo": {
+      "label": "HubClientInfo",
+      "description": "Hub connectivity information.",
+      "interfaces": ["sender-interface", "receiver-interface"]
+    },
+    "locations": {
+      "label": "Locations",
+      "description": "Locations, EVSEs and connectors.",
+      "interfaces": ["sender-interface", "receiver-interface"]
+    },
+    "sessions": {
+      "label": "Sessions",
+      "description": "Sessions and charging preferences.",
+      "interfaces": ["sender-interface", "receiver-interface"]
+    },
+    "tariffs": {
+      "label": "Tariffs",
+      "description": "Tariffs and price components.",
+      "interfaces": ["sender-interface", "receiver-interface"]
+    },
+    "tokens": {
+      "label": "Tokens",
+      "description": "Tokens and real-time authorization.",
+      "interfaces": ["sender-interface", "receiver-interface"]
+    }
+  },
+  "roles": {
+    "cpo": [
+      "credentials/interface",
+      "versions/interface",
+      "locations/sender-interface",
+      "sessions/sender-interface",
+      "cdrs/sender-interface",
+      "tariffs/sender-interface",
+      "tokens/receiver-interface",
+      "commands/receiver-interface",
+      "chargingprofiles/receiver-interface"
+    ],
+    "msp": [
+      "credentials/interface",
+      "versions/interface",
+      "locations/receiver-interface",
+      "sessions/receiver-interface",
+      "cdrs/receiver-interface",
+      "tariffs/receiver-interface",
+      "tokens/sender-interface",
+      "commands/sender-interface",
+      "chargingprofiles/sender-interface"
+    ],
+    "hub": [
+      "hubclientinfo/sender-interface"
+    ]
+  }
+}

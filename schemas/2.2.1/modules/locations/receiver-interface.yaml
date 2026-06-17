@@ -1,0 +1,412 @@
+openapi: 3.1.0
+info:
+  title: OCPI 2.2.1 Locations Receiver Interface
+  description: |
+    The Receiver Interface is typically implemented by market roles like the eMSP and NSP.
+    This interface allows senders (CPOs) to push Location data.
+
+    Locations are Client Owned Objects, so the endpoints need to contain the required extra fields:
+    {country_code}/{party_id}/{location_id}.
+
+    Endpoint structure definition:
+    {locations_endpoint_url}/{country_code}/{party_id}/{location_id}[/{evse_uid}][/{connector_id}]
+  version: 2.2.1
+  contact:
+    name: EVRoaming Foundation
+    url: https://evroaming.org
+externalDocs:
+  description: OCPI 2.2.1 Specification
+  url: https://github.com/ocpi/ocpi/blob/master/mod_locations.asciidoc
+security:
+  - ocpiAuthorization: []
+components:
+  securitySchemes:
+    ocpiAuthorization:
+      $ref: "../../components/schema.yaml#/components/securitySchemes/ocpiAuthorization"
+paths:
+  /locations/{country_code}/{party_id}/{location_id}:
+    get:
+      operationId: receiverGetLocation
+      summary: Get a Location
+      description: |
+        If the CPO wants to check the status of a Location object in the eMSP system,
+        it might GET the object from the eMSP system for validation purposes.
+        The CPO is the owner of the objects, so it would be illogical if the eMSP system
+        had a different status or was missing an object.
+        If a discrepancy is found, the CPO might push an update to the eMSP via a PUT or PATCH call.
+      tags: [ Locations ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/LocationIdParameter"
+      responses:
+        "200":
+          description: Successful response containing the requested Location object.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - properties:
+                      data:
+                        $ref: "./schema.yaml#/components/schemas/Location"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"
+
+    put:
+      operationId: receiverPutLocation
+      summary: Create or replace a Location
+      description: |
+        The CPO pushes available Location objects to the eMSP.
+        PUT can be used to send new Location objects to the eMSP but also to replace existing Locations.
+
+        The country_code and party_id in the URL SHALL be the same value as the country_code and
+        party_id in the Location object being pushed.
+      tags: [ Locations ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/LocationIdParameter"
+      requestBody:
+        description: New Location object, or Location object to replace.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/Location"
+      responses:
+        "200":
+          $ref: "../../components/schema.yaml#/components/responses/OCPISuccessResponse"
+        "201":
+          $ref: "../../components/schema.yaml#/components/responses/OCPICreatedResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+
+    patch:
+      operationId: receiverPatchLocation
+      summary: Partially update a Location
+      description: |
+        Notify the eMSP of partial updates to a Location.
+        Only the fields/objects that have to be updated have to be present,
+        other fields/objects that are not specified are considered unchanged.
+        This method is not suitable to remove information shared earlier.
+
+        Any request to the PATCH method SHALL contain the last_updated field.
+      tags: [ Locations ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/LocationIdParameter"
+      requestBody:
+        description: The partial Location object containing only the fields to update. Must contain last_updated.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/LocationPatch"
+      responses:
+        "200":
+          $ref: "../../components/schema.yaml#/components/responses/OCPISuccessResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"
+
+  /locations/{country_code}/{party_id}/{location_id}/{evse_uid}:
+    get:
+      operationId: receiverGetEvse
+      summary: Get an EVSE
+      description: |
+        Retrieve an EVSE as it is stored in the receiver's system.
+        The EVSE object includes all Connectors belonging to it.
+      tags: [ Locations ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/LocationIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/EvseUidParameter"
+      responses:
+        "200":
+          description: Successful response containing the requested EVSE object.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - properties:
+                      data:
+                        $ref: "./schema.yaml#/components/schemas/EVSE"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"
+
+    put:
+      operationId: receiverPutEvse
+      summary: Create or replace an EVSE
+      description: |
+        The CPO pushes a new or updated EVSE object to the eMSP.
+
+        When the PUT only contains an EVSE Object, the Receiver SHALL also set the new
+        last_updated value on the parent Location Object.
+      tags: [ Locations ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/LocationIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/EvseUidParameter"
+      requestBody:
+        description: New EVSE object, or EVSE object to replace.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/EVSE"
+      responses:
+        "200":
+          $ref: "../../components/schema.yaml#/components/responses/OCPISuccessResponse"
+        "201":
+          $ref: "../../components/schema.yaml#/components/responses/OCPICreatedResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"
+
+    patch:
+      operationId: receiverPatchEvse
+      summary: Partially update an EVSE
+      description: |
+        Notify the eMSP of partial updates to an EVSE (such as the status).
+        Only the fields that have to be updated need to be present.
+
+        Any request to the PATCH method SHALL contain the last_updated field.
+
+        When the PATCH is on an EVSE Object, the Receiver SHALL also set the new
+        last_updated value on the parent Location Object.
+      tags: [ Locations ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/LocationIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/EvseUidParameter"
+      requestBody:
+        description: The partial EVSE object containing only the fields to update. Must contain last_updated.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/EVSEPatch"
+      responses:
+        "200":
+          $ref: "../../components/schema.yaml#/components/responses/OCPISuccessResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"
+
+  /locations/{country_code}/{party_id}/{location_id}/{evse_uid}/{connector_id}:
+    get:
+      operationId: receiverGetConnector
+      summary: Get a Connector
+      description: |
+        Retrieve a Connector as it is stored in the receiver's system.
+      tags: [ Locations ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/LocationIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/EvseUidParameter"
+        - $ref: "./parameters.yaml#/components/parameters/ConnectorIdParameter"
+      responses:
+        "200":
+          description: Successful response containing the requested Connector object.
+          headers:
+            X-Request-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Request-ID"
+            X-Correlation-ID:
+              $ref: "../../components/schema.yaml#/components/headers/X-Correlation-ID"
+            OCPI-from-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-country-code"
+            OCPI-from-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-from-party-id"
+            OCPI-to-country-code:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-country-code"
+            OCPI-to-party-id:
+              $ref: "../../components/schema.yaml#/components/headers/OCPI-to-party-id"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "../../components/schema.yaml#/components/schemas/OCPIResponse"
+                  - properties:
+                      data:
+                        $ref: "./schema.yaml#/components/schemas/Connector"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"
+
+    put:
+      operationId: receiverPutConnector
+      summary: Create or replace a Connector
+      description: |
+        The CPO pushes a new or updated Connector object to the eMSP.
+
+        When the PUT only contains a Connector Object, the Receiver SHALL also set the new
+        last_updated value on the parent EVSE and Location Objects.
+      tags: [ Locations ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/LocationIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/EvseUidParameter"
+        - $ref: "./parameters.yaml#/components/parameters/ConnectorIdParameter"
+      requestBody:
+        description: New Connector object, or Connector object to replace.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/Connector"
+      responses:
+        "200":
+          $ref: "../../components/schema.yaml#/components/responses/OCPISuccessResponse"
+        "201":
+          $ref: "../../components/schema.yaml#/components/responses/OCPICreatedResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"
+
+    patch:
+      operationId: receiverPatchConnector
+      summary: Partially update a Connector
+      description: |
+        Notify the eMSP of partial updates to a Connector (such as the tariff).
+        Only the fields that have to be updated need to be present.
+
+        Any request to the PATCH method SHALL contain the last_updated field.
+
+        When the PATCH is on a Connector Object, the Receiver SHALL also set the new
+        last_updated value on the parent EVSE and Location Objects.
+      tags: [ Locations ]
+      parameters:
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Request-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/X-Correlation-ID"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-from-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-country-code"
+        - $ref: "../../components/parameters.yaml#/components/parameters/OCPI-to-party-id"
+        - $ref: "../../components/parameters.yaml#/components/parameters/CountryCodeParameter"
+        - $ref: "../../components/parameters.yaml#/components/parameters/PartyIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/LocationIdParameter"
+        - $ref: "./parameters.yaml#/components/parameters/EvseUidParameter"
+        - $ref: "./parameters.yaml#/components/parameters/ConnectorIdParameter"
+      requestBody:
+        description: The partial Connector object containing only the fields to update. Must contain last_updated.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schema.yaml#/components/schemas/ConnectorPatch"
+      responses:
+        "200":
+          $ref: "../../components/schema.yaml#/components/responses/OCPISuccessResponse"
+        "400":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIErrorResponse"
+        "401":
+          $ref: "../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse"
+        "404":
+          $ref: "../../components/schema.yaml#/components/responses/OCPINotFoundResponse"
