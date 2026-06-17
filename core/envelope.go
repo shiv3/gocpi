@@ -28,7 +28,7 @@ type Response[T any] struct {
 // HTTP status indicates an error. The response body is closed.
 func Decode[T any](resp *http.Response) (Response[T], error) {
 	var out Response[T]
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

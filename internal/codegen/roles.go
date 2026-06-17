@@ -49,7 +49,7 @@ func generateRoles(pkg string, cfg *config) {
 	}
 
 	writeGoFile(filepath.Join(pkg, "roles.go"), b.Bytes())
-	fmt.Printf("generated %s/roles.go\n", filepath.Join(pkg))
+	fmt.Printf("generated %s/roles.go\n", pkg)
 }
 
 func emitRole(b *bytes.Buffer, role string, entries []roleEntry) {
