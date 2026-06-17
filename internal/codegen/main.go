@@ -39,28 +39,15 @@ var skipSchemas = map[string]bool{
 	"StatusCode":   true, // core/status.Code
 }
 
-var modules = []moduleGen{
-	{File: "components", Schema: "components/schema.yaml"},
-	{File: "versions", Schema: "modules/versions/schema.yaml"},
-	{File: "credentials", Schema: "modules/credentials/schema.yaml"},
-	{File: "hubclientinfo", Schema: "modules/hubclientinfo/schema.yaml"},
-	{File: "locations", Schema: "modules/locations/schema.yaml"},
-	{File: "sessions", Schema: "modules/sessions/schema.yaml"},
-	{File: "cdrs", Schema: "modules/cdrs/schema.yaml"},
-	{File: "tariffs", Schema: "modules/tariffs/schema.yaml"},
-	{File: "tokens", Schema: "modules/tokens/schema.yaml"},
-	{File: "commands", Schema: "modules/commands/schema.yaml"},
-	{File: "chargingprofiles", Schema: "modules/chargingprofiles/schema.yaml"},
-}
-
 func main() {
 	version := flag.String("version", "2.2.1", "OCPI version to generate")
 	flag.Parse()
 
 	schemasDir := filepath.Join("schemas", *version)
 	pkg := versionPkg(*version)
+	cfg := loadConfig(schemasDir)
 
-	for _, m := range modules {
+	for _, m := range cfg.typeModules() {
 		doc, err := parseSchemaFile(filepath.Join(schemasDir, m.Schema))
 		if err != nil {
 			fatal(err)
@@ -72,9 +59,9 @@ func main() {
 		fmt.Printf("generated %s\n", out)
 	}
 
-	generateAPI(schemasDir, pkg)
-	generateRoles(schemasDir, pkg)
-	genSchemaDoc(schemasDir, pkg)
+	generateAPI(schemasDir, pkg, cfg)
+	generateRoles(pkg, cfg)
+	genSchemaDoc(schemasDir, pkg, cfg)
 }
 
 // versionPkg maps "2.2.1" -> "v221".

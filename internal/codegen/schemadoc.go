@@ -10,9 +10,9 @@ import (
 // genSchemaDoc emits a JSON-Schema document (schema.json) whose $defs hold every
 // generated OCPI type, plus a small schema.go that embeds it and exposes a
 // runtime validator.
-func genSchemaDoc(schemasDir, pkg string) {
+func genSchemaDoc(schemasDir, pkg string, cfg *config) {
 	defs := map[string]any{}
-	for _, m := range modules {
+	for _, m := range cfg.typeModules() {
 		doc, err := parseSchemaFile(filepath.Join(schemasDir, m.Schema))
 		if err != nil {
 			fatal(err)
