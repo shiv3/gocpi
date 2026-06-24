@@ -39,6 +39,24 @@ codegen from the official spec, pluggable observability, and heavy testing.
 - **Pluggable observability.** `slog` logging and a `Metrics` interface with
   Prometheus and OpenTelemetry adapters.
 
+## Pricing
+
+The [`github.com/shiv3/gocpi/pricing`](https://github.com/shiv3/gocpi/tree/main/pricing)
+package provides OCPI 2.2.1 and 2.3.0 tariff calculation and CDR total
+verification.
+
+```go
+rep, err := pricing.CalculateV221(cdr, tariff, pricing.Options{})
+verdict, err := pricing.VerifyV221(cdr, tariff, pricing.Options{})
+```
+
+The current v1 engine supports one tariff per CDR; CDRs that require multiple
+tariffs through per-period `tariff_id` values return `InvalidInput`.
+Reservation cost is not computed, though its sub-total is checked and returns
+`NotVerifiable` when present. OCPI 2.3.0 booking-restricted tariff elements are
+unsupported and never match, and the local-time boundary-crossing diagnostic is
+deferred.
+
 ## Install
 
 ```sh
