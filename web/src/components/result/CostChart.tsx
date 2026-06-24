@@ -47,7 +47,7 @@ export function CostChart({ report }: CostChartProps) {
     ]
   })
 
-  const pieRows = rows.filter((row) => row.beforeTaxes !== 0)
+  const pieRows = rows.filter((row) => row.beforeTaxes > 0)
   const hasAfterTaxes = rows.some((row) => row.afterTaxes != null)
   const formatMoney = (value: unknown) => [`${Number(value).toLocaleString()} ${report.currency}`, 'cost']
   const formatBar = (value: unknown, name: unknown) => [
@@ -68,7 +68,7 @@ export function CostChart({ report }: CostChartProps) {
           <div className="cost-chart__panel">
             <h3>Share by dimension</h3>
             {pieRows.length === 0 ? (
-              <p className="empty-state">No non-zero dimension costs</p>
+              <p className="empty-state">No positive costs to chart</p>
             ) : (
               <div className="cost-chart__canvas">
                 <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_SIZE}>

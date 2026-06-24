@@ -170,6 +170,8 @@ export function App() {
           setResultError(runErrors.length ? runErrors.join('\n') : null)
         } catch (runError) {
           if (isLatest()) {
+            setCalc(null)
+            setVerd(null)
             setEngineError(messageFromError(runError))
           }
         } finally {

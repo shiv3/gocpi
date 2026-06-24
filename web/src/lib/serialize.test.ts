@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { deserialize, reportMoneyToCdr, serialize } from './serialize'
+import { COMMON_COUNTRY_CODES } from './options'
 import type { SimForm } from '../model/forms'
 import type { Version } from '../wasm/api'
 
@@ -21,6 +22,18 @@ const base: SimForm = {
   ],
   embedded: { totalCost: '3.00', totalEnergy: '10' },
 }
+
+const expectedAlpha3ByCountry = {
+  BE: 'BEL',
+  DE: 'DEU',
+  ES: 'ESP',
+  FR: 'FRA',
+  GB: 'GBR',
+  IT: 'ITA',
+  JP: 'JPN',
+  NL: 'NLD',
+  US: 'USA',
+} satisfies Record<(typeof COMMON_COUNTRY_CODES)[number], string>
 
 describe('serialize', () => {
   it('emits v2.2.1 money as excl_vat and component vat', () => {
@@ -79,6 +92,17 @@ describe('serialize', () => {
     const cdr: any = serialize({ ...base, countryCode: 'DE' }, '2.3.0')
     expect(cdr.country_code).toBe('DE')
     expect(cdr.tariffs[0].country_code).toBe('DE')
+  })
+
+  it('maps every common country code to its own alpha-3 CDR location country', () => {
+    for (const countryCode of COMMON_COUNTRY_CODES) {
+      const cdr: any = serialize({ ...base, countryCode }, '2.2.1')
+      expect(cdr.cdr_location.country).toMatch(/^[A-Z]{3}$/)
+      expect(cdr.cdr_location.country).toBe(expectedAlpha3ByCountry[countryCode])
+      if (countryCode !== 'NL') {
+        expect(cdr.cdr_location.country).not.toBe('NLD')
+      }
+    }
   })
 
   it.each<Version>(['2.2.1', '2.3.0'])('deserialize(serialize(base, %s)) round-trips the base form', (version) => {

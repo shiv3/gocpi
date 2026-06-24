@@ -52,8 +52,10 @@ function countryAlpha3(countryCode: string): string {
   const known: Record<string, string> = {
     BE: 'BEL',
     DE: 'DEU',
+    ES: 'ESP',
     FR: 'FRA',
     GB: 'GBR',
+    IT: 'ITA',
     JP: 'JPN',
     NL: 'NLD',
     US: 'USA',
