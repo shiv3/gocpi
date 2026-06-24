@@ -17,7 +17,7 @@ func ValidateInput(in Input) error {
 	for i := range in.Tariff.Elements {
 		el := &in.Tariff.Elements[i]
 		for j := range el.Components {
-			if el.Components[j].StepSize <= 0 {
+			if (el.Components[j].Type == Energy || el.Components[j].Type == Time || el.Components[j].Type == ParkingTime) && el.Components[j].StepSize <= 0 {
 				return invalidInput("tariff element %d price component %d has non-positive step_size %d", i, j, el.Components[j].StepSize)
 			}
 		}
