@@ -16,6 +16,9 @@ func matches(r *Restrictions, start snapshot, p Period) (ok bool, unsupported bo
 	if len(r.Unsupported) > 0 {
 		return false, true
 	}
+	if r.Reservation != nil {
+		return false, false
+	}
 
 	local := start.localTime()
 	localMinute := local.Hour()*60 + local.Minute()

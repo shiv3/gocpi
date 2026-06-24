@@ -158,16 +158,33 @@ func Calculate(in Input, opts Options) (Report, error) {
 	}
 	rep.TotalFixedCost, rep.Dimensions[Flat] = priceFlatDimension(flatComp)
 
-	rep.TotalCost.BeforeTaxes = rep.TotalEnergyCost.BeforeTaxes.
+	preClampBefore := rep.TotalEnergyCost.BeforeTaxes.
 		Add(rep.TotalTimeCost.BeforeTaxes).
 		Add(rep.TotalParkingCost.BeforeTaxes).
 		Add(rep.TotalFixedCost.BeforeTaxes)
+	candidateAfter := decimal.Zero
+	allDerivable := true
+	for _, dim := range []Money{rep.TotalEnergyCost, rep.TotalTimeCost, rep.TotalParkingCost, rep.TotalFixedCost} {
+		if dim.BeforeTaxes.IsZero() && dim.AfterTaxes == nil && len(dim.Taxes) == 0 {
+			continue
+		}
+		after, ok := dim.afterTax()
+		if !ok {
+			allDerivable = false
+			continue
+		}
+		candidateAfter = candidateAfter.Add(after)
+	}
+	rep.TotalCost.BeforeTaxes = preClampBefore
 	// Min/max price clamps intentionally adjust only the total before taxes.
 	// Dimension subtotals keep their actual computed costs and are not
 	// redistributed, so after a clamp fires they may not sum to TotalCost. This
 	// matches the ocpi-tariffs reference, where min_price/max_price clamp the
 	// total.
 	rep.TotalCost.BeforeTaxes = clampTotalBeforeTaxes(rep.TotalCost.BeforeTaxes, in.Tariff)
+	if allDerivable && rep.TotalCost.BeforeTaxes.Equal(preClampBefore) {
+		rep.TotalCost.AfterTaxes = &candidateAfter
+	}
 
 	rep.TotalEnergyCost = roundMoney(rep.TotalEnergyCost, precision)
 	rep.TotalTimeCost = roundMoney(rep.TotalTimeCost, precision)

@@ -178,6 +178,10 @@ func restrictionsFromV221(restrictions *v221.TariffRestrictions) (*Restrictions,
 	if restrictions.MaxDuration != nil {
 		out.MaxDuration = durationSecondsPtr(*restrictions.MaxDuration)
 	}
+	if restrictions.Reservation != nil {
+		reservation := ReservationType(string(*restrictions.Reservation))
+		out.Reservation = &reservation
+	}
 	for _, day := range restrictions.DayOfWeek {
 		weekday, err := weekdayFromV221(day)
 		if err != nil {

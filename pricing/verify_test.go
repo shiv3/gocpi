@@ -2,9 +2,11 @@ package pricing
 
 import (
 	"testing"
+	"time"
 
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestVerifyMatchAndMismatch(t *testing.T) {
@@ -61,6 +63,44 @@ func TestVerifyAfterTaxDerivable(t *testing.T) {
 	assert.Equal(t, StatusOK, v.Status)
 }
 
+func TestVerifyTotalAfterTaxMatches(t *testing.T) {
+	d := decimal.RequireFromString
+	dp := func(s string) *decimal.Decimal { v := d(s); return &v }
+	in := totalAfterTaxInput(d, dp)
+	rep, err := Calculate(in, Options{CurrencyPrecision: ptrInt(2)})
+	require.NoError(t, err)
+
+	after, ok := rep.TotalCost.afterTax()
+	require.True(t, ok)
+	assert.True(t, after.Equal(d("3.60")), "got %s", after)
+
+	in.Embedded.TotalCost = &Money{BeforeTaxes: d("3.00"), Taxes: []TaxAmount{{Percent: dp("20")}}}
+	v := Verify(in, rep, Options{})
+
+	assert.Equal(t, StatusOK, v.Status)
+	assert.Len(t, v.Mismatches, 0)
+}
+
+func TestVerifyTotalAfterTaxMismatch(t *testing.T) {
+	d := decimal.RequireFromString
+	dp := func(s string) *decimal.Decimal { v := d(s); return &v }
+	in := totalAfterTaxInput(d, dp)
+	rep, err := Calculate(in, Options{CurrencyPrecision: ptrInt(2)})
+	require.NoError(t, err)
+
+	in.Embedded.TotalCost = &Money{BeforeTaxes: d("3.00"), AfterTaxes: dp("3.99")}
+	v := Verify(in, rep, Options{})
+
+	assert.Equal(t, StatusMismatch, v.Status)
+	foundAfterTaxMismatch := false
+	for _, mismatch := range v.Mismatches {
+		if mismatch.Field == "total_cost.after_taxes" {
+			foundAfterTaxMismatch = true
+		}
+	}
+	assert.True(t, foundAfterTaxMismatch, "expected total_cost.after_taxes mismatch")
+}
+
 func TestVerifyAfterTaxComputedNotDerivable_OK(t *testing.T) {
 	d := decimal.RequireFromString
 
@@ -108,4 +148,23 @@ func TestVerifyVolumeAuditMismatch(t *testing.T) {
 		assert.True(t, d("-2").Equal(mismatch.Delta), "delta = %s", mismatch.Delta)
 	}
 	assert.True(t, foundTotalEnergy, "expected total_energy mismatch")
+}
+
+func totalAfterTaxInput(d func(string) decimal.Decimal, dp func(string) *decimal.Decimal) Input {
+	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
+	return Input{
+		Version:  V221,
+		Currency: "EUR",
+		Start:    start,
+		End:      start.Add(time.Hour),
+		Tariff: Tariff{
+			Currency: "EUR",
+			Elements: []Element{{
+				Components: []PriceComponent{
+					{Type: Energy, Price: d("0.30"), Taxes: []TaxAmount{{Percent: dp("20")}}, StepSize: 1},
+				},
+			}},
+		},
+		Periods: []Period{{Start: start, Energy: dp("10")}},
+	}
 }

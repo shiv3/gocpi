@@ -7,6 +7,8 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/shiv3/gocpi/v221"
 )
 
 func TestMatchesWrappingTimeWindow(t *testing.T) {
@@ -40,6 +42,55 @@ func TestMatchesMinPowerWithAbsentPeriodMaxPower(t *testing.T) {
 	ok, unsupported := matches(&Restrictions{MinPower: dp("8")}, start, Period{})
 
 	assert.True(t, ok)
+	assert.False(t, unsupported)
+}
+
+func TestReservationElementExcludedFromNormalSession(t *testing.T) {
+	d := decimal.RequireFromString
+	utc := time.UTC
+	start := time.Date(2026, 6, 24, 9, 0, 0, 0, utc)
+	reservation := v221.ReservationRestrictionTypeReservation
+	tariff := v221.Tariff{
+		Currency: "EUR",
+		Elements: []v221.TariffElement{
+			{
+				Restrictions: &v221.TariffRestrictions{Reservation: &reservation},
+				PriceComponents: []v221.PriceComponent{
+					{Type: v221.TariffDimensionTypeEnergy, Price: d("99.00"), StepSize: 1},
+				},
+			},
+			{
+				PriceComponents: []v221.PriceComponent{
+					{Type: v221.TariffDimensionTypeEnergy, Price: d("0.30"), StepSize: 1},
+				},
+			},
+		},
+		LastUpdated: start,
+	}
+	cdr := v221.CDR{
+		CountryCode:   "NL",
+		Currency:      "EUR",
+		StartDateTime: start,
+		EndDateTime:   start.Add(time.Hour),
+		ChargingPeriods: []v221.ChargingPeriod{{
+			StartDateTime: start,
+			Dimensions: []v221.CdrDimension{
+				{Type: v221.CdrDimensionTypeEnergy, Volume: d("10")},
+			},
+		}},
+		TotalEnergy: d("10"),
+		TotalTime:   d("1"),
+		TotalCost:   v221.Price{ExclVAT: d("3.00")},
+		LastUpdated: start,
+	}
+
+	rep, err := CalculateV221(cdr, tariff, Options{CurrencyPrecision: ptrInt(2)})
+	require.NoError(t, err)
+	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
+
+	rt := ReservationTypeReservation
+	ok, unsupported := matches(&Restrictions{Reservation: &rt}, newSnapshot(start, utc), Period{Energy: decimalPtr(d("10"))})
+	assert.False(t, ok)
 	assert.False(t, unsupported)
 }
 
