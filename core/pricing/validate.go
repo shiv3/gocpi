@@ -30,9 +30,6 @@ func ValidateInput(in Input) error {
 	}
 
 	for i := range in.Periods {
-		if in.Periods[i].Start.Before(in.Start) || in.Periods[i].Start.After(in.End) {
-			return invalidInput("charging period %d start is outside CDR bounds", i)
-		}
 		if in.Periods[i].Energy != nil && in.Periods[i].Energy.LessThan(decimal.Zero) {
 			return invalidInput("charging period %d has negative energy", i)
 		}

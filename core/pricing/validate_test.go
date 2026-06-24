@@ -91,7 +91,7 @@ func TestCalculateSortsUnsortedPeriods(t *testing.T) {
 	assert.True(t, unsortedReport.Dimensions[Energy].Volume.Equal(sortedReport.Dimensions[Energy].Volume))
 }
 
-func TestValidateInputRejectsPeriodsOutsideCDRBounds(t *testing.T) {
+func TestCalculateWarnsOnPeriodOutsideBounds(t *testing.T) {
 	d := decimal.RequireFromString
 	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
 	for _, tc := range []struct {
@@ -105,11 +105,15 @@ func TestValidateInputRejectsPeriodsOutsideCDRBounds(t *testing.T) {
 			in := validValidationInput(start, d)
 			in.Periods[0].Start = tc.periodStart
 
-			err := ValidateInput(in)
+			require.NoError(t, ValidateInput(in))
+			rep, err := Calculate(in, Options{TimeZone: time.UTC})
 
-			var pe *PricingError
-			require.ErrorAs(t, err, &pe)
-			assert.Equal(t, InvalidInput, pe.Code)
+			require.NoError(t, err)
+			assert.True(t, rep.TotalCost.BeforeTaxes.Equal(d("0.30")), "out-of-bounds period should still be priced, got %s", rep.TotalCost.BeforeTaxes)
+			require.Len(t, rep.Warnings, 1)
+			assert.Equal(t, WarnPeriodOutsideBounds, rep.Warnings[0].Code)
+			assert.Equal(t, KindWarning, rep.Warnings[0].Kind)
+			assert.Equal(t, "charging period start is outside CDR bounds", rep.Warnings[0].Msg)
 		})
 	}
 }

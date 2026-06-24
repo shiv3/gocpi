@@ -2,6 +2,7 @@ package pricing
 
 import (
 	"sort"
+	"time"
 
 	"github.com/shopspring/decimal"
 )
@@ -89,6 +90,13 @@ func Calculate(in Input, opts Options) (Report, error) {
 		Dimensions: make(map[DimensionType]Dimension),
 	}
 	rep.Warnings = append(rep.Warnings, zoneWarns...)
+	if hasPeriodOutsideBounds(periods, in.Start, in.End) {
+		rep.Warnings = append(rep.Warnings, Warning{
+			Code: WarnPeriodOutsideBounds,
+			Kind: KindWarning,
+			Msg:  "charging period start is outside CDR bounds",
+		})
+	}
 	rep.Warnings = append(rep.Warnings, tariffWindowWarnings(in)...)
 
 	var energyPeriods []pricedPeriod
@@ -111,7 +119,7 @@ func Calculate(in Input, opts Options) (Report, error) {
 		if cs.flat != nil && flatComp == nil {
 			flatComp = cs.flat
 		}
-		if cs.parking != nil && cs.parking.StepSize > 0 {
+		if period.ParkingTime != nil && cs.parking != nil && cs.parking.StepSize > 0 {
 			hasIdleStep = true
 		}
 
@@ -218,6 +226,15 @@ func sortedPeriods(periods []Period) []Period {
 		return sorted[i].Start.Before(sorted[j].Start)
 	})
 	return sorted
+}
+
+func hasPeriodOutsideBounds(periods []Period, start, end time.Time) bool {
+	for i := range periods {
+		if periods[i].Start.Before(start) || periods[i].Start.After(end) {
+			return true
+		}
+	}
+	return false
 }
 
 func componentSetHasAny(cs componentSet) bool {

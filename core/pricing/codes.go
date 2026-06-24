@@ -10,6 +10,7 @@ const (
 	WarnReservationNotComputed
 	WarnBoundaryCross
 	WarnTariffWindow
+	WarnPeriodOutsideBounds
 )
 
 type ErrCode int

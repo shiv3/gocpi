@@ -102,3 +102,32 @@ func TestCalculate(t *testing.T) {
 		assert.NotEmpty(t, rep.Warnings)
 	})
 }
+
+func TestCalculateAppliesTimeStepWhenParkingComponentMatchesButNoParkingConsumed(t *testing.T) {
+	d := decimal.RequireFromString
+	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
+	in := Input{
+		Version:  V221,
+		Currency: "EUR",
+		Start:    start,
+		End:      start.Add(30 * time.Minute),
+		Tariff: Tariff{
+			Currency: "EUR",
+			Elements: []Element{{
+				Components: []PriceComponent{
+					{Type: Time, Price: d("10.00"), StepSize: 3600},
+					{Type: ParkingTime, Price: d("1.00"), StepSize: 3600},
+				},
+			}},
+		},
+		Periods: []Period{{
+			Start: start,
+			Time:  decimalPtr(d("0.5")),
+		}},
+	}
+
+	rep, err := Calculate(in, Options{CurrencyPrecision: ptrInt(2)})
+
+	require.NoError(t, err)
+	assert.True(t, rep.TotalTimeCost.BeforeTaxes.Equal(d("10.00")), "time step should apply without consumed parking, got %s", rep.TotalTimeCost.BeforeTaxes)
+}
