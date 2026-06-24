@@ -1,4 +1,5 @@
 import type { DimensionForm, DimType, PeriodForm } from '../../model/forms'
+import { fromLocalInput, toLocalInput } from '../../lib/datetime'
 
 const DIMENSION_TYPES: DimensionForm['type'][] = ['ENERGY', 'TIME', 'PARKING_TIME']
 
@@ -28,8 +29,12 @@ export function ChargingPeriodEditor({ value, tariffIds, onChange }: ChargingPer
     <section className="period-editor">
       <div className="form-grid">
         <label>
-          start
-          <input value={value.start} onChange={(event) => onChange({ ...value, start: event.currentTarget.value })} />
+          start (UTC)
+          <input
+            type="datetime-local"
+            value={toLocalInput(value.start)}
+            onChange={(event) => onChange({ ...value, start: fromLocalInput(event.currentTarget.value) })}
+          />
         </label>
         <label>
           tariff_id

@@ -28,8 +28,8 @@ button {
   background: #ffffff;
   color: #202124;
   cursor: pointer;
-  min-height: 2.25rem;
-  padding: 0.45rem 0.75rem;
+  min-height: 2.1rem;
+  padding: 0.38rem 0.68rem;
 }
 
 button:hover {
@@ -44,7 +44,7 @@ textarea {
   border-radius: 6px;
   background: #ffffff;
   color: #202124;
-  padding: 0.45rem 0.55rem;
+  padding: 0.38rem 0.5rem;
 }
 
 textarea {
@@ -56,11 +56,14 @@ textarea {
 
 label {
   display: grid;
-  gap: 0.25rem;
+  grid-template-columns: minmax(5.5rem, 7.5rem) minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: center;
   min-width: 0;
   color: #475467;
   font-size: 0.82rem;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 h1,
@@ -92,6 +95,13 @@ h4 {
   letter-spacing: 0;
 }
 
+h3 {
+  color: #344054;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
 .app-shell {
   min-height: 100vh;
   padding: 1rem;
@@ -109,13 +119,13 @@ h4 {
 .toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.65rem;
+  gap: 0.55rem;
   justify-content: flex-end;
   align-items: end;
 }
 
 .toolbar label {
-  min-width: 8rem;
+  min-width: 10rem;
 }
 
 .workspace {
@@ -130,13 +140,13 @@ h4 {
 .editor-pane,
 .results-pane {
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
   min-width: 0;
 }
 
 .stack {
   display: grid;
-  gap: 0.85rem;
+  gap: 0.6rem;
 }
 
 .form-section,
@@ -146,24 +156,24 @@ h4 {
   border: 1px solid #d7dde5;
   border-radius: 8px;
   background: #ffffff;
-  padding: 1rem;
+  padding: 0.75rem;
 }
 
 .section-heading,
 .subsection-heading {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.6rem;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.85rem;
+  margin-bottom: 0.6rem;
 }
 
 .form-grid,
 .component-editor,
 .dimension-row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(8rem, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.5rem 0.65rem;
   align-items: end;
 }
 
@@ -171,7 +181,7 @@ h4 {
   border: 1px solid #e3e8ef;
   border-radius: 6px;
   margin: 0;
-  padding: 0.85rem;
+  padding: 0.6rem;
 }
 
 .restriction-editor legend {
@@ -182,30 +192,43 @@ h4 {
 
 .checkbox-label {
   display: flex;
-  gap: 0.45rem;
+  gap: 0.4rem;
   align-items: center;
   width: fit-content;
-  margin-bottom: 0.65rem;
+  margin-bottom: 0.45rem;
 }
 
 .checkbox-label input {
   width: auto;
 }
 
+.editor-pane input,
+.editor-pane select,
+.editor-pane textarea,
+.editor-pane button {
+  font-size: 0.86rem;
+}
+
+.editor-pane input,
+.editor-pane select,
+.editor-pane button {
+  min-height: 1.9rem;
+}
+
 .element-editor,
 .period-editor,
 .tariff-editor {
   display: grid;
-  gap: 0.85rem;
+  gap: 0.6rem;
 }
 
 .repeated-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.75rem;
+  gap: 0.55rem;
   align-items: end;
   border-left: 3px solid #cbd5e1;
-  padding-left: 0.85rem;
+  padding-left: 0.65rem;
 }
 
 .repeated-row--vertical {
@@ -213,22 +236,39 @@ h4 {
 }
 
 .dimension-row {
-  grid-template-columns: minmax(8rem, 1fr) minmax(8rem, 1fr) auto;
+  grid-template-columns: minmax(11rem, 1fr) minmax(10rem, 1fr) auto;
+}
+
+.collapsible-row {
+  border-left: 3px solid #cbd5e1;
+  padding: 0.45rem 0 0.45rem 0.65rem;
+}
+
+.collapsible-row--nested {
+  border-left-color: #d7dde5;
+}
+
+.collapsible-row summary,
+.embedded-totals-editor summary {
+  cursor: pointer;
+  color: #344054;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.collapsible-row__body {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .ghost-button {
   color: #475467;
-}
-
-.primary-button {
-  border-color: #175cd3;
-  background: #175cd3;
-  color: #ffffff;
-}
-
-.primary-button:hover {
-  border-color: #1849a9;
-  background: #1849a9;
 }
 
 .segmented-control {
@@ -250,7 +290,8 @@ h4 {
 }
 
 .error-banner,
-.field-error {
+.field-error,
+.result-error {
   border: 1px solid #f3b5b5;
   border-radius: 8px;
   background: #fff1f1;
@@ -265,6 +306,21 @@ h4 {
 
 .field-error {
   margin-top: 0.65rem;
+}
+
+.result-error {
+  white-space: pre-line;
+}
+
+.computing-indicator {
+  justify-self: start;
+  border: 1px solid #b8c1cc;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #344054;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .currency-badge,
@@ -312,6 +368,33 @@ h4 {
 .data-table th {
   color: #344054;
   font-weight: 700;
+}
+
+.cost-chart__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 0.75rem;
+}
+
+.cost-chart__panel {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.cost-chart__canvas {
+  width: 100%;
+  height: 16rem;
+  min-width: 0;
+}
+
+.cost-chart .recharts-legend-wrapper {
+  font-size: 0.8rem;
+}
+
+.json-panel label {
+  display: block;
+  margin: 0.65rem 0 0.25rem;
 }
 
 .empty-state {

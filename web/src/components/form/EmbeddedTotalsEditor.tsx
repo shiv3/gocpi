@@ -27,7 +27,7 @@ export function EmbeddedTotalsEditor({ value, onChange }: EmbeddedTotalsEditorPr
   }
 
   return (
-    <details className="embedded-totals-editor" open>
+    <details className="embedded-totals-editor">
       <summary>embedded totals</summary>
       <div className="form-grid">
         {FIELDS.map((field) => (

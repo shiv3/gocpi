@@ -1,5 +1,6 @@
 import type { ElementForm, TariffForm, TaxIncluded } from '../../model/forms'
 import type { Version } from '../../wasm/api'
+import { COMMON_CURRENCIES, optionsWithCurrent } from '../../lib/options'
 import { ElementEditor } from './ElementEditor'
 
 const TAX_INCLUDED: TaxIncluded[] = ['YES', 'NO', 'N/A']
@@ -46,7 +47,13 @@ export function TariffEditor({ value, version, onChange }: TariffEditorProps) {
         </label>
         <label>
           currency
-          <input value={value.currency} onChange={(event) => set({ currency: event.currentTarget.value })} />
+          <select value={value.currency} onChange={(event) => set({ currency: event.currentTarget.value })}>
+            {optionsWithCurrent(COMMON_CURRENCIES, value.currency).map((currency) => (
+              <option key={currency} value={currency}>
+                {currency}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
           min price
@@ -80,12 +87,19 @@ export function TariffEditor({ value, version, onChange }: TariffEditorProps) {
       </div>
       <div className="stack">
         {value.elements.map((element, index) => (
-          <div className="repeated-row repeated-row--vertical" key={index}>
-            <ElementEditor value={element} onChange={(next) => setElement(index, next)} />
-            <button type="button" className="ghost-button" onClick={() => removeElement(index)}>
-              Remove element
-            </button>
-          </div>
+          <details className="collapsible-row collapsible-row--nested" key={index} open>
+            <summary>
+              Element {index + 1} ({element.components.length} components)
+            </summary>
+            <div className="collapsible-row__body">
+              <ElementEditor value={element} onChange={(next) => setElement(index, next)} />
+              <div className="row-actions">
+                <button type="button" className="ghost-button" onClick={() => removeElement(index)}>
+                  Remove element
+                </button>
+              </div>
+            </div>
+          </details>
         ))}
       </div>
     </section>

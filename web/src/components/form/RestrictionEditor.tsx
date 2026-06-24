@@ -23,11 +23,19 @@ export function RestrictionEditor({ value, onChange }: RestrictionEditorProps) {
         <div className="form-grid">
           <label>
             start_time
-            <input value={value.startTime ?? ''} onChange={(event) => set({ startTime: event.currentTarget.value || undefined })} />
+            <input
+              type="time"
+              value={value.startTime ?? ''}
+              onChange={(event) => set({ startTime: event.currentTarget.value || undefined })}
+            />
           </label>
           <label>
             end_time
-            <input value={value.endTime ?? ''} onChange={(event) => set({ endTime: event.currentTarget.value || undefined })} />
+            <input
+              type="time"
+              value={value.endTime ?? ''}
+              onChange={(event) => set({ endTime: event.currentTarget.value || undefined })}
+            />
           </label>
           <label>
             min_kwh
