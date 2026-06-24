@@ -39,6 +39,38 @@ codegen from the official spec, pluggable observability, and heavy testing.
 - **Pluggable observability.** `slog` logging and a `Metrics` interface with
   Prometheus and OpenTelemetry adapters.
 
+## Pricing
+
+The [`github.com/shiv3/gocpi/core/pricing`](https://github.com/shiv3/gocpi/tree/main/core/pricing)
+package provides a version-neutral OCPI 2.2.1 and 2.3.0 tariff calculation and
+CDR total verification engine. Version entry points live in the version
+packages (`v221`, `v230`) and return the neutral `pricing.Report` / `pricing.Verdict`.
+
+```go
+import (
+    pricing "github.com/shiv3/gocpi/core/pricing"
+    "github.com/shiv3/gocpi/v221"
+)
+
+rep, err := v221.Calculate(cdr, tariff, pricing.Options{})
+verdict, err := v221.Verify(cdr, tariff, pricing.Options{})
+```
+
+The current v1 engine supports one tariff per CDR; CDRs that require multiple
+tariffs through per-period `tariff_id` values return `InvalidInput`.
+Reservation cost is not computed, though its sub-total is checked and returns
+`NotVerifiable` when present. OCPI 2.3.0 booking-restricted tariff elements are
+unsupported and never match, and the local-time boundary-crossing diagnostic is
+deferred.
+
+Current v1 limitations:
+
+- Single tariff per CDR; multi-tariff CDRs return `InvalidInput`.
+- Reservation cost is not computed; its sub-total verifies as `NotVerifiable`.
+- OCPI 2.3.0 booking-restricted elements are unsupported.
+- Multi-timezone countries are not inferred; pass `Options.TimeZone`.
+- Totals stay at OCPI scale-4 unless `Options.CurrencyPrecision` is set.
+
 ## Install
 
 ```sh
