@@ -46,7 +46,11 @@ func FromV230(cdr v230.CDR, tariff v230.Tariff, opts Options) (Input, error) {
 	}
 
 	for _, cp := range cdr.ChargingPeriods {
-		in.Periods = append(in.Periods, periodFromV230(cp))
+		period, err := periodFromV230(cp)
+		if err != nil {
+			return Input{}, err
+		}
+		in.Periods = append(in.Periods, period)
 	}
 
 	if err := ValidateInput(in); err != nil {
@@ -225,9 +229,15 @@ func weekdayFromV230(day v230.DayOfWeek) (time.Weekday, error) {
 	}
 }
 
-func periodFromV230(period v230.ChargingPeriod) Period {
+func periodFromV230(period v230.ChargingPeriod) (Period, error) {
 	out := Period{Start: period.StartDateTime}
+	seen := make(map[v230.CdrDimensionType]struct{}, len(period.Dimensions))
 	for _, dim := range period.Dimensions {
+		if _, ok := seen[dim.Type]; ok {
+			return Period{}, invalidInput("duplicate dimension %s in charging period", dim.Type)
+		}
+		seen[dim.Type] = struct{}{}
+
 		volume := decimalPtr(dim.Volume)
 		switch dim.Type {
 		case v230.CdrDimensionTypeEnergy:
@@ -252,7 +262,7 @@ func periodFromV230(period v230.ChargingPeriod) Period {
 			out.MaxCurrent = decimalPtr(dim.Volume)
 		}
 	}
-	return out
+	return out, nil
 }
 
 func moneyFromV230PriceLimit(price *v230.PriceLimit) *Money {

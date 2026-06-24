@@ -103,3 +103,33 @@ func TestFromV221RejectsMultiTariff(t *testing.T) {
 	require.ErrorAs(t, err, &pe)
 	assert.Equal(t, InvalidInput, pe.Code)
 }
+
+func TestFromV221RejectsDuplicateDimensionsInChargingPeriod(t *testing.T) {
+	d := decimal.RequireFromString
+	utc := time.UTC
+	start := time.Date(2026, 6, 24, 9, 0, 0, 0, utc)
+	cdr := v221.CDR{
+		CountryCode:   "NL",
+		Currency:      "EUR",
+		StartDateTime: start,
+		EndDateTime:   start.Add(time.Hour),
+		ChargingPeriods: []v221.ChargingPeriod{{
+			StartDateTime: start,
+			Dimensions: []v221.CdrDimension{
+				{Type: v221.CdrDimensionTypeEnergy, Volume: d("5")},
+				{Type: v221.CdrDimensionTypeEnergy, Volume: d("5")},
+			},
+		}},
+		TotalEnergy: d("10"),
+		TotalTime:   d("1"),
+		TotalCost:   v221.Price{ExclVAT: d("3")},
+		LastUpdated: start,
+	}
+
+	_, err := FromV221(cdr, v221Tariff(d, start), Options{})
+
+	var pe *PricingError
+	require.ErrorAs(t, err, &pe)
+	assert.Equal(t, InvalidInput, pe.Code)
+	assert.Equal(t, "duplicate dimension ENERGY in charging period", pe.Msg)
+}

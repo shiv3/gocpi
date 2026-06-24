@@ -27,6 +27,9 @@ func ValidateInput(in Input) error {
 	}
 
 	for i := range in.Periods {
+		if in.Periods[i].Start.Before(in.Start) || in.Periods[i].Start.After(in.End) {
+			return invalidInput("charging period %d start is outside CDR bounds", i)
+		}
 		if i > 0 && in.Periods[i].Start.Before(in.Periods[i-1].Start) {
 			return invalidInput("charging periods are not sorted by start time")
 		}
