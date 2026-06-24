@@ -39,11 +39,15 @@ func TestActiveComponentsPerDimension(t *testing.T) {
 	start := newSnapshot(time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC), time.UTC)
 	p := Period{MaxPower: dp("7")}
 
-	cs, warns := activeComponents(tariff, start, p)
+	cs, warns := activeComponents([]Tariff{tariff}, 0, start, p)
 
 	require.Empty(t, warns)
 	require.NotNil(t, cs.energy)
-	assert.True(t, cs.energy.Price.Equal(d("0.30")), "got %s, want 0.30", cs.energy.Price)
+	assert.True(t, cs.energy.comp.Price.Equal(d("0.30")), "got %s, want 0.30", cs.energy.comp.Price)
+	assert.Equal(t, 0, cs.energy.tariffIndex)
+	assert.Equal(t, 0, cs.energy.elementIndex)
 	require.NotNil(t, cs.time)
-	assert.True(t, cs.time.Price.Equal(d("2.00")), "got %s, want 2.00", cs.time.Price)
+	assert.True(t, cs.time.comp.Price.Equal(d("2.00")), "got %s, want 2.00", cs.time.comp.Price)
+	assert.Equal(t, 0, cs.time.tariffIndex)
+	assert.Equal(t, 1, cs.time.elementIndex)
 }

@@ -35,7 +35,7 @@ func TestUnknownDimensionWarns(t *testing.T) {
 		LastUpdated: start,
 	}
 
-	rep, err := v230.Calculate(cdr, v230EnergyTariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
+	rep, err := v230.CalculateWithTariff(cdr, v230EnergyTariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
 
 	require.NoError(t, err)
 	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
@@ -63,7 +63,7 @@ func TestKnownUnpricedDimensionNoWarn(t *testing.T) {
 		LastUpdated: start,
 	}
 
-	rep, err := v230.Calculate(cdr, v230EnergyTariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
+	rep, err := v230.CalculateWithTariff(cdr, v230EnergyTariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
 
 	require.NoError(t, err)
 	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
@@ -102,7 +102,7 @@ func TestCalculateTaxIncludedYes(t *testing.T) {
 		LastUpdated: start,
 	}
 
-	rep, err := v230.Calculate(cdr, tariff, pricing.Options{CurrencyPrecision: ptrInt(2)})
+	rep, err := v230.CalculateWithTariff(cdr, tariff, pricing.Options{CurrencyPrecision: ptrInt(2)})
 	require.NoError(t, err)
 	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "before-tax, got %s", rep.TotalEnergyCost.BeforeTaxes)
 }
@@ -117,9 +117,14 @@ func TestFromCDRTaxIncludedNoKeepsPriceAndAttachesVAT(t *testing.T) {
 	in, err := v230.FromCDR(v230TaxCDR(d, start), tariff, pricing.Options{})
 
 	require.NoError(t, err)
-	require.Len(t, in.Tariff.Elements, 1)
-	require.Len(t, in.Tariff.Elements[0].Components, 1)
-	component := in.Tariff.Elements[0].Components[0]
+	require.Len(t, in.Tariffs, 1)
+	assert.Equal(t, "tax-tariff", in.Tariffs[0].ID)
+	require.Len(t, in.Tariffs[0].Elements, 1)
+	require.Len(t, in.Tariffs[0].Elements[0].Components, 1)
+	require.Len(t, in.Periods, 1)
+	require.NotNil(t, in.Periods[0].TariffIndex)
+	assert.Equal(t, 0, *in.Periods[0].TariffIndex)
+	component := in.Tariffs[0].Elements[0].Components[0]
 	assert.True(t, component.Price.Equal(price), "got %s", component.Price)
 	require.Len(t, component.Taxes, 1)
 	require.NotNil(t, component.Taxes[0].Percent)
@@ -136,9 +141,13 @@ func TestFromCDRTaxIncludedNAKeepsPriceWithoutTaxes(t *testing.T) {
 	in, err := v230.FromCDR(v230TaxCDR(d, start), tariff, pricing.Options{})
 
 	require.NoError(t, err)
-	require.Len(t, in.Tariff.Elements, 1)
-	require.Len(t, in.Tariff.Elements[0].Components, 1)
-	component := in.Tariff.Elements[0].Components[0]
+	require.Len(t, in.Tariffs, 1)
+	require.Len(t, in.Tariffs[0].Elements, 1)
+	require.Len(t, in.Tariffs[0].Elements[0].Components, 1)
+	require.Len(t, in.Periods, 1)
+	require.NotNil(t, in.Periods[0].TariffIndex)
+	assert.Equal(t, 0, *in.Periods[0].TariffIndex)
+	component := in.Tariffs[0].Elements[0].Components[0]
 	assert.True(t, component.Price.Equal(price), "got %s", component.Price)
 	assert.Nil(t, component.Taxes)
 }
@@ -177,12 +186,17 @@ func TestFromCDRBookingUnsupported(t *testing.T) {
 
 	in, err := v230.FromCDR(cdr, tariff, pricing.Options{})
 	require.NoError(t, err)
-	require.Len(t, in.Tariff.Elements, 1)
-	assert.Contains(t, in.Tariff.Elements[0].Restrictions.Unsupported, "booking")
+	require.Len(t, in.Tariffs, 1)
+	require.Len(t, in.Periods, 1)
+	require.NotNil(t, in.Periods[0].TariffIndex)
+	assert.Equal(t, 0, *in.Periods[0].TariffIndex)
+	require.Len(t, in.Tariffs[0].Elements, 1)
+	assert.Contains(t, in.Tariffs[0].Elements[0].Restrictions.Unsupported, "booking")
 }
 
 func v230EnergyTariff(d func(string) decimal.Decimal, start time.Time) v230.Tariff {
 	return v230.Tariff{
+		ID:          "energy-tariff",
 		Currency:    "EUR",
 		TaxIncluded: v230.TaxIncludedNo,
 		Elements: []v230.TariffElement{{
@@ -196,6 +210,7 @@ func v230EnergyTariff(d func(string) decimal.Decimal, start time.Time) v230.Tari
 
 func v230TaxTariff(taxIncluded v230.TaxIncluded, price decimal.Decimal, vat *decimal.Decimal, start time.Time) v230.Tariff {
 	return v230.Tariff{
+		ID:          "tax-tariff",
 		Currency:    "EUR",
 		TaxIncluded: taxIncluded,
 		Elements: []v230.TariffElement{{

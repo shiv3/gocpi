@@ -53,6 +53,17 @@ func TestVerifyReservationNotVerifiable(t *testing.T) {
 	assert.Equal(t, StatusNotVerifiable, v.Status)
 }
 
+func TestVerifyPropagatesReportWarnings(t *testing.T) {
+	rep := Report{Warnings: []Warning{{Code: WarnPeriodNoTariff, Kind: KindWarning, PeriodIndex: intPtr(2)}}}
+
+	v := Verify(Input{}, rep, Options{})
+
+	require.Len(t, v.Warnings, 1)
+	assert.Equal(t, WarnPeriodNoTariff, v.Warnings[0].Code)
+	require.NotNil(t, v.Warnings[0].PeriodIndex)
+	assert.Equal(t, 2, *v.Warnings[0].PeriodIndex)
+}
+
 func TestVerifyAfterTaxDerivable(t *testing.T) {
 	d := decimal.RequireFromString
 	dp := func(s string) *decimal.Decimal { v := d(s); return &v }
@@ -157,14 +168,14 @@ func totalAfterTaxInput(d func(string) decimal.Decimal, dp func(string) *decimal
 		Currency: "EUR",
 		Start:    start,
 		End:      start.Add(time.Hour),
-		Tariff: Tariff{
+		Tariffs: []Tariff{{
 			Currency: "EUR",
 			Elements: []Element{{
 				Components: []PriceComponent{
 					{Type: Energy, Price: d("0.30"), Taxes: []TaxAmount{{Percent: dp("20")}}, StepSize: 1},
 				},
 			}},
-		},
-		Periods: []Period{{Start: start, Energy: dp("10")}},
+		}},
+		Periods: []Period{{Start: start, Energy: dp("10"), TariffIndex: intPtr(0)}},
 	}
 }
