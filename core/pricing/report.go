@@ -24,7 +24,7 @@ type Warning struct {
 	Kind WarningKind
 	// Msg describes the warning.
 	Msg string
-	// PeriodIndex is the zero-based input period index this warning applies to; nil means not period-scoped.
+	// PeriodIndex is the zero-based chronological period index this warning applies to; nil means not period-scoped.
 	PeriodIndex *int
 	// TariffIndex is the zero-based input tariff index this warning applies to; nil means not tariff-scoped.
 	TariffIndex *int

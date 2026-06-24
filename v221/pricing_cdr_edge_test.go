@@ -35,6 +35,29 @@ func TestCalculateCDR_DuplicateTariffID(t *testing.T) {
 	requireInvalidInput(t, err)
 }
 
+func TestCalculateCDR_EmptyIDMultiTariff(t *testing.T) {
+	d := decimal.RequireFromString
+	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
+	a := "a"
+	cdr := v221.CDR{
+		CountryCode:   "NL",
+		Currency:      "EUR",
+		StartDateTime: start,
+		EndDateTime:   start.Add(time.Hour),
+		Tariffs: []v221.Tariff{
+			energyTariff("", d("0.30"), start),
+			energyTariff(a, d("0.50"), start),
+		},
+		ChargingPeriods: []v221.ChargingPeriod{energyPeriod(start, &a, d("10"))},
+		TotalEnergy:     d("10"),
+		TotalCost:       v221.Price{ExclVAT: d("5")},
+		LastUpdated:     start,
+	}
+
+	_, err := v221.CalculateCDR(cdr, pricing.Options{})
+	requireInvalidInput(t, err)
+}
+
 func TestCalculateCDR_MultiCurrency(t *testing.T) {
 	d := decimal.RequireFromString
 	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
@@ -93,4 +116,5 @@ func TestVerifyCDR_VolumeAuditIncludesNoTariffPeriod(t *testing.T) {
 	// total_energy audit sums all periods (15kWh incl. the no-tariff 5kWh), so the
 	// embedded total matches and there is no mismatch.
 	assert.Equal(t, pricing.StatusOK, v.Status, "verdict: %#v", v)
+	assert.True(t, hasWarningCode(v.Warnings, pricing.WarnPeriodNoTariff), "warnings: %#v", v.Warnings)
 }

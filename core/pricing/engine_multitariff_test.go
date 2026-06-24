@@ -79,6 +79,7 @@ func TestMultiTariff_MixedStepWarns(t *testing.T) {
 	rep, err := Calculate(in, Options{TimeZone: time.UTC, CurrencyPrecision: ptrInt(2)})
 	require.NoError(t, err)
 
+	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("0.42")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
 	require.True(t, hasWarn(rep.Warnings, WarnMixedStepSize), "warnings: %#v", rep.Warnings)
 	for _, w := range rep.Warnings {
 		if w.Code == WarnMixedStepSize {

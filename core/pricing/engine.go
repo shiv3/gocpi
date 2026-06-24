@@ -121,14 +121,14 @@ func Calculate(in Input, opts Options) (Report, error) {
 			Msg:  "charging period start is outside CDR bounds",
 		})
 	}
-	rep.Warnings = append(rep.Warnings, tariffWindowWarnings(in)...)
+	usedTariffs := usedTariffIndexes(periods)
+	rep.Warnings = append(rep.Warnings, tariffWindowWarnings(in, usedTariffs)...)
 
 	var energyPeriods []pricedPeriod
 	var timePeriods []pricedPeriod
 	var parkingPeriods []pricedPeriod
 	var flatComps []pricedFlat
 	seenFlat := make(map[componentKey]struct{})
-	usedTariffs := make(map[int]struct{})
 	hasIdleStep := false
 
 	cur := newSnapshot(in.Start, loc)
@@ -341,6 +341,16 @@ func componentSetHasAny(cs componentSet) bool {
 	return cs.energy != nil || cs.time != nil || cs.parking != nil || cs.flat != nil
 }
 
+func usedTariffIndexes(periods []Period) map[int]struct{} {
+	used := make(map[int]struct{})
+	for i := range periods {
+		if periods[i].TariffIndex != nil {
+			used[*periods[i].TariffIndex] = struct{}{}
+		}
+	}
+	return used
+}
+
 func tariffsHaveLocalRestrictions(tariffs []Tariff) bool {
 	for i := range tariffs {
 		for j := range tariffs[i].Elements {
@@ -356,9 +366,12 @@ func tariffsHaveLocalRestrictions(tariffs []Tariff) bool {
 	return false
 }
 
-func tariffWindowWarnings(in Input) []Warning {
+func tariffWindowWarnings(in Input, usedTariffs map[int]struct{}) []Warning {
 	var warns []Warning
 	for i := range in.Tariffs {
+		if _, used := usedTariffs[i]; !used {
+			continue
+		}
 		tariff := in.Tariffs[i]
 		if tariff.StartDateTime != nil && in.Start.Before(*tariff.StartDateTime) {
 			warns = append(warns, Warning{
