@@ -66,10 +66,6 @@ func activeComponents(tariff Tariff, start snapshot, p Period) (componentSet, []
 	return cs, warns
 }
 
-func ValidateInput(in Input) error {
-	return nil
-}
-
 func currencyScale(code string) int {
 	return 2
 }
