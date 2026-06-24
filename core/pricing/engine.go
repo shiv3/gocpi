@@ -13,6 +13,11 @@ type componentSet struct {
 	energy, time, parking, flat *PriceComponent
 }
 
+type pricedPeriod struct {
+	volume decimal.Decimal
+	comp   *PriceComponent
+}
+
 func (c componentSet) complete() bool {
 	return c.energy != nil && c.time != nil && c.parking != nil && c.flat != nil
 }
@@ -75,25 +80,17 @@ func Calculate(in Input, opts Options) (Report, error) {
 		return Report{}, err
 	}
 
-	precision := currencyScale(in.Currency)
-	if opts.CurrencyPrecision != nil {
-		precision = *opts.CurrencyPrecision
-	}
-
 	rep := Report{
 		Dimensions: make(map[DimensionType]Dimension),
 	}
 	rep.Warnings = append(rep.Warnings, zoneWarns...)
 	rep.Warnings = append(rep.Warnings, tariffWindowWarnings(in)...)
 
-	// Pools are keyed by PriceComponent pointer identity into in.Tariff.Elements'
-	// backing array. Calculate never mutates in, so that identity is stable for
-	// the call; reconstructing or copying tariff components per period would
-	// silently break session-wide step pooling.
-	energyPools := make(map[*PriceComponent]decimal.Decimal)
-	timePools := make(map[*PriceComponent]decimal.Decimal)
-	parkingPools := make(map[*PriceComponent]decimal.Decimal)
+	var energyPeriods []pricedPeriod
+	var timePeriods []pricedPeriod
+	var parkingPeriods []pricedPeriod
 	var flatComp *PriceComponent
+	hasIdleStep := false
 
 	cur := newSnapshot(in.Start, loc)
 	for i, period := range in.Periods {
@@ -109,13 +106,16 @@ func Calculate(in Input, opts Options) (Report, error) {
 		if cs.flat != nil && flatComp == nil {
 			flatComp = cs.flat
 		}
+		if cs.parking != nil && cs.parking.StepSize > 0 {
+			hasIdleStep = true
+		}
 
 		matchedAny := componentSetHasAny(cs)
 		periodHasVolume := false
 		if period.Energy != nil {
 			periodHasVolume = true
 			if cs.energy != nil {
-				addPool(energyPools, cs.energy, *period.Energy)
+				energyPeriods = append(energyPeriods, pricedPeriod{volume: *period.Energy, comp: cs.energy})
 			} else if matchedAny {
 				rep.Warnings = append(rep.Warnings, noElementWarning("no ENERGY component for period volume"))
 			}
@@ -123,7 +123,7 @@ func Calculate(in Input, opts Options) (Report, error) {
 		if period.Time != nil {
 			periodHasVolume = true
 			if cs.time != nil {
-				addPool(timePools, cs.time, *period.Time)
+				timePeriods = append(timePeriods, pricedPeriod{volume: *period.Time, comp: cs.time})
 			} else if matchedAny {
 				rep.Warnings = append(rep.Warnings, noElementWarning("no TIME component for period volume"))
 			}
@@ -131,7 +131,7 @@ func Calculate(in Input, opts Options) (Report, error) {
 		if period.ParkingTime != nil {
 			periodHasVolume = true
 			if cs.parking != nil {
-				addPool(parkingPools, cs.parking, *period.ParkingTime)
+				parkingPeriods = append(parkingPeriods, pricedPeriod{volume: *period.ParkingTime, comp: cs.parking})
 			} else if matchedAny {
 				rep.Warnings = append(rep.Warnings, noElementWarning("no PARKING_TIME component for period volume"))
 			}
@@ -144,15 +144,15 @@ func Calculate(in Input, opts Options) (Report, error) {
 		cur = cur.next(period, end)
 	}
 
-	rep.TotalEnergyCost, rep.Dimensions[Energy], err = pricePooledDimension(energyPools, decimal.NewFromInt(energyBaseUnitsPerKwh))
+	rep.TotalEnergyCost, rep.Dimensions[Energy], err = priceSessionDimension(Energy, energyPeriods, decimal.NewFromInt(energyBaseUnitsPerKwh), hasIdleStep)
 	if err != nil {
 		return Report{}, err
 	}
-	rep.TotalTimeCost, rep.Dimensions[Time], err = pricePooledDimension(timePools, decimal.NewFromInt(timeBaseUnitsPerHour))
+	rep.TotalTimeCost, rep.Dimensions[Time], err = priceSessionDimension(Time, timePeriods, decimal.NewFromInt(timeBaseUnitsPerHour), hasIdleStep)
 	if err != nil {
 		return Report{}, err
 	}
-	rep.TotalParkingCost, rep.Dimensions[ParkingTime], err = pricePooledDimension(parkingPools, decimal.NewFromInt(timeBaseUnitsPerHour))
+	rep.TotalParkingCost, rep.Dimensions[ParkingTime], err = priceSessionDimension(ParkingTime, parkingPeriods, decimal.NewFromInt(timeBaseUnitsPerHour), hasIdleStep)
 	if err != nil {
 		return Report{}, err
 	}
@@ -186,21 +186,20 @@ func Calculate(in Input, opts Options) (Report, error) {
 		rep.TotalCost.AfterTaxes = &candidateAfter
 	}
 
-	rep.TotalEnergyCost = roundMoney(rep.TotalEnergyCost, precision)
-	rep.TotalTimeCost = roundMoney(rep.TotalTimeCost, precision)
-	rep.TotalParkingCost = roundMoney(rep.TotalParkingCost, precision)
-	rep.TotalFixedCost = roundMoney(rep.TotalFixedCost, precision)
-	rep.TotalCost = roundMoney(rep.TotalCost, precision)
-	rep.Dimensions[Energy] = Dimension{Volume: rep.Dimensions[Energy].Volume, Cost: rep.TotalEnergyCost}
-	rep.Dimensions[Time] = Dimension{Volume: rep.Dimensions[Time].Volume, Cost: rep.TotalTimeCost}
-	rep.Dimensions[ParkingTime] = Dimension{Volume: rep.Dimensions[ParkingTime].Volume, Cost: rep.TotalParkingCost}
-	rep.Dimensions[Flat] = Dimension{Volume: rep.Dimensions[Flat].Volume, Cost: rep.TotalFixedCost}
+	if opts.CurrencyPrecision != nil {
+		precision := *opts.CurrencyPrecision
+		rep.TotalEnergyCost = roundMoney(rep.TotalEnergyCost, precision)
+		rep.TotalTimeCost = roundMoney(rep.TotalTimeCost, precision)
+		rep.TotalParkingCost = roundMoney(rep.TotalParkingCost, precision)
+		rep.TotalFixedCost = roundMoney(rep.TotalFixedCost, precision)
+		rep.TotalCost = roundMoney(rep.TotalCost, precision)
+		rep.Dimensions[Energy] = Dimension{Volume: rep.Dimensions[Energy].Volume, Cost: rep.TotalEnergyCost}
+		rep.Dimensions[Time] = Dimension{Volume: rep.Dimensions[Time].Volume, Cost: rep.TotalTimeCost}
+		rep.Dimensions[ParkingTime] = Dimension{Volume: rep.Dimensions[ParkingTime].Volume, Cost: rep.TotalParkingCost}
+		rep.Dimensions[Flat] = Dimension{Volume: rep.Dimensions[Flat].Volume, Cost: rep.TotalFixedCost}
+	}
 
 	return rep, nil
-}
-
-func addPool(pools map[*PriceComponent]decimal.Decimal, comp *PriceComponent, volume decimal.Decimal) {
-	pools[comp] = pools[comp].Add(volume)
 }
 
 func componentSetHasAny(cs componentSet) bool {
@@ -247,30 +246,69 @@ func noElementWarning(msg string) Warning {
 	}
 }
 
-func pricePooledDimension(pools map[*PriceComponent]decimal.Decimal, baseUnitsPerUnit decimal.Decimal) (Money, Dimension, error) {
-	totalBefore := decimal.Zero
+func priceSessionDimension(dim DimensionType, periods []pricedPeriod, baseUnitsPerUnit decimal.Decimal, hasIdleStep bool) (Money, Dimension, error) {
+	periods = append([]pricedPeriod(nil), periods...)
+
+	totalBeforeRaw := decimal.Zero
 	totalVolume := decimal.Zero
 	totalTax := decimal.Zero
 	allTaxesKnown := true
 	anyTaxesKnown := false
 	var firstComp *PriceComponent
-	componentCount := 0
+	taxesUniform := true
 
-	for comp, volume := range pools {
+	lastStepIdx := -1
+	step := decimal.Zero
+	for i := range periods {
+		totalVolume = totalVolume.Add(periods[i].volume)
+	}
+	for i := len(periods) - 1; i >= 0; i-- {
+		if periods[i].comp == nil {
+			continue
+		}
+		lastStepIdx = i
+		step = decimal.NewFromInt(int64(periods[i].comp.StepSize))
+		break
+	}
+
+	rawTotalBase := totalVolume.Mul(baseUnitsPerUnit)
+	billedTotalBase := rawTotalBase
+	var err error
+	switch dim {
+	case Energy:
+		if lastStepIdx >= 0 && !step.IsZero() {
+			billedTotalBase, err = stepBill(rawTotalBase, step)
+		}
+	case Time:
+		if !hasIdleStep && lastStepIdx >= 0 {
+			billedTotalBase, err = stepBill(rawTotalBase, step)
+		}
+	case ParkingTime:
+		if lastStepIdx >= 0 {
+			billedTotalBase, err = stepBill(rawTotalBase, step)
+		}
+	}
+	if err != nil {
+		return Money{}, Dimension{}, err
+	}
+
+	deltaBase := billedTotalBase.Sub(rawTotalBase)
+	if deltaBase.GreaterThan(decimal.Zero) && lastStepIdx >= 0 {
+		periods[lastStepIdx].volume = periods[lastStepIdx].volume.Add(deltaBase.Div(baseUnitsPerUnit))
+	}
+
+	for _, period := range periods {
+		comp := period.comp
+		volume := period.volume
 		if firstComp == nil {
 			firstComp = comp
+		} else if !sameTaxes(firstComp.Taxes, comp.Taxes) {
+			taxesUniform = false
 		}
-		componentCount++
-		totalVolume = totalVolume.Add(volume)
 
-		baseVol := volume.Mul(baseUnitsPerUnit)
-		billed, err := stepBill(baseVol, decimal.NewFromInt(int64(comp.StepSize)))
-		if err != nil {
-			return Money{}, Dimension{}, err
-		}
-		costVol := billed.Div(baseUnitsPerUnit)
-		subtotalBefore := roundOCPI(costVol.Mul(comp.Price))
-		totalBefore = totalBefore.Add(subtotalBefore)
+		subtotalRaw := volume.Mul(comp.Price)
+		totalBeforeRaw = totalBeforeRaw.Add(subtotalRaw)
+		subtotalBefore := roundOCPI(subtotalRaw)
 
 		after, ok := (Money{BeforeTaxes: subtotalBefore, Taxes: comp.Taxes}).afterTax()
 		if ok {
@@ -281,15 +319,45 @@ func pricePooledDimension(pools map[*PriceComponent]decimal.Decimal, baseUnitsPe
 		}
 	}
 
+	totalBefore := roundOCPI(totalBeforeRaw)
 	money := Money{BeforeTaxes: totalBefore}
-	if componentCount == 1 {
+	if firstComp != nil && taxesUniform {
 		money.Taxes = firstComp.Taxes
 	}
-	if componentCount != 1 && anyTaxesKnown && allTaxesKnown {
+	if !taxesUniform && anyTaxesKnown && allTaxesKnown {
 		money.Taxes = []TaxAmount{{Amount: &totalTax}}
 	}
 
 	return money, Dimension{Volume: totalVolume, Cost: money}, nil
+}
+
+func sameTaxes(a, b []TaxAmount) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i].Name != b[i].Name {
+			return false
+		}
+		if !sameDecimalPtr(a[i].Percent, b[i].Percent) {
+			return false
+		}
+		if !sameDecimalPtr(a[i].Amount, b[i].Amount) {
+			return false
+		}
+	}
+	return true
+}
+
+func sameDecimalPtr(a, b *decimal.Decimal) bool {
+	switch {
+	case a == nil && b == nil:
+		return true
+	case a == nil || b == nil:
+		return false
+	default:
+		return a.Equal(*b)
+	}
 }
 
 func priceFlatDimension(comp *PriceComponent) (Money, Dimension) {

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestValidateInputRejectsNonPositiveVolumeStepSize(t *testing.T) {
+func TestValidateInputRejectsInvalidVolumeStepSize(t *testing.T) {
 	d := decimal.RequireFromString
 	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
 	for _, tc := range []struct {
@@ -17,7 +17,7 @@ func TestValidateInputRejectsNonPositiveVolumeStepSize(t *testing.T) {
 		dim  DimensionType
 		step int
 	}{
-		{name: "energy zero", dim: Energy, step: 0},
+		{name: "energy negative", dim: Energy, step: -1},
 		{name: "time negative", dim: Time, step: -1},
 		{name: "parking zero", dim: ParkingTime, step: 0},
 	} {
@@ -33,6 +33,15 @@ func TestValidateInputRejectsNonPositiveVolumeStepSize(t *testing.T) {
 			assert.Equal(t, InvalidInput, pe.Code)
 		})
 	}
+}
+
+func TestValidateInputAcceptsEnergyZeroStepSize(t *testing.T) {
+	d := decimal.RequireFromString
+	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
+	in := validValidationInput(start, d)
+	in.Tariff.Elements[0].Components[0] = PriceComponent{Type: Energy, Price: d("0.30"), StepSize: 0}
+
+	require.NoError(t, ValidateInput(in))
 }
 
 func TestValidateInputAcceptsFlatZeroStepSize(t *testing.T) {

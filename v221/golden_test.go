@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -25,20 +26,23 @@ func TestGoldenV221(t *testing.T) {
 		if err != nil || !info.IsDir() {
 			continue
 		}
-		if _, err := os.Stat(filepath.Join(dir, "cdr.json")); err != nil {
-			continue
-		}
 		if _, err := os.Stat(filepath.Join(dir, "tariff.json")); err != nil {
 			continue
 		}
-		fixtures = append(fixtures, dir)
+		cdrs, err := filepath.Glob(filepath.Join(dir, "cdr*.json"))
+		require.NoError(t, err)
+		for _, cdr := range cdrs {
+			fixtures = append(fixtures, cdr)
+		}
 	}
 	require.NotEmpty(t, fixtures)
 
-	for _, dir := range fixtures {
-		dir := dir
-		t.Run(filepath.Base(filepath.Clean(dir)), func(t *testing.T) {
-			cdrBytes, err := os.ReadFile(filepath.Join(dir, "cdr.json"))
+	for _, cdrPath := range fixtures {
+		cdrPath := cdrPath
+		dir := filepath.Dir(cdrPath)
+		testName := filepath.Base(filepath.Clean(dir)) + "/" + filepath.Base(cdrPath)
+		t.Run(testName, func(t *testing.T) {
+			cdrBytes, err := os.ReadFile(cdrPath)
 			require.NoError(t, err)
 
 			var cdr v221.CDR
@@ -58,7 +62,56 @@ func TestGoldenV221(t *testing.T) {
 			got := rep.TotalCost.BeforeTaxes
 
 			t.Logf("expected excl_vat=%s computed excl_vat=%s", expected.String(), got.String())
-			assert.Truef(t, got.Equal(expected), "expected excl_vat=%s computed excl_vat=%s", expected.String(), got.String())
+			assert.Equal(t, expected.StringFixed(4), got.StringFixed(4))
+
+			if cdr.TotalCost.InclVAT == nil {
+				return
+			}
+
+			expectedIncl := *cdr.TotalCost.InclVAT
+			gotIncl, ok := computedAfterTax(rep.TotalCost)
+			if ok {
+				t.Logf("expected incl_vat=%s computed incl_vat=%s", expectedIncl.String(), gotIncl.String())
+				assert.Equal(t, expectedIncl.StringFixed(4), gotIncl.StringFixed(4))
+				return
+			}
+
+			if !expectedIncl.Equal(cdr.TotalCost.ExclVAT) {
+				t.Fatalf("embedded incl_vat=%s differs from excl_vat=%s, but computed after-tax is not derivable", expectedIncl.String(), cdr.TotalCost.ExclVAT.String())
+			}
+			t.Logf("embedded incl_vat=%s equals excl_vat, computed after-tax is not derivable", expectedIncl.String())
 		})
 	}
+}
+
+func computedAfterTax(m pricing.Money) (decimal.Decimal, bool) {
+	if m.AfterTaxes != nil {
+		return *m.AfterTaxes, true
+	}
+
+	tax, ok := sumTaxes(m.BeforeTaxes, m.Taxes)
+	if !ok {
+		return decimal.Zero, false
+	}
+	return m.BeforeTaxes.Add(tax), true
+}
+
+func sumTaxes(before decimal.Decimal, taxes []pricing.TaxAmount) (decimal.Decimal, bool) {
+	if len(taxes) == 0 {
+		return decimal.Zero, false
+	}
+
+	total := decimal.Zero
+	for _, tax := range taxes {
+		switch {
+		case tax.Amount != nil:
+			total = total.Add(*tax.Amount)
+		case tax.Percent != nil:
+			total = total.Add(before.Mul(*tax.Percent).Div(decimal.NewFromInt(100)))
+		default:
+			return decimal.Zero, false
+		}
+	}
+
+	return total, true
 }
