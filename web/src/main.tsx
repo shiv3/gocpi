@@ -1,13 +1,6 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-
-function App() {
-  return (
-    <main>
-      <h1>gocpi pricing simulator</h1>
-    </main>
-  )
-}
+import { App } from './App'
 
 const root = document.getElementById('root')
 
