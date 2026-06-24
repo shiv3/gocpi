@@ -10,3 +10,7 @@
 /docs/superpowers/
 # local Claude Code config (skills, etc.)
 /.claude/
+web/node_modules
+web/dist
+web/public/main.wasm
+web/public/wasm_exec.js
