@@ -63,6 +63,18 @@ func CalculateV221(cdr v221.CDR, tariff v221.Tariff, opts Options) (Report, erro
 	return Calculate(in, opts)
 }
 
+func VerifyV221(cdr v221.CDR, tariff v221.Tariff, opts Options) (Verdict, error) {
+	in, err := FromV221(cdr, tariff, opts)
+	if err != nil {
+		return Verdict{Status: StatusInvalidInput}, err
+	}
+	rep, err := Calculate(in, opts)
+	if err != nil {
+		return Verdict{Status: StatusInvalidInput}, err
+	}
+	return Verify(in, rep, opts), nil
+}
+
 func rejectMultiTariff(periods []v221.ChargingPeriod) error {
 	seen := make(map[string]struct{})
 	for _, period := range periods {
