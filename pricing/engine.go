@@ -94,6 +94,10 @@ func Calculate(in Input, opts Options) (Report, error) {
 	}
 	rep.Warnings = append(rep.Warnings, tariffWindowWarnings(in)...)
 
+	// Pools are keyed by PriceComponent pointer identity into in.Tariff.Elements'
+	// backing array. Calculate never mutates in, so that identity is stable for
+	// the call; reconstructing or copying tariff components per period would
+	// silently break session-wide step pooling.
 	energyPools := make(map[*PriceComponent]decimal.Decimal)
 	timePools := make(map[*PriceComponent]decimal.Decimal)
 	parkingPools := make(map[*PriceComponent]decimal.Decimal)
@@ -167,6 +171,11 @@ func Calculate(in Input, opts Options) (Report, error) {
 		Add(rep.TotalTimeCost.BeforeTaxes).
 		Add(rep.TotalParkingCost.BeforeTaxes).
 		Add(rep.TotalFixedCost.BeforeTaxes)
+	// Min/max price clamps intentionally adjust only the total before taxes.
+	// Dimension subtotals keep their actual computed costs and are not
+	// redistributed, so after a clamp fires they may not sum to TotalCost. This
+	// matches the ocpi-tariffs reference, where min_price/max_price clamp the
+	// total.
 	rep.TotalCost.BeforeTaxes = clampTotalBeforeTaxes(rep.TotalCost.BeforeTaxes, in.Tariff)
 
 	rep.TotalEnergyCost = roundMoney(rep.TotalEnergyCost, precision)
@@ -291,6 +300,18 @@ func roundMoney(m Money, precision int) Money {
 	if m.AfterTaxes != nil {
 		after := roundCurrency(*m.AfterTaxes, precision)
 		m.AfterTaxes = &after
+	}
+	taxesCopied := false
+	for i := range m.Taxes {
+		if m.Taxes[i].Amount == nil {
+			continue
+		}
+		if !taxesCopied {
+			m.Taxes = append([]TaxAmount(nil), m.Taxes...)
+			taxesCopied = true
+		}
+		amount := roundCurrency(*m.Taxes[i].Amount, precision)
+		m.Taxes[i].Amount = &amount
 	}
 	return m
 }
