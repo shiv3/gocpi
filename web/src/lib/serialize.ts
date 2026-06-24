@@ -11,6 +11,10 @@ import type { Version } from '../wasm/api'
 
 const money = (v: string, version: Version) => (version === '2.2.1' ? { excl_vat: v } : { before_taxes: v })
 
+function negate(v: string): string {
+  return v.startsWith('-') ? v.slice(1) : `-${v}`
+}
+
 // sumDecimals adds decimal strings exactly (scaled-integer/BigInt) to avoid float drift.
 function sumDecimals(values: string[]): string {
   if (values.length === 0) return '0'
@@ -26,6 +30,21 @@ function sumDecimals(values: string[]): string {
   const digits = (total < 0n ? -total : total).toString().padStart(frac + 1, '0')
   const intPart = digits.slice(0, digits.length - frac) || '0'
   return sign + intPart + (frac ? `.${digits.slice(digits.length - frac)}` : '')
+}
+
+export function reportMoneyToCdr(m: { beforeTaxes: string; afterTaxes: string | null }, version: Version): object {
+  if (version === '2.2.1') {
+    return m.afterTaxes != null ? { excl_vat: m.beforeTaxes, incl_vat: m.afterTaxes } : { excl_vat: m.beforeTaxes }
+  }
+
+  if (m.afterTaxes == null) {
+    return { before_taxes: m.beforeTaxes }
+  }
+
+  const taxAmount = sumDecimals([m.afterTaxes, negate(m.beforeTaxes)])
+  return decimalIsZero(taxAmount)
+    ? { before_taxes: m.beforeTaxes }
+    : { before_taxes: m.beforeTaxes, taxes: [{ name: 'VAT', amount: taxAmount }] }
 }
 
 function countryAlpha3(countryCode: string): string {

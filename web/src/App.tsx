@@ -6,7 +6,7 @@ import { EmbeddedTotalsEditor } from './components/form/EmbeddedTotalsEditor'
 import { TariffEditor } from './components/form/TariffEditor'
 import { CostBreakdown } from './components/result/CostBreakdown'
 import { VerdictView } from './components/result/VerdictView'
-import { deserialize, serialize } from './lib/serialize'
+import { deserialize, reportMoneyToCdr, serialize } from './lib/serialize'
 import type { ElementForm, PeriodForm, SimForm, TariffForm } from './model/forms'
 import type { Report, Verdict } from './model/dto'
 import { defaultPreset, presets } from './presets'
@@ -107,7 +107,7 @@ export function App() {
     }
   }
 
-  const engineInput = () => (rawJson != null ? JSON.parse(rawJson) : serialize(form, version))
+  const engineInput = () => (rawJson != null ? rawJson : serialize(form, version))
 
   const onCalculate = async () => {
     setError(null)
@@ -128,7 +128,7 @@ export function App() {
     setError(null)
     try {
       if (rawJson != null) {
-        const response = await verify(version, JSON.parse(rawJson), engineOptions)
+        const response = await verify(version, rawJson, engineOptions)
         if (response.ok && response.verdict) {
           setVerd(response.verdict)
         } else {
@@ -145,10 +145,10 @@ export function App() {
       }
 
       setCalc(calculation.report)
-      const embedded = form.embedded.totalCost
-        ? form.embedded
-        : { ...form.embedded, totalCost: calculation.report.totalCost.beforeTaxes }
-      const cdr = serialize({ ...form, embedded }, version)
+      const cdr = serialize(form, version) as Record<string, unknown>
+      if (!form.embedded.totalCost) {
+        cdr.total_cost = reportMoneyToCdr(calculation.report.totalCost, version)
+      }
       const response = await verify(version, cdr, engineOptions)
       if (response.ok && response.verdict) {
         setVerd(response.verdict)

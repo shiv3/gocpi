@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { deserialize, serialize } from './serialize'
+import { deserialize, reportMoneyToCdr, serialize } from './serialize'
 import type { SimForm } from '../model/forms'
 import type { Version } from '../wasm/api'
 
@@ -83,5 +83,27 @@ describe('serialize', () => {
 
   it.each<Version>(['2.2.1', '2.3.0'])('deserialize(serialize(base, %s)) round-trips the base form', (version) => {
     expect(deserialize(serialize(base, version), version)).toEqual(base)
+  })
+})
+
+describe('reportMoneyToCdr', () => {
+  it('emits v2.2.1 money with after-tax total when available', () => {
+    expect(reportMoneyToCdr({ beforeTaxes: '3.00', afterTaxes: '3.63' }, '2.2.1')).toEqual({
+      excl_vat: '3.00',
+      incl_vat: '3.63',
+    })
+  })
+
+  it('emits v2.3.0 money with a derivable VAT amount', () => {
+    expect(reportMoneyToCdr({ beforeTaxes: '3.00', afterTaxes: '3.63' }, '2.3.0')).toEqual({
+      before_taxes: '3.00',
+      taxes: [{ name: 'VAT', amount: '0.63' }],
+    })
+  })
+
+  it.each<Version>(['2.2.1', '2.3.0'])('emits before-tax-only money when afterTaxes is null for %s', (version) => {
+    expect(reportMoneyToCdr({ beforeTaxes: '3.00', afterTaxes: null }, version)).toEqual(
+      version === '2.2.1' ? { excl_vat: '3.00' } : { before_taxes: '3.00' },
+    )
   })
 })
