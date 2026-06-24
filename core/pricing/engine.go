@@ -217,6 +217,19 @@ func Calculate(in Input, opts Options) (Report, error) {
 		cur = cur.next(period, end)
 	}
 
+	for _, mw := range []struct {
+		dim     DimensionType
+		periods []pricedPeriod
+	}{
+		{Energy, energyPeriods},
+		{Time, timePeriods},
+		{ParkingTime, parkingPeriods},
+	} {
+		if w, ok := mixedStepWarning(mw.dim, mw.periods); ok {
+			rep.Warnings = append(rep.Warnings, w)
+		}
+	}
+
 	rep.TotalEnergyCost, rep.Dimensions[Energy], err = priceSessionDimension(Energy, energyPeriods, decimal.NewFromInt(energyBaseUnitsPerKwh), hasIdleStep)
 	if err != nil {
 		return Report{}, err
@@ -270,6 +283,13 @@ func Calculate(in Input, opts Options) (Report, error) {
 		rep.TotalCost.BeforeTaxes = preClampBefore
 		if allDerivable {
 			rep.TotalCost.AfterTaxes = &candidateAfter
+		}
+		if len(usedTariffs) > 1 && usedTariffsHaveMinMax(in.Tariffs, usedTariffs) {
+			rep.Warnings = append(rep.Warnings, Warning{
+				Code: WarnMinMaxUndefinedMultiTariff,
+				Kind: KindWarning,
+				Msg:  "min_price/max_price not applied because multiple tariffs priced the session",
+			})
 		}
 	}
 
@@ -357,6 +377,45 @@ func singleUsedTariffIndex(used map[int]struct{}) (int, bool) {
 		return idx, true
 	}
 	return 0, false
+}
+
+// usedTariffsHaveMinMax reports whether any of the used tariffs defines a
+// min_price or max_price clamp.
+func usedTariffsHaveMinMax(tariffs []Tariff, used map[int]struct{}) bool {
+	for idx := range used {
+		if tariffs[idx].MinPrice != nil || tariffs[idx].MaxPrice != nil {
+			return true
+		}
+	}
+	return false
+}
+
+// mixedStepWarning returns a WarnMixedStepSize warning when the contributing
+// periods for a dimension reference price components with differing step_size
+// values. The step is still applied once per session at the last priced period.
+func mixedStepWarning(dim DimensionType, periods []pricedPeriod) (Warning, bool) {
+	seen := false
+	var firstStep int
+	for i := range periods {
+		if periods[i].comp == nil {
+			continue
+		}
+		step := periods[i].comp.StepSize
+		if !seen {
+			seen = true
+			firstStep = step
+			continue
+		}
+		if step != firstStep {
+			return Warning{
+				Code:      WarnMixedStepSize,
+				Kind:      KindWarning,
+				Dimension: dim,
+				Msg:       "price components for this dimension used different step_size values; step is applied once per session at the last priced period",
+			}, true
+		}
+	}
+	return Warning{}, false
 }
 
 func noElementWarning(msg string) Warning {

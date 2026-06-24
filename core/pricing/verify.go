@@ -53,7 +53,21 @@ func Verify(in Input, rep Report, opts Options) Verdict {
 		addMismatch(field+".after_taxes", computedAfter, embeddedAfter)
 	}
 
-	compareMoney("total_cost", rep.TotalCost, in.Embedded.TotalCost)
+	// A multi-tariff session leaves min_price/max_price undefined, so the engine
+	// reports the unclamped total. The embedded total_cost may legitimately
+	// differ (the CSO may have clamped), so it cannot be verified.
+	multiTariffMinMax := false
+	for i := range rep.Warnings {
+		if rep.Warnings[i].Code == WarnMinMaxUndefinedMultiTariff {
+			multiTariffMinMax = true
+			break
+		}
+	}
+	if multiTariffMinMax && in.Embedded.TotalCost != nil {
+		notVerifiable = true
+	} else {
+		compareMoney("total_cost", rep.TotalCost, in.Embedded.TotalCost)
+	}
 	compareMoney("total_energy_cost", rep.TotalEnergyCost, in.Embedded.TotalEnergyCost)
 	compareMoney("total_time_cost", rep.TotalTimeCost, in.Embedded.TotalTimeCost)
 	compareMoney("total_parking_cost", rep.TotalParkingCost, in.Embedded.TotalParkingCost)
