@@ -31,14 +31,11 @@ func TestGoldenV221(t *testing.T) {
 		}
 		cdrs, err := filepath.Glob(filepath.Join(dir, "cdr*.json"))
 		require.NoError(t, err)
-		for _, cdr := range cdrs {
-			fixtures = append(fixtures, cdr)
-		}
+		fixtures = append(fixtures, cdrs...)
 	}
 	require.NotEmpty(t, fixtures)
 
 	for _, cdrPath := range fixtures {
-		cdrPath := cdrPath
 		dir := filepath.Dir(cdrPath)
 		testName := filepath.Base(filepath.Clean(dir)) + "/" + filepath.Base(cdrPath)
 		t.Run(testName, func(t *testing.T) {
