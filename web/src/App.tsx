@@ -76,6 +76,11 @@ export function App() {
 
   const patchForm = (patch: Partial<SimForm>) => replaceForm({ ...form, ...patch })
 
+  // The engine requires the CDR currency to match every tariff currency, so changing
+  // the CDR currency cascades to all tariffs (avoids a spurious "currency mismatch").
+  const setCurrency = (currency: string) =>
+    patchForm({ currency, tariffs: form.tariffs.map((tariff) => ({ ...tariff, currency })) })
+
   const selectPreset = (key: string) => {
     setPresetKey(key)
     replaceForm(cloneForm(presets[key]))
@@ -258,7 +263,7 @@ export function App() {
                 <div className="form-grid">
                   <label>
                     currency
-                    <select value={form.currency} onChange={(event) => patchForm({ currency: event.currentTarget.value })}>
+                    <select value={form.currency} onChange={(event) => setCurrency(event.currentTarget.value)}>
                       {optionsWithCurrent(COMMON_CURRENCIES, form.currency).map((currency) => (
                         <option key={currency} value={currency}>
                           {currency}
