@@ -230,6 +230,17 @@ func Calculate(in Input, opts Options) (Report, error) {
 		}
 	}
 
+	for idx := range in.Tariffs {
+		if _, used := usedTariffs[idx]; !used {
+			rep.Warnings = append(rep.Warnings, Warning{
+				Code:        WarnUnusedTariff,
+				Kind:        KindWarning,
+				TariffIndex: intPtr(idx),
+				Msg:         "embedded tariff was not used by any priced charging period",
+			})
+		}
+	}
+
 	rep.TotalEnergyCost, rep.Dimensions[Energy], err = priceSessionDimension(Energy, energyPeriods, decimal.NewFromInt(energyBaseUnitsPerKwh), hasIdleStep)
 	if err != nil {
 		return Report{}, err

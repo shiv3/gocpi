@@ -62,18 +62,29 @@ verdict, err := v221.VerifyCDR(cdr, pricing.Options{})
 rep, err = v221.CalculateWithTariff(cdr, tariff, pricing.Options{})
 ```
 
-The current v1 engine supports one tariff per CDR; CDRs that require multiple
-tariffs through per-period `tariff_id` values return `InvalidInput`.
-Reservation cost is not computed, though its sub-total is checked and returns
-`NotVerifiable` when present. OCPI 2.3.0 booking-restricted tariff elements are
-unsupported and never match, and the local-time boundary-crossing diagnostic is
-deferred.
+`CalculateCDR`/`VerifyCDR` resolve each charging period to its `tariff_id` from
+the CDR's embedded `tariffs`, including CDRs that switch tariffs across periods.
+The `step_size` ledger stays session-wide across tariff switches (the last priced
+period's component supplies the step and prices the rounding delta). Periods with
+no applicable tariff are excluded from cost but still advance the cumulative
+restriction snapshots and the `Verify` volume audit.
+
+Multi-tariff behaviors:
+
+- `step_size` is applied once per session; mixed step values across tariffs emit
+  `WarnMixedStepSize`.
+- Each tariff's `FLAT` element is charged once.
+- `min_price`/`max_price` are not applied when more than one tariff prices the
+  session; the engine emits `WarnMinMaxUndefinedMultiTariff` and `Verify` reports
+  `total_cost` as `NotVerifiable`.
+- A period with a nil/unmatched `tariff_id` is zero-cost with `WarnPeriodNoTariff`
+  (multiple tariffs) or rejected as `InvalidInput` (single tariff / unknown id).
 
 Current v1 limitations:
 
-- Single tariff per CDR; multi-tariff CDRs return `InvalidInput`.
 - Reservation cost is not computed; its sub-total verifies as `NotVerifiable`.
-- OCPI 2.3.0 booking-restricted elements are unsupported.
+- OCPI 2.3.0 booking-restricted elements are unsupported and never match.
+- The local-time boundary-crossing diagnostic is deferred.
 - Multi-timezone countries are not inferred; pass `Options.TimeZone`.
 - Totals stay at OCPI scale-4 unless `Options.CurrencyPrecision` is set.
 

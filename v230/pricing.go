@@ -109,6 +109,9 @@ func fromCDRMultiTariff(cdr CDR, _ pricing.Options) (pricing.Input, error) {
 			return pricing.Input{}, err
 		}
 		if neutralTariff.ID != "" {
+			if _, dup := indexByID[neutralTariff.ID]; dup {
+				return pricing.Input{}, invalidInput("duplicate embedded tariff id %q", neutralTariff.ID)
+			}
 			indexByID[neutralTariff.ID] = i
 		}
 		tariffs = append(tariffs, neutralTariff)

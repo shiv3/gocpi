@@ -28,6 +28,8 @@ const (
 	WarnMinMaxUndefinedMultiTariff
 	// WarnMixedStepSize means multiple active price components for the same dimension used different step_size values.
 	WarnMixedStepSize
+	// WarnUnusedTariff means an embedded tariff was not referenced by any priced charging period.
+	WarnUnusedTariff
 )
 
 // ErrCode identifies a pricing error category.
