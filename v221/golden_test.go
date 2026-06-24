@@ -1,4 +1,4 @@
-package pricing
+package v221_test
 
 import (
 	"encoding/json"
@@ -9,15 +9,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	pricing "github.com/shiv3/gocpi/core/pricing"
 	"github.com/shiv3/gocpi/v221"
 )
 
+// TestGoldenV221 prices real ocpi-tariffs reference fixtures and asserts the computed
+// total matches each fixture's embedded total_cost (the reference-authoritative value).
 func TestGoldenV221(t *testing.T) {
-	dirs, err := filepath.Glob("pricing/testdata/v221/*")
-	require.NoError(t, err)
-	if len(dirs) == 0 {
-		dirs, err = filepath.Glob("testdata/v221/*")
-	}
+	dirs, err := filepath.Glob("testdata/v221/*")
 	require.NoError(t, err)
 
 	fixtures := make([]string, 0, len(dirs))
@@ -52,15 +51,14 @@ func TestGoldenV221(t *testing.T) {
 			require.NoError(t, json.Unmarshal(tariffBytes, &tariff))
 
 			expected := cdr.TotalCost.ExclVAT
-			scale := currencyScale(cdr.Currency)
 
-			rep, err := CalculateV221(cdr, tariff, Options{})
-			require.NoErrorf(t, err, "expected excl_vat=%s computed excl_vat=<not produced>", expected.StringFixed(int32(scale)))
+			rep, err := v221.Calculate(cdr, tariff, pricing.Options{})
+			require.NoErrorf(t, err, "expected excl_vat=%s computed excl_vat=<not produced>", expected.String())
 
 			got := rep.TotalCost.BeforeTaxes
 
-			t.Logf("expected excl_vat=%s computed excl_vat=%s", expected.StringFixed(int32(scale)), got.StringFixed(int32(scale)))
-			assert.Equal(t, expected.StringFixed(int32(scale)), got.StringFixed(int32(scale)))
+			t.Logf("expected excl_vat=%s computed excl_vat=%s", expected.String(), got.String())
+			assert.Truef(t, got.Equal(expected), "expected excl_vat=%s computed excl_vat=%s", expected.String(), got.String())
 		})
 	}
 }

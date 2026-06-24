@@ -1,4 +1,4 @@
-package pricing_test
+package v221_test
 
 import (
 	"fmt"
@@ -6,11 +6,11 @@ import (
 
 	"github.com/shopspring/decimal"
 
-	"github.com/shiv3/gocpi/pricing"
+	pricing "github.com/shiv3/gocpi/core/pricing"
 	"github.com/shiv3/gocpi/v221"
 )
 
-func Example_calculateV221() {
+func Example_calculate() {
 	d := decimal.RequireFromString
 	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
 	currencyPrecision := 2
@@ -45,7 +45,7 @@ func Example_calculateV221() {
 		LastUpdated: start,
 	}
 
-	rep, err := pricing.CalculateV221(cdr, tariff, pricing.Options{CurrencyPrecision: &currencyPrecision})
+	rep, err := v221.Calculate(cdr, tariff, pricing.Options{CurrencyPrecision: &currencyPrecision})
 	if err != nil {
 		fmt.Println(err)
 		return

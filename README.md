@@ -41,13 +41,19 @@ codegen from the official spec, pluggable observability, and heavy testing.
 
 ## Pricing
 
-The [`github.com/shiv3/gocpi/pricing`](https://github.com/shiv3/gocpi/tree/main/pricing)
-package provides OCPI 2.2.1 and 2.3.0 tariff calculation and CDR total
-verification.
+The [`github.com/shiv3/gocpi/core/pricing`](https://github.com/shiv3/gocpi/tree/main/core/pricing)
+package provides a version-neutral OCPI 2.2.1 and 2.3.0 tariff calculation and
+CDR total verification engine. Version entry points live in the version
+packages (`v221`, `v230`) and return the neutral `pricing.Report` / `pricing.Verdict`.
 
 ```go
-rep, err := pricing.CalculateV221(cdr, tariff, pricing.Options{})
-verdict, err := pricing.VerifyV221(cdr, tariff, pricing.Options{})
+import (
+    pricing "github.com/shiv3/gocpi/core/pricing"
+    "github.com/shiv3/gocpi/v221"
+)
+
+rep, err := v221.Calculate(cdr, tariff, pricing.Options{})
+verdict, err := v221.Verify(cdr, tariff, pricing.Options{})
 ```
 
 The current v1 engine supports one tariff per CDR; CDRs that require multiple

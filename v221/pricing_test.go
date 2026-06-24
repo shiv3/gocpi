@@ -1,4 +1,4 @@
-package pricing
+package v221_test
 
 import (
 	"testing"
@@ -8,8 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	pricing "github.com/shiv3/gocpi/core/pricing"
 	"github.com/shiv3/gocpi/v221"
 )
+
+func ptrInt(i int) *int { return &i }
 
 func v221Tariff(d func(string) decimal.Decimal, start time.Time) v221.Tariff {
 	return v221.Tariff{
@@ -23,7 +26,7 @@ func v221Tariff(d func(string) decimal.Decimal, start time.Time) v221.Tariff {
 	}
 }
 
-func TestCalculateV221EndToEnd(t *testing.T) {
+func TestCalculateEndToEnd(t *testing.T) {
 	d := decimal.RequireFromString
 	utc := time.UTC
 	start := time.Date(2026, 6, 24, 9, 0, 0, 0, utc)
@@ -44,12 +47,12 @@ func TestCalculateV221EndToEnd(t *testing.T) {
 		LastUpdated: start,
 	}
 
-	rep, err := CalculateV221(cdr, v221Tariff(d, start), Options{CurrencyPrecision: ptrInt(2)})
+	rep, err := v221.Calculate(cdr, v221Tariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
 	require.NoError(t, err)
 	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
 }
 
-func TestFromV221EmbeddedTotalsMapped(t *testing.T) {
+func TestFromCDREmbeddedTotalsMapped(t *testing.T) {
 	d := decimal.RequireFromString
 	utc := time.UTC
 	start := time.Date(2026, 6, 24, 9, 0, 0, 0, utc)
@@ -70,7 +73,7 @@ func TestFromV221EmbeddedTotalsMapped(t *testing.T) {
 		LastUpdated: start,
 	}
 
-	in, err := FromV221(cdr, v221Tariff(d, start), Options{})
+	in, err := v221.FromCDR(cdr, v221Tariff(d, start), pricing.Options{})
 	require.NoError(t, err)
 	require.NotNil(t, in.Embedded.TotalCost)
 	assert.True(t, in.Embedded.TotalCost.BeforeTaxes.Equal(d("3.00")))
@@ -78,7 +81,7 @@ func TestFromV221EmbeddedTotalsMapped(t *testing.T) {
 	assert.True(t, in.Embedded.TotalEnergy.Equal(d("10")))
 }
 
-func TestFromV221RejectsMultiTariff(t *testing.T) {
+func TestFromCDRRejectsMultiTariff(t *testing.T) {
 	d := decimal.RequireFromString
 	utc := time.UTC
 	start := time.Date(2026, 6, 24, 9, 0, 0, 0, utc)
@@ -98,13 +101,13 @@ func TestFromV221RejectsMultiTariff(t *testing.T) {
 		LastUpdated: start,
 	}
 
-	_, err := FromV221(cdr, v221Tariff(d, start), Options{})
-	var pe *PricingError
+	_, err := v221.FromCDR(cdr, v221Tariff(d, start), pricing.Options{})
+	var pe *pricing.PricingError
 	require.ErrorAs(t, err, &pe)
-	assert.Equal(t, InvalidInput, pe.Code)
+	assert.Equal(t, pricing.InvalidInput, pe.Code)
 }
 
-func TestFromV221RejectsDuplicateDimensionsInChargingPeriod(t *testing.T) {
+func TestFromCDRRejectsDuplicateDimensionsInChargingPeriod(t *testing.T) {
 	d := decimal.RequireFromString
 	utc := time.UTC
 	start := time.Date(2026, 6, 24, 9, 0, 0, 0, utc)
@@ -126,10 +129,53 @@ func TestFromV221RejectsDuplicateDimensionsInChargingPeriod(t *testing.T) {
 		LastUpdated: start,
 	}
 
-	_, err := FromV221(cdr, v221Tariff(d, start), Options{})
+	_, err := v221.FromCDR(cdr, v221Tariff(d, start), pricing.Options{})
 
-	var pe *PricingError
+	var pe *pricing.PricingError
 	require.ErrorAs(t, err, &pe)
-	assert.Equal(t, InvalidInput, pe.Code)
+	assert.Equal(t, pricing.InvalidInput, pe.Code)
 	assert.Equal(t, "duplicate dimension ENERGY in charging period", pe.Msg)
+}
+
+func TestReservationElementExcludedFromNormalSession(t *testing.T) {
+	d := decimal.RequireFromString
+	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
+	reservation := v221.ReservationRestrictionTypeReservation
+	tariff := v221.Tariff{
+		Currency: "EUR",
+		Elements: []v221.TariffElement{
+			{
+				Restrictions: &v221.TariffRestrictions{Reservation: &reservation},
+				PriceComponents: []v221.PriceComponent{
+					{Type: v221.TariffDimensionTypeEnergy, Price: d("99.00"), StepSize: 1},
+				},
+			},
+			{
+				PriceComponents: []v221.PriceComponent{
+					{Type: v221.TariffDimensionTypeEnergy, Price: d("0.30"), StepSize: 1},
+				},
+			},
+		},
+		LastUpdated: start,
+	}
+	cdr := v221.CDR{
+		CountryCode:   "NL",
+		Currency:      "EUR",
+		StartDateTime: start,
+		EndDateTime:   start.Add(time.Hour),
+		ChargingPeriods: []v221.ChargingPeriod{{
+			StartDateTime: start,
+			Dimensions: []v221.CdrDimension{
+				{Type: v221.CdrDimensionTypeEnergy, Volume: d("10")},
+			},
+		}},
+		TotalEnergy: d("10"),
+		TotalTime:   d("1"),
+		TotalCost:   v221.Price{ExclVAT: d("3.00")},
+		LastUpdated: start,
+	}
+
+	rep, err := v221.Calculate(cdr, tariff, pricing.Options{CurrencyPrecision: ptrInt(2)})
+	require.NoError(t, err)
+	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
 }

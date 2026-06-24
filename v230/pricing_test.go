@@ -1,4 +1,4 @@
-package pricing
+package v230_test
 
 import (
 	"testing"
@@ -8,10 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	pricing "github.com/shiv3/gocpi/core/pricing"
 	"github.com/shiv3/gocpi/v230"
 )
 
-func TestCalculateV230TaxIncludedYes(t *testing.T) {
+func ptrInt(i int) *int { return &i }
+
+func TestCalculateTaxIncludedYes(t *testing.T) {
 	d := decimal.RequireFromString
 	utc := time.UTC
 	start := time.Date(2026, 6, 24, 9, 0, 0, 0, utc)
@@ -43,19 +46,19 @@ func TestCalculateV230TaxIncludedYes(t *testing.T) {
 		LastUpdated: start,
 	}
 
-	rep, err := CalculateV230(cdr, tariff, Options{CurrencyPrecision: ptrInt(2)})
+	rep, err := v230.Calculate(cdr, tariff, pricing.Options{CurrencyPrecision: ptrInt(2)})
 	require.NoError(t, err)
 	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "before-tax, got %s", rep.TotalEnergyCost.BeforeTaxes)
 }
 
-func TestFromV230TaxIncludedNoKeepsPriceAndAttachesVAT(t *testing.T) {
+func TestFromCDRTaxIncludedNoKeepsPriceAndAttachesVAT(t *testing.T) {
 	d := decimal.RequireFromString
 	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
 	vat := d("20")
 	price := d("0.36")
 	tariff := v230TaxTariff(v230.TaxIncludedNo, price, &vat, start)
 
-	in, err := FromV230(v230TaxCDR(d, start), tariff, Options{})
+	in, err := v230.FromCDR(v230TaxCDR(d, start), tariff, pricing.Options{})
 
 	require.NoError(t, err)
 	require.Len(t, in.Tariff.Elements, 1)
@@ -67,14 +70,14 @@ func TestFromV230TaxIncludedNoKeepsPriceAndAttachesVAT(t *testing.T) {
 	assert.True(t, component.Taxes[0].Percent.Equal(vat), "got %s", component.Taxes[0].Percent)
 }
 
-func TestFromV230TaxIncludedNAKeepsPriceWithoutTaxes(t *testing.T) {
+func TestFromCDRTaxIncludedNAKeepsPriceWithoutTaxes(t *testing.T) {
 	d := decimal.RequireFromString
 	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
 	vat := d("20")
 	price := d("0.36")
 	tariff := v230TaxTariff(v230.TaxIncludedNA, price, &vat, start)
 
-	in, err := FromV230(v230TaxCDR(d, start), tariff, Options{})
+	in, err := v230.FromCDR(v230TaxCDR(d, start), tariff, pricing.Options{})
 
 	require.NoError(t, err)
 	require.Len(t, in.Tariff.Elements, 1)
@@ -84,7 +87,7 @@ func TestFromV230TaxIncludedNAKeepsPriceWithoutTaxes(t *testing.T) {
 	assert.Nil(t, component.Taxes)
 }
 
-func TestFromV230BookingUnsupported(t *testing.T) {
+func TestFromCDRBookingUnsupported(t *testing.T) {
 	d := decimal.RequireFromString
 	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
 	booking := v230.BookingRestrictionTypeBooking
@@ -116,7 +119,7 @@ func TestFromV230BookingUnsupported(t *testing.T) {
 		LastUpdated: start,
 	}
 
-	in, err := FromV230(cdr, tariff, Options{})
+	in, err := v230.FromCDR(cdr, tariff, pricing.Options{})
 	require.NoError(t, err)
 	require.Len(t, in.Tariff.Elements, 1)
 	assert.Contains(t, in.Tariff.Elements[0].Restrictions.Unsupported, "booking")
