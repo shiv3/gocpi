@@ -52,6 +52,62 @@ func TestCalculateEndToEnd(t *testing.T) {
 	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
 }
 
+func TestUnknownDimensionWarns(t *testing.T) {
+	d := decimal.RequireFromString
+	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
+	cdr := v221.CDR{
+		CountryCode:   "NL",
+		Currency:      "EUR",
+		StartDateTime: start,
+		EndDateTime:   start.Add(time.Hour),
+		ChargingPeriods: []v221.ChargingPeriod{{
+			StartDateTime: start,
+			Dimensions: []v221.CdrDimension{
+				{Type: v221.CdrDimensionTypeEnergy, Volume: d("10")},
+				{Type: v221.CdrDimensionType("CUSTOM_FOO"), Volume: d("1")},
+			},
+		}},
+		TotalEnergy: d("10"),
+		TotalTime:   d("1"),
+		TotalCost:   v221.Price{ExclVAT: d("3.00")},
+		LastUpdated: start,
+	}
+
+	rep, err := v221.Calculate(cdr, v221Tariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
+
+	require.NoError(t, err)
+	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
+	assert.True(t, hasWarningCode(rep.Warnings, pricing.WarnUnknownDimension), "warnings: %#v", rep.Warnings)
+}
+
+func TestKnownUnpricedDimensionNoWarn(t *testing.T) {
+	d := decimal.RequireFromString
+	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
+	cdr := v221.CDR{
+		CountryCode:   "NL",
+		Currency:      "EUR",
+		StartDateTime: start,
+		EndDateTime:   start.Add(time.Hour),
+		ChargingPeriods: []v221.ChargingPeriod{{
+			StartDateTime: start,
+			Dimensions: []v221.CdrDimension{
+				{Type: v221.CdrDimensionTypeEnergy, Volume: d("10")},
+				{Type: v221.CdrDimensionTypeStateOfCharge, Volume: d("50")},
+			},
+		}},
+		TotalEnergy: d("10"),
+		TotalTime:   d("1"),
+		TotalCost:   v221.Price{ExclVAT: d("3.00")},
+		LastUpdated: start,
+	}
+
+	rep, err := v221.Calculate(cdr, v221Tariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
+
+	require.NoError(t, err)
+	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
+	assert.False(t, hasWarningCode(rep.Warnings, pricing.WarnUnknownDimension), "warnings: %#v", rep.Warnings)
+}
+
 func TestFromCDREmbeddedTotalsMapped(t *testing.T) {
 	d := decimal.RequireFromString
 	utc := time.UTC
@@ -178,4 +234,13 @@ func TestReservationElementExcludedFromNormalSession(t *testing.T) {
 	rep, err := v221.Calculate(cdr, tariff, pricing.Options{CurrencyPrecision: ptrInt(2)})
 	require.NoError(t, err)
 	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
+}
+
+func hasWarningCode(warnings []pricing.Warning, code pricing.WarningCode) bool {
+	for _, warning := range warnings {
+		if warning.Code == code {
+			return true
+		}
+	}
+	return false
 }

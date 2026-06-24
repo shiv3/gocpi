@@ -20,6 +20,8 @@ const (
 	WarnTariffWindow
 	// WarnPeriodOutsideBounds means a charging period start falls outside the CDR session bounds.
 	WarnPeriodOutsideBounds
+	// WarnUnknownDimension means an adapter encountered an unrecognized CDR dimension type and skipped it.
+	WarnUnknownDimension
 )
 
 // ErrCode identifies a pricing error category.

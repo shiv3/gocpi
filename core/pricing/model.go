@@ -82,6 +82,8 @@ type Input struct {
 	Tariff Tariff
 	// Embedded contains the CDR's own reported totals used by Verify.
 	Embedded EmbeddedTotals
+	// Warnings carries diagnostics produced while adapting a CDR (e.g. unknown dimension types); Calculate merges them into the Report.
+	Warnings []Warning
 }
 
 // Period represents one CDR charging period.

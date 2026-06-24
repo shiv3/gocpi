@@ -14,6 +14,62 @@ import (
 
 func ptrInt(i int) *int { return &i }
 
+func TestUnknownDimensionWarns(t *testing.T) {
+	d := decimal.RequireFromString
+	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
+	cdr := v230.CDR{
+		CountryCode:   "NL",
+		Currency:      "EUR",
+		StartDateTime: start,
+		EndDateTime:   start.Add(time.Hour),
+		ChargingPeriods: []v230.ChargingPeriod{{
+			StartDateTime: start,
+			Dimensions: []v230.CdrDimension{
+				{Type: v230.CdrDimensionTypeEnergy, Volume: d("10")},
+				{Type: v230.CdrDimensionType("CUSTOM_FOO"), Volume: d("1")},
+			},
+		}},
+		TotalEnergy: d("10"),
+		TotalTime:   d("1"),
+		TotalCost:   v230.Price{BeforeTaxes: d("3.00")},
+		LastUpdated: start,
+	}
+
+	rep, err := v230.Calculate(cdr, v230EnergyTariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
+
+	require.NoError(t, err)
+	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
+	assert.True(t, hasWarningCode(rep.Warnings, pricing.WarnUnknownDimension), "warnings: %#v", rep.Warnings)
+}
+
+func TestKnownUnpricedDimensionNoWarn(t *testing.T) {
+	d := decimal.RequireFromString
+	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
+	cdr := v230.CDR{
+		CountryCode:   "NL",
+		Currency:      "EUR",
+		StartDateTime: start,
+		EndDateTime:   start.Add(time.Hour),
+		ChargingPeriods: []v230.ChargingPeriod{{
+			StartDateTime: start,
+			Dimensions: []v230.CdrDimension{
+				{Type: v230.CdrDimensionTypeEnergy, Volume: d("10")},
+				{Type: v230.CdrDimensionTypeEnergyImport, Volume: d("2")},
+			},
+		}},
+		TotalEnergy: d("10"),
+		TotalTime:   d("1"),
+		TotalCost:   v230.Price{BeforeTaxes: d("3.00")},
+		LastUpdated: start,
+	}
+
+	rep, err := v230.Calculate(cdr, v230EnergyTariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
+
+	require.NoError(t, err)
+	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
+	assert.False(t, hasWarningCode(rep.Warnings, pricing.WarnUnknownDimension), "warnings: %#v", rep.Warnings)
+}
+
 func TestCalculateTaxIncludedYes(t *testing.T) {
 	d := decimal.RequireFromString
 	utc := time.UTC
@@ -125,6 +181,19 @@ func TestFromCDRBookingUnsupported(t *testing.T) {
 	assert.Contains(t, in.Tariff.Elements[0].Restrictions.Unsupported, "booking")
 }
 
+func v230EnergyTariff(d func(string) decimal.Decimal, start time.Time) v230.Tariff {
+	return v230.Tariff{
+		Currency:    "EUR",
+		TaxIncluded: v230.TaxIncludedNo,
+		Elements: []v230.TariffElement{{
+			PriceComponents: []v230.PriceComponent{
+				{Type: v230.TariffDimensionTypeEnergy, Price: d("0.30"), StepSize: 1},
+			},
+		}},
+		LastUpdated: start,
+	}
+}
+
 func v230TaxTariff(taxIncluded v230.TaxIncluded, price decimal.Decimal, vat *decimal.Decimal, start time.Time) v230.Tariff {
 	return v230.Tariff{
 		Currency:    "EUR",
@@ -136,6 +205,15 @@ func v230TaxTariff(taxIncluded v230.TaxIncluded, price decimal.Decimal, vat *dec
 		}},
 		LastUpdated: start,
 	}
+}
+
+func hasWarningCode(warnings []pricing.Warning, code pricing.WarningCode) bool {
+	for _, warning := range warnings {
+		if warning.Code == code {
+			return true
+		}
+	}
+	return false
 }
 
 func v230TaxCDR(d func(string) decimal.Decimal, start time.Time) v230.CDR {

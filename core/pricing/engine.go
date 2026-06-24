@@ -90,6 +90,7 @@ func Calculate(in Input, opts Options) (Report, error) {
 	rep := Report{
 		Dimensions: make(map[DimensionType]Dimension),
 	}
+	rep.Warnings = append(rep.Warnings, in.Warnings...)
 	rep.Warnings = append(rep.Warnings, zoneWarns...)
 	if hasPeriodOutsideBounds(periods, in.Start, in.End) {
 		rep.Warnings = append(rep.Warnings, Warning{

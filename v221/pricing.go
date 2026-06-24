@@ -74,11 +74,12 @@ func FromCDR(cdr CDR, tariff Tariff, opts pricing.Options) (pricing.Input, error
 	}
 
 	for _, cp := range cdr.ChargingPeriods {
-		period, err := periodToInput(cp)
+		period, warnings, err := periodToInput(cp)
 		if err != nil {
 			return pricing.Input{}, err
 		}
 		in.Periods = append(in.Periods, period)
+		in.Warnings = append(in.Warnings, warnings...)
 	}
 
 	if err := pricing.ValidateInput(in); err != nil {
@@ -222,12 +223,13 @@ func weekdayToTime(day DayOfWeek) (time.Weekday, error) {
 	}
 }
 
-func periodToInput(period ChargingPeriod) (pricing.Period, error) {
+func periodToInput(period ChargingPeriod) (pricing.Period, []pricing.Warning, error) {
 	out := pricing.Period{Start: period.StartDateTime}
+	var warnings []pricing.Warning
 	seen := make(map[CdrDimensionType]struct{}, len(period.Dimensions))
 	for _, dim := range period.Dimensions {
 		if _, ok := seen[dim.Type]; ok {
-			return pricing.Period{}, invalidInput("duplicate dimension %s in charging period", dim.Type)
+			return pricing.Period{}, nil, invalidInput("duplicate dimension %s in charging period", dim.Type)
 		}
 		seen[dim.Type] = struct{}{}
 
@@ -253,9 +255,20 @@ func periodToInput(period ChargingPeriod) (pricing.Period, error) {
 		case CdrDimensionTypeCurrent:
 			out.MinCurrent = volume
 			out.MaxCurrent = decimalPtr(dim.Volume)
+		case CdrDimensionTypeEnergyImport,
+			CdrDimensionTypeEnergyExport,
+			CdrDimensionTypeReservationTime,
+			CdrDimensionTypeStateOfCharge:
+			continue
+		default:
+			warnings = append(warnings, pricing.Warning{
+				Code: pricing.WarnUnknownDimension,
+				Kind: pricing.KindWarning,
+				Msg:  fmt.Sprintf("unknown CDR dimension type %q", dim.Type),
+			})
 		}
 	}
-	return out, nil
+	return out, warnings, nil
 }
 
 func moneyFromPrice(price *Price) *pricing.Money {
