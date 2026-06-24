@@ -25,7 +25,12 @@ func TestCalculate(t *testing.T) {
 		}}}}
 	}
 	mkIn := func(tf Tariff, periods []Period, end time.Time) Input {
-		return Input{Version: V221, Currency: "EUR", Start: start, End: end, Tariff: tf, Periods: periods}
+		for i := range periods {
+			if periods[i].TariffIndex == nil {
+				periods[i].TariffIndex = intPtr(0)
+			}
+		}
+		return Input{Version: V221, Currency: "EUR", Start: start, End: end, Tariffs: []Tariff{tf}, Periods: periods}
 	}
 
 	t.Run("energy_time_flat_total", func(t *testing.T) {
@@ -111,7 +116,7 @@ func TestCalculateAppliesTimeStepWhenParkingComponentMatchesButNoParkingConsumed
 		Currency: "EUR",
 		Start:    start,
 		End:      start.Add(30 * time.Minute),
-		Tariff: Tariff{
+		Tariffs: []Tariff{{
 			Currency: "EUR",
 			Elements: []Element{{
 				Components: []PriceComponent{
@@ -119,15 +124,56 @@ func TestCalculateAppliesTimeStepWhenParkingComponentMatchesButNoParkingConsumed
 					{Type: ParkingTime, Price: d("1.00"), StepSize: 3600},
 				},
 			}},
-		},
+		}},
 		Periods: []Period{{
-			Start: start,
-			Time:  decimalPtr(d("0.5")),
+			Start:       start,
+			Time:        decimalPtr(d("0.5")),
+			TariffIndex: intPtr(0),
 		}},
 	}
 
-	rep, err := Calculate(in, Options{CurrencyPrecision: ptrInt(2)})
+	rep, err := Calculate(in, Options{TimeZone: time.UTC, CurrencyPrecision: ptrInt(2)})
 
 	require.NoError(t, err)
 	assert.True(t, rep.TotalTimeCost.BeforeTaxes.Equal(d("10.00")), "time step should apply without consumed parking, got %s", rep.TotalTimeCost.BeforeTaxes)
+}
+
+func TestCalculateNoTariffPeriodSkipsPricingButAdvancesSnapshot(t *testing.T) {
+	d := decimal.RequireFromString
+	dp := func(s string) *decimal.Decimal { v := d(s); return &v }
+	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
+	minKwh := d("0.7")
+	in := Input{
+		Version:  V221,
+		Currency: "EUR",
+		Start:    start,
+		End:      start.Add(time.Hour),
+		Tariffs: []Tariff{{
+			Currency: "EUR",
+			Elements: []Element{
+				{
+					Restrictions: &Restrictions{MinKwh: &minKwh},
+					Components:   []PriceComponent{{Type: Energy, Price: d("1.00"), StepSize: 1}},
+				},
+				{
+					Components: []PriceComponent{{Type: Energy, Price: d("0.10"), StepSize: 1}},
+				},
+			},
+		}},
+		Periods: []Period{
+			{Start: start, Energy: dp("0.4"), TariffIndex: intPtr(0)},
+			{Start: start.Add(20 * time.Minute), Energy: dp("0.3")},
+			{Start: start.Add(40 * time.Minute), Energy: dp("0.4"), TariffIndex: intPtr(0)},
+		},
+	}
+
+	rep, err := Calculate(in, Options{TimeZone: time.UTC, CurrencyPrecision: ptrInt(2)})
+
+	require.NoError(t, err)
+	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("0.44")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
+	assert.True(t, rep.Dimensions[Energy].Volume.Equal(d("0.8")), "got %s", rep.Dimensions[Energy].Volume)
+	require.Len(t, rep.Warnings, 1)
+	assert.Equal(t, WarnPeriodNoTariff, rep.Warnings[0].Code)
+	require.NotNil(t, rep.Warnings[0].PeriodIndex)
+	assert.Equal(t, 1, *rep.Warnings[0].PeriodIndex)
 }

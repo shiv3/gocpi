@@ -24,6 +24,12 @@ type Warning struct {
 	Kind WarningKind
 	// Msg describes the warning.
 	Msg string
+	// PeriodIndex is the zero-based input period index this warning applies to; nil means not period-scoped.
+	PeriodIndex *int
+	// TariffIndex is the zero-based input tariff index this warning applies to; nil means not tariff-scoped.
+	TariffIndex *int
+	// Dimension is the tariff dimension this warning applies to; the zero value means not dimension-scoped.
+	Dimension DimensionType
 }
 
 // Dimension is a dimension's total priced volume and cost.

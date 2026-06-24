@@ -22,6 +22,12 @@ const (
 	WarnPeriodOutsideBounds
 	// WarnUnknownDimension means an adapter encountered an unrecognized CDR dimension type and skipped it.
 	WarnUnknownDimension
+	// WarnPeriodNoTariff means a period had no applicable tariff and was excluded from pricing.
+	WarnPeriodNoTariff
+	// WarnMinMaxUndefinedMultiTariff means min_price or max_price was not applied because multiple tariffs priced the session.
+	WarnMinMaxUndefinedMultiTariff
+	// WarnMixedStepSize means multiple active price components for the same dimension used different step_size values.
+	WarnMixedStepSize
 )
 
 // ErrCode identifies a pricing error category.

@@ -16,6 +16,7 @@ func ptrInt(i int) *int { return &i }
 
 func v221Tariff(d func(string) decimal.Decimal, start time.Time) v221.Tariff {
 	return v221.Tariff{
+		ID:       "tariff-1",
 		Currency: "EUR",
 		Elements: []v221.TariffElement{{
 			PriceComponents: []v221.PriceComponent{
@@ -131,6 +132,11 @@ func TestFromCDREmbeddedTotalsMapped(t *testing.T) {
 
 	in, err := v221.FromCDR(cdr, v221Tariff(d, start), pricing.Options{})
 	require.NoError(t, err)
+	require.Len(t, in.Tariffs, 1)
+	assert.Equal(t, "tariff-1", in.Tariffs[0].ID)
+	require.Len(t, in.Periods, 1)
+	require.NotNil(t, in.Periods[0].TariffIndex)
+	assert.Equal(t, 0, *in.Periods[0].TariffIndex)
 	require.NotNil(t, in.Embedded.TotalCost)
 	assert.True(t, in.Embedded.TotalCost.BeforeTaxes.Equal(d("3.00")))
 	require.NotNil(t, in.Embedded.TotalEnergy)

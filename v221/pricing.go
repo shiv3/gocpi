@@ -37,13 +37,6 @@ func Verify(cdr CDR, tariff Tariff, opts pricing.Options) (pricing.Verdict, erro
 
 // FromCDR converts a v2.2.1 CDR + Tariff into a version-neutral pricing.Input.
 func FromCDR(cdr CDR, tariff Tariff, opts pricing.Options) (pricing.Input, error) {
-	if opts.UseEmbeddedTariff {
-		if len(cdr.Tariffs) != 1 {
-			return pricing.Input{}, invalidInput("expected exactly one embedded tariff, got %d", len(cdr.Tariffs))
-		}
-		tariff = cdr.Tariffs[0]
-	}
-
 	if err := rejectMultiTariff(cdr.ChargingPeriods); err != nil {
 		return pricing.Input{}, err
 	}
@@ -59,7 +52,7 @@ func FromCDR(cdr CDR, tariff Tariff, opts pricing.Options) (pricing.Input, error
 		Start:       cdr.StartDateTime,
 		End:         cdr.EndDateTime,
 		CountryCode: cdr.CountryCode,
-		Tariff:      neutralTariff,
+		Tariffs:     []pricing.Tariff{neutralTariff},
 		Periods:     make([]pricing.Period, 0, len(cdr.ChargingPeriods)),
 		Embedded: pricing.EmbeddedTotals{
 			TotalCost:            moneyFromPrice(&cdr.TotalCost),
@@ -78,6 +71,7 @@ func FromCDR(cdr CDR, tariff Tariff, opts pricing.Options) (pricing.Input, error
 		if err != nil {
 			return pricing.Input{}, err
 		}
+		period.TariffIndex = pricing.IntPtr(0)
 		in.Periods = append(in.Periods, period)
 		in.Warnings = append(in.Warnings, warnings...)
 	}
@@ -104,6 +98,7 @@ func rejectMultiTariff(periods []ChargingPeriod) error {
 
 func tariffToInput(tariff Tariff) (pricing.Tariff, error) {
 	out := pricing.Tariff{
+		ID:            tariff.ID,
 		Currency:      tariff.Currency,
 		StartDateTime: tariff.StartDateTime,
 		EndDateTime:   tariff.EndDateTime,

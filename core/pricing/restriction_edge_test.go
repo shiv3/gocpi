@@ -63,14 +63,14 @@ func TestCalculateWarnsWhenSessionStartsBeforeTariffWindow(t *testing.T) {
 		Currency: "EUR",
 		Start:    start,
 		End:      start.Add(time.Hour),
-		Tariff: Tariff{
+		Tariffs: []Tariff{{
 			Currency:      "EUR",
 			StartDateTime: &tariffStart,
 			Elements: []Element{{
 				Components: []PriceComponent{{Type: Energy, Price: d("0.30"), StepSize: 1}},
 			}},
-		},
-		Periods: []Period{{Start: start, Energy: decimalPtr(d("1"))}},
+		}},
+		Periods: []Period{{Start: start, Energy: decimalPtr(d("1")), TariffIndex: intPtr(0)}},
 	}
 
 	rep, err := Calculate(in, Options{TimeZone: time.UTC})

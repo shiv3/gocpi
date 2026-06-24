@@ -23,8 +23,8 @@ func TestValidateInputRejectsInvalidVolumeStepSize(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			in := validValidationInput(start, d)
-			in.Tariff.Elements[0].Components[0].Type = tc.dim
-			in.Tariff.Elements[0].Components[0].StepSize = tc.step
+			in.Tariffs[0].Elements[0].Components[0].Type = tc.dim
+			in.Tariffs[0].Elements[0].Components[0].StepSize = tc.step
 
 			err := ValidateInput(in)
 
@@ -39,7 +39,7 @@ func TestValidateInputAcceptsEnergyZeroStepSize(t *testing.T) {
 	d := decimal.RequireFromString
 	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
 	in := validValidationInput(start, d)
-	in.Tariff.Elements[0].Components[0] = PriceComponent{Type: Energy, Price: d("0.30"), StepSize: 0}
+	in.Tariffs[0].Elements[0].Components[0] = PriceComponent{Type: Energy, Price: d("0.30"), StepSize: 0}
 
 	require.NoError(t, ValidateInput(in))
 }
@@ -48,7 +48,7 @@ func TestValidateInputAcceptsFlatZeroStepSize(t *testing.T) {
 	d := decimal.RequireFromString
 	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
 	in := validValidationInput(start, d)
-	in.Tariff.Elements[0].Components[0] = PriceComponent{Type: Flat, Price: d("1.00"), StepSize: 0}
+	in.Tariffs[0].Elements[0].Components[0] = PriceComponent{Type: Flat, Price: d("1.00"), StepSize: 0}
 
 	require.NoError(t, ValidateInput(in))
 }
@@ -66,18 +66,31 @@ func TestValidateInputRejectsNegativePeriodEnergy(t *testing.T) {
 	assert.Equal(t, InvalidInput, pe.Code)
 }
 
+func TestValidateInputRejectsTariffIndexOutOfRange(t *testing.T) {
+	d := decimal.RequireFromString
+	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
+	in := validValidationInput(start, d)
+	in.Periods[0].TariffIndex = intPtr(1)
+
+	err := ValidateInput(in)
+
+	var pe *PricingError
+	require.ErrorAs(t, err, &pe)
+	assert.Equal(t, InvalidInput, pe.Code)
+}
+
 func TestCalculateSortsUnsortedPeriods(t *testing.T) {
 	d := decimal.RequireFromString
 	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
 	sorted := validValidationInput(start, d)
 	sorted.Periods = []Period{
-		{Start: start, Energy: decimalPtr(d("0.5"))},
-		{Start: start.Add(30 * time.Minute), Energy: decimalPtr(d("0.5"))},
+		{Start: start, Energy: decimalPtr(d("0.5")), TariffIndex: intPtr(0)},
+		{Start: start.Add(30 * time.Minute), Energy: decimalPtr(d("0.5")), TariffIndex: intPtr(0)},
 	}
 	unsorted := sorted
 	unsorted.Periods = []Period{
-		{Start: start.Add(30 * time.Minute), Energy: decimalPtr(d("0.5"))},
-		{Start: start, Energy: decimalPtr(d("0.5"))},
+		{Start: start.Add(30 * time.Minute), Energy: decimalPtr(d("0.5")), TariffIndex: intPtr(0)},
+		{Start: start, Energy: decimalPtr(d("0.5")), TariffIndex: intPtr(0)},
 	}
 	firstStart := unsorted.Periods[0].Start
 
@@ -124,12 +137,12 @@ func validValidationInput(start time.Time, d func(string) decimal.Decimal) Input
 		Currency: "EUR",
 		Start:    start,
 		End:      start.Add(time.Hour),
-		Tariff: Tariff{
+		Tariffs: []Tariff{{
 			Currency: "EUR",
 			Elements: []Element{{
 				Components: []PriceComponent{{Type: Energy, Price: d("0.30"), StepSize: 1}},
 			}},
-		},
-		Periods: []Period{{Start: start, Energy: decimalPtr(d("1"))}},
+		}},
+		Periods: []Period{{Start: start, Energy: decimalPtr(d("1")), TariffIndex: intPtr(0)}},
 	}
 }

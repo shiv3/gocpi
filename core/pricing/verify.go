@@ -7,7 +7,7 @@ func Verify(in Input, rep Report, opts Options) Verdict {
 	v := Verdict{
 		Status:     StatusOK,
 		Mismatches: []Mismatch{},
-		Warnings:   []Warning{},
+		Warnings:   append([]Warning(nil), rep.Warnings...),
 	}
 	tolerance := opts.Tolerance
 	notVerifiable := false

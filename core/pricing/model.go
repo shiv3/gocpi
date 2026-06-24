@@ -20,8 +20,10 @@ const (
 type DimensionType int
 
 const (
+	// DimensionUnspecified means no tariff dimension is selected.
+	DimensionUnspecified DimensionType = iota
 	// Energy is the ENERGY tariff dimension, measured in kWh.
-	Energy DimensionType = iota
+	Energy
 	// Time is the TIME tariff dimension, measured as charging time.
 	Time
 	// ParkingTime is the PARKING_TIME tariff dimension, measured as idle time.
@@ -64,7 +66,7 @@ func (d DimensionType) String() string {
 	}
 }
 
-// Input is a version-neutral pricing input adapted from a CDR and tariff.
+// Input is a version-neutral pricing input adapted from a CDR and tariffs.
 type Input struct {
 	// Version is the OCPI version the input was adapted from.
 	Version Version
@@ -78,8 +80,8 @@ type Input struct {
 	CountryCode string
 	// Periods are the CDR charging_periods used as supplied by the CDR.
 	Periods []Period
-	// Tariff is the version-neutral tariff used to price the CDR.
-	Tariff Tariff
+	// Tariffs are the version-neutral tariffs used to price the CDR.
+	Tariffs []Tariff
 	// Embedded contains the CDR's own reported totals used by Verify.
 	Embedded EmbeddedTotals
 	// Warnings carries diagnostics produced while adapting a CDR (e.g. unknown dimension types); Calculate merges them into the Report.
@@ -108,10 +110,14 @@ type Period struct {
 	MinCurrent *decimal.Decimal
 	// MaxCurrent is the period's maximum current reading.
 	MaxCurrent *decimal.Decimal
+	// TariffIndex selects the tariff in Input.Tariffs for this period; nil means no applicable tariff.
+	TariffIndex *int
 }
 
 // Tariff is the version-neutral tariff used by the pricing engine.
 type Tariff struct {
+	// ID is the tariff identifier from the source OCPI tariff, when known.
+	ID string
 	// Currency is the tariff currency.
 	Currency string
 	// StartDateTime is the optional tariff validity window start.
@@ -216,9 +222,12 @@ type Options struct {
 	Tolerance decimal.Decimal
 	// CurrencyPrecision rounds totals to the given decimal places when set; nil keeps OCPI scale-4 totals.
 	CurrencyPrecision *int
-	// UseEmbeddedTariff prices against the CDR's embedded tariff when present.
-	UseEmbeddedTariff bool
 }
+
+func intPtr(i int) *int { return &i }
+
+// IntPtr returns a pointer to i.
+func IntPtr(i int) *int { return &i }
 
 // EmbeddedTotals contains the CDR's own reported totals used by Verify.
 type EmbeddedTotals struct {

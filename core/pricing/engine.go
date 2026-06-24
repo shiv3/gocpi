@@ -13,30 +13,51 @@ const (
 )
 
 type componentSet struct {
-	energy, time, parking, flat *PriceComponent
+	energy, time, parking, flat *pricedComponent
+}
+
+type pricedComponent struct {
+	comp         *PriceComponent
+	tariffIndex  int
+	elementIndex int
 }
 
 type pricedPeriod struct {
-	volume decimal.Decimal
-	comp   *PriceComponent
+	volume       decimal.Decimal
+	comp         *PriceComponent
+	tariffIndex  int
+	elementIndex int
+}
+
+type pricedFlat struct {
+	comp         *PriceComponent
+	tariffIndex  int
+	elementIndex int
+}
+
+type componentKey struct {
+	tariffIndex  int
+	elementIndex int
 }
 
 func (c componentSet) complete() bool {
 	return c.energy != nil && c.time != nil && c.parking != nil && c.flat != nil
 }
 
-func activeComponents(tariff Tariff, start snapshot, p Period) (componentSet, []Warning) {
+func activeComponents(tariffs []Tariff, tariffIndex int, start snapshot, p Period) (componentSet, []Warning) {
 	var cs componentSet
 	var warns []Warning
+	tariff := tariffs[tariffIndex]
 
 	for i := range tariff.Elements {
 		el := &tariff.Elements[i]
 		ok, unsupported := matches(el.Restrictions, start, p)
 		if unsupported {
 			warns = append(warns, Warning{
-				Code: WarnUnsupportedRestriction,
-				Kind: KindWarning,
-				Msg:  "element skipped: unsupported restriction",
+				Code:        WarnUnsupportedRestriction,
+				Kind:        KindWarning,
+				Msg:         "element skipped: unsupported restriction",
+				TariffIndex: intPtr(tariffIndex),
 			})
 		}
 		if !ok {
@@ -45,22 +66,23 @@ func activeComponents(tariff Tariff, start snapshot, p Period) (componentSet, []
 
 		for j := range el.Components {
 			comp := &el.Components[j]
+			resolved := pricedComponent{comp: comp, tariffIndex: tariffIndex, elementIndex: i}
 			switch comp.Type {
 			case Energy:
 				if cs.energy == nil {
-					cs.energy = comp
+					cs.energy = &resolved
 				}
 			case Time:
 				if cs.time == nil {
-					cs.time = comp
+					cs.time = &resolved
 				}
 			case ParkingTime:
 				if cs.parking == nil {
-					cs.parking = comp
+					cs.parking = &resolved
 				}
 			case Flat:
 				if cs.flat == nil {
-					cs.flat = comp
+					cs.flat = &resolved
 				}
 			}
 		}
@@ -81,7 +103,7 @@ func Calculate(in Input, opts Options) (Report, error) {
 		return Report{}, err
 	}
 
-	hasLocalRestrictions := tariffHasLocalRestrictions(in.Tariff)
+	hasLocalRestrictions := tariffsHaveLocalRestrictions(in.Tariffs)
 	loc, zoneWarns, err := resolveZone(in, opts, hasLocalRestrictions)
 	if err != nil {
 		return Report{}, err
@@ -104,7 +126,9 @@ func Calculate(in Input, opts Options) (Report, error) {
 	var energyPeriods []pricedPeriod
 	var timePeriods []pricedPeriod
 	var parkingPeriods []pricedPeriod
-	var flatComp *PriceComponent
+	var flatComps []pricedFlat
+	seenFlat := make(map[componentKey]struct{})
+	usedTariffs := make(map[int]struct{})
 	hasIdleStep := false
 
 	cur := newSnapshot(in.Start, loc)
@@ -115,13 +139,32 @@ func Calculate(in Input, opts Options) (Report, error) {
 		}
 
 		startSnap := cur
-		cs, warns := activeComponents(in.Tariff, startSnap, period)
+		idx := period.TariffIndex
+		if idx == nil {
+			rep.Warnings = append(rep.Warnings, Warning{
+				Code:        WarnPeriodNoTariff,
+				Kind:        KindWarning,
+				PeriodIndex: intPtr(i),
+			})
+			cur = cur.next(period, end)
+			continue
+		}
+		usedTariffs[*idx] = struct{}{}
+		cs, warns := activeComponents(in.Tariffs, *idx, startSnap, period)
 		rep.Warnings = append(rep.Warnings, warns...)
 
-		if cs.flat != nil && flatComp == nil {
-			flatComp = cs.flat
+		if cs.flat != nil {
+			key := componentKey{tariffIndex: cs.flat.tariffIndex, elementIndex: cs.flat.elementIndex}
+			if _, ok := seenFlat[key]; !ok {
+				seenFlat[key] = struct{}{}
+				flatComps = append(flatComps, pricedFlat{
+					comp:         cs.flat.comp,
+					tariffIndex:  cs.flat.tariffIndex,
+					elementIndex: cs.flat.elementIndex,
+				})
+			}
 		}
-		if period.ParkingTime != nil && cs.parking != nil && cs.parking.StepSize > 0 {
+		if period.ParkingTime != nil && cs.parking != nil && cs.parking.comp.StepSize > 0 {
 			hasIdleStep = true
 		}
 
@@ -130,7 +173,12 @@ func Calculate(in Input, opts Options) (Report, error) {
 		if period.Energy != nil {
 			periodHasVolume = true
 			if cs.energy != nil {
-				energyPeriods = append(energyPeriods, pricedPeriod{volume: *period.Energy, comp: cs.energy})
+				energyPeriods = append(energyPeriods, pricedPeriod{
+					volume:       *period.Energy,
+					comp:         cs.energy.comp,
+					tariffIndex:  cs.energy.tariffIndex,
+					elementIndex: cs.energy.elementIndex,
+				})
 			} else if matchedAny {
 				rep.Warnings = append(rep.Warnings, noElementWarning("no ENERGY component for period volume"))
 			}
@@ -138,7 +186,12 @@ func Calculate(in Input, opts Options) (Report, error) {
 		if period.Time != nil {
 			periodHasVolume = true
 			if cs.time != nil {
-				timePeriods = append(timePeriods, pricedPeriod{volume: *period.Time, comp: cs.time})
+				timePeriods = append(timePeriods, pricedPeriod{
+					volume:       *period.Time,
+					comp:         cs.time.comp,
+					tariffIndex:  cs.time.tariffIndex,
+					elementIndex: cs.time.elementIndex,
+				})
 			} else if matchedAny {
 				rep.Warnings = append(rep.Warnings, noElementWarning("no TIME component for period volume"))
 			}
@@ -146,7 +199,12 @@ func Calculate(in Input, opts Options) (Report, error) {
 		if period.ParkingTime != nil {
 			periodHasVolume = true
 			if cs.parking != nil {
-				parkingPeriods = append(parkingPeriods, pricedPeriod{volume: *period.ParkingTime, comp: cs.parking})
+				parkingPeriods = append(parkingPeriods, pricedPeriod{
+					volume:       *period.ParkingTime,
+					comp:         cs.parking.comp,
+					tariffIndex:  cs.parking.tariffIndex,
+					elementIndex: cs.parking.elementIndex,
+				})
 			} else if matchedAny {
 				rep.Warnings = append(rep.Warnings, noElementWarning("no PARKING_TIME component for period volume"))
 			}
@@ -171,7 +229,7 @@ func Calculate(in Input, opts Options) (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
-	rep.TotalFixedCost, rep.Dimensions[Flat] = priceFlatDimension(flatComp)
+	rep.TotalFixedCost, rep.Dimensions[Flat] = priceFlatDimension(flatComps)
 
 	preClampBefore := rep.TotalEnergyCost.BeforeTaxes.
 		Add(rep.TotalTimeCost.BeforeTaxes).
@@ -194,12 +252,21 @@ func Calculate(in Input, opts Options) (Report, error) {
 	// subtotals keep their actual computed costs and are not redistributed, so
 	// after a clamp fires they may not sum to TotalCost. This matches the
 	// ocpi-tariffs reference, where min_price/max_price clamp the total.
-	switch {
-	case in.Tariff.MinPrice != nil && preClampBefore.LessThan(in.Tariff.MinPrice.BeforeTaxes):
-		rep.TotalCost = *in.Tariff.MinPrice
-	case in.Tariff.MaxPrice != nil && preClampBefore.GreaterThan(in.Tariff.MaxPrice.BeforeTaxes):
-		rep.TotalCost = *in.Tariff.MaxPrice
-	default:
+	usedTariffIndex, hasSingleUsedTariff := singleUsedTariffIndex(usedTariffs)
+	if hasSingleUsedTariff {
+		tariff := in.Tariffs[usedTariffIndex]
+		switch {
+		case tariff.MinPrice != nil && preClampBefore.LessThan(tariff.MinPrice.BeforeTaxes):
+			rep.TotalCost = *tariff.MinPrice
+		case tariff.MaxPrice != nil && preClampBefore.GreaterThan(tariff.MaxPrice.BeforeTaxes):
+			rep.TotalCost = *tariff.MaxPrice
+		default:
+			rep.TotalCost.BeforeTaxes = preClampBefore
+			if allDerivable {
+				rep.TotalCost.AfterTaxes = &candidateAfter
+			}
+		}
+	} else {
 		rep.TotalCost.BeforeTaxes = preClampBefore
 		if allDerivable {
 			rep.TotalCost.AfterTaxes = &candidateAfter
@@ -243,14 +310,16 @@ func componentSetHasAny(cs componentSet) bool {
 	return cs.energy != nil || cs.time != nil || cs.parking != nil || cs.flat != nil
 }
 
-func tariffHasLocalRestrictions(tariff Tariff) bool {
-	for i := range tariff.Elements {
-		r := tariff.Elements[i].Restrictions
-		if r == nil {
-			continue
-		}
-		if r.StartTime != nil || r.EndTime != nil || r.StartDate != nil || r.EndDate != nil || len(r.DayOfWeek) > 0 {
-			return true
+func tariffsHaveLocalRestrictions(tariffs []Tariff) bool {
+	for i := range tariffs {
+		for j := range tariffs[i].Elements {
+			r := tariffs[i].Elements[j].Restrictions
+			if r == nil {
+				continue
+			}
+			if r.StartTime != nil || r.EndTime != nil || r.StartDate != nil || r.EndDate != nil || len(r.DayOfWeek) > 0 {
+				return true
+			}
 		}
 	}
 	return false
@@ -258,21 +327,36 @@ func tariffHasLocalRestrictions(tariff Tariff) bool {
 
 func tariffWindowWarnings(in Input) []Warning {
 	var warns []Warning
-	if in.Tariff.StartDateTime != nil && in.Start.Before(*in.Tariff.StartDateTime) {
-		warns = append(warns, Warning{
-			Code: WarnTariffWindow,
-			Kind: KindWarning,
-			Msg:  "session starts before tariff validity window",
-		})
-	}
-	if in.Tariff.EndDateTime != nil && in.End.After(*in.Tariff.EndDateTime) {
-		warns = append(warns, Warning{
-			Code: WarnTariffWindow,
-			Kind: KindWarning,
-			Msg:  "session ends after tariff validity window",
-		})
+	for i := range in.Tariffs {
+		tariff := in.Tariffs[i]
+		if tariff.StartDateTime != nil && in.Start.Before(*tariff.StartDateTime) {
+			warns = append(warns, Warning{
+				Code:        WarnTariffWindow,
+				Kind:        KindWarning,
+				Msg:         "session starts before tariff validity window",
+				TariffIndex: intPtr(i),
+			})
+		}
+		if tariff.EndDateTime != nil && in.End.After(*tariff.EndDateTime) {
+			warns = append(warns, Warning{
+				Code:        WarnTariffWindow,
+				Kind:        KindWarning,
+				Msg:         "session ends after tariff validity window",
+				TariffIndex: intPtr(i),
+			})
+		}
 	}
 	return warns
+}
+
+func singleUsedTariffIndex(used map[int]struct{}) (int, bool) {
+	if len(used) != 1 {
+		return 0, false
+	}
+	for idx := range used {
+		return idx, true
+	}
+	return 0, false
 }
 
 func noElementWarning(msg string) Warning {
@@ -397,18 +481,49 @@ func sameDecimalPtr(a, b *decimal.Decimal) bool {
 	}
 }
 
-func priceFlatDimension(comp *PriceComponent) (Money, Dimension) {
-	if comp == nil {
+func priceFlatDimension(comps []pricedFlat) (Money, Dimension) {
+	if len(comps) == 0 {
 		money := Money{BeforeTaxes: decimal.Zero}
 		return money, Dimension{Cost: money}
 	}
 
-	money := Money{
-		BeforeTaxes: roundOCPI(comp.Price),
-		Taxes:       comp.Taxes,
+	totalBeforeRaw := decimal.Zero
+	totalTax := decimal.Zero
+	allTaxesKnown := true
+	anyTaxesKnown := false
+	var firstComp *PriceComponent
+	taxesUniform := true
+
+	for _, flat := range comps {
+		comp := flat.comp
+		if firstComp == nil {
+			firstComp = comp
+		} else if !sameTaxes(firstComp.Taxes, comp.Taxes) {
+			taxesUniform = false
+		}
+
+		totalBeforeRaw = totalBeforeRaw.Add(comp.Price)
+		subtotalBefore := roundOCPI(comp.Price)
+		after, ok := (Money{BeforeTaxes: subtotalBefore, Taxes: comp.Taxes}).afterTax()
+		if ok {
+			anyTaxesKnown = true
+			totalTax = totalTax.Add(after.Sub(subtotalBefore))
+		} else {
+			allTaxesKnown = false
+		}
 	}
 
-	return money, Dimension{Volume: decimal.NewFromInt(1), Cost: money}
+	money := Money{
+		BeforeTaxes: roundOCPI(totalBeforeRaw),
+	}
+	if firstComp != nil && taxesUniform {
+		money.Taxes = firstComp.Taxes
+	}
+	if !taxesUniform && anyTaxesKnown && allTaxesKnown {
+		money.Taxes = []TaxAmount{{Amount: &totalTax}}
+	}
+
+	return money, Dimension{Volume: decimal.NewFromInt(int64(len(comps))), Cost: money}
 }
 
 func roundMoney(m Money, precision int) Money {
