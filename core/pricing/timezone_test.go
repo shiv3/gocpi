@@ -27,10 +27,29 @@ func TestResolveZone(t *testing.T) {
 		require.Error(t, err)
 	})
 	t.Run("country inference alpha-2", func(t *testing.T) {
-		loc, warns, err := resolveZone(Input{CountryCode: "NL"}, Options{}, true)
+		for _, tc := range []struct {
+			country string
+			zone    string
+		}{
+			{country: "NL", zone: "Europe/Amsterdam"},
+			{country: "JP", zone: "Asia/Tokyo"},
+			{country: "CZ", zone: "Europe/Prague"},
+		} {
+			t.Run(tc.country, func(t *testing.T) {
+				loc, warns, err := resolveZone(Input{CountryCode: tc.country}, Options{}, true)
+				require.NoError(t, err)
+				assert.Equal(t, tc.zone, loc.String())
+				require.NotEmpty(t, warns)
+				assert.Equal(t, WarnTZInferred, warns[0].Code)
+			})
+		}
+	})
+	t.Run("multi timezone country falls back to utc", func(t *testing.T) {
+		loc, warns, err := resolveZone(Input{CountryCode: "US"}, Options{}, true)
 		require.NoError(t, err)
-		assert.Equal(t, "Europe/Amsterdam", loc.String())
-		assert.NotEmpty(t, warns)
+		assert.Equal(t, "UTC", loc.String())
+		require.NotEmpty(t, warns)
+		assert.Equal(t, WarnTZUTC, warns[0].Code)
 	})
 	t.Run("utc fallback", func(t *testing.T) {
 		loc, warns, err := resolveZone(Input{}, Options{}, true)

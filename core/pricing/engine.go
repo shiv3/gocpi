@@ -1,6 +1,8 @@
 package pricing
 
 import (
+	"sort"
+
 	"github.com/shopspring/decimal"
 )
 
@@ -70,7 +72,10 @@ func activeComponents(tariff Tariff, start snapshot, p Period) (componentSet, []
 }
 
 func Calculate(in Input, opts Options) (Report, error) {
-	if err := ValidateInput(in); err != nil {
+	periods := sortedPeriods(in.Periods)
+	validated := in
+	validated.Periods = periods
+	if err := ValidateInput(validated); err != nil {
 		return Report{}, err
 	}
 
@@ -93,10 +98,10 @@ func Calculate(in Input, opts Options) (Report, error) {
 	hasIdleStep := false
 
 	cur := newSnapshot(in.Start, loc)
-	for i, period := range in.Periods {
+	for i, period := range periods {
 		end := in.End
-		if i+1 < len(in.Periods) {
-			end = in.Periods[i+1].Start
+		if i+1 < len(periods) {
+			end = periods[i+1].Start
 		}
 
 		startSnap := cur
@@ -175,15 +180,20 @@ func Calculate(in Input, opts Options) (Report, error) {
 		}
 		candidateAfter = candidateAfter.Add(after)
 	}
-	rep.TotalCost.BeforeTaxes = preClampBefore
-	// Min/max price clamps intentionally adjust only the total before taxes.
-	// Dimension subtotals keep their actual computed costs and are not
-	// redistributed, so after a clamp fires they may not sum to TotalCost. This
-	// matches the ocpi-tariffs reference, where min_price/max_price clamp the
-	// total.
-	rep.TotalCost.BeforeTaxes = clampTotalBeforeTaxes(rep.TotalCost.BeforeTaxes, in.Tariff)
-	if allDerivable && rep.TotalCost.BeforeTaxes.Equal(preClampBefore) {
-		rep.TotalCost.AfterTaxes = &candidateAfter
+	// Min/max price clamps intentionally adjust only the total Money. Dimension
+	// subtotals keep their actual computed costs and are not redistributed, so
+	// after a clamp fires they may not sum to TotalCost. This matches the
+	// ocpi-tariffs reference, where min_price/max_price clamp the total.
+	switch {
+	case in.Tariff.MinPrice != nil && preClampBefore.LessThan(in.Tariff.MinPrice.BeforeTaxes):
+		rep.TotalCost = *in.Tariff.MinPrice
+	case in.Tariff.MaxPrice != nil && preClampBefore.GreaterThan(in.Tariff.MaxPrice.BeforeTaxes):
+		rep.TotalCost = *in.Tariff.MaxPrice
+	default:
+		rep.TotalCost.BeforeTaxes = preClampBefore
+		if allDerivable {
+			rep.TotalCost.AfterTaxes = &candidateAfter
+		}
 	}
 
 	if opts.CurrencyPrecision != nil {
@@ -200,6 +210,14 @@ func Calculate(in Input, opts Options) (Report, error) {
 	}
 
 	return rep, nil
+}
+
+func sortedPeriods(periods []Period) []Period {
+	sorted := append([]Period(nil), periods...)
+	sort.SliceStable(sorted, func(i, j int) bool {
+		return sorted[i].Start.Before(sorted[j].Start)
+	})
+	return sorted
 }
 
 func componentSetHasAny(cs componentSet) bool {
@@ -372,16 +390,6 @@ func priceFlatDimension(comp *PriceComponent) (Money, Dimension) {
 	}
 
 	return money, Dimension{Volume: decimal.NewFromInt(1), Cost: money}
-}
-
-func clampTotalBeforeTaxes(total decimal.Decimal, tariff Tariff) decimal.Decimal {
-	if tariff.MinPrice != nil && total.LessThan(tariff.MinPrice.BeforeTaxes) {
-		return tariff.MinPrice.BeforeTaxes
-	}
-	if tariff.MaxPrice != nil && total.GreaterThan(tariff.MaxPrice.BeforeTaxes) {
-		return tariff.MaxPrice.BeforeTaxes
-	}
-	return total
 }
 
 func roundMoney(m Money, precision int) Money {

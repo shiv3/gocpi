@@ -62,11 +62,13 @@ func TestCalculate(t *testing.T) {
 
 	t.Run("min_max_price_clamp", func(t *testing.T) {
 		tf := baseTariff()
-		tf.MinPrice = &Money{BeforeTaxes: d("10.00")}
+		tf.MinPrice = &Money{BeforeTaxes: d("10.00"), AfterTaxes: dp("11.00")}
 		in := mkIn(tf, []Period{{Start: start, Energy: dp("1"), Time: dp("0.1"), MaxPower: dp("11")}}, start.Add(6*time.Minute))
 		rep, err := Calculate(in, Options{CurrencyPrecision: ptrInt(2)})
 		require.NoError(t, err)
 		assert.True(t, rep.TotalCost.BeforeTaxes.Equal(d("10.00")), "clamped to min, got %s", rep.TotalCost.BeforeTaxes)
+		require.NotNil(t, rep.TotalCost.AfterTaxes)
+		assert.True(t, rep.TotalCost.AfterTaxes.Equal(d("11.00")), "clamped to min after taxes, got %s", rep.TotalCost.AfterTaxes)
 	})
 
 	t.Run("missing_dimension_zero", func(t *testing.T) {

@@ -27,28 +27,50 @@ func resolveZone(in Input, opts Options, tariffHasLocalRestrictions bool) (*time
 }
 
 func countryZone(alpha2 string) (*time.Location, bool) {
-	// Multi-timezone countries such as US, CA, RU, and AU use a representative
-	// zone as a best-effort fallback when callers do not provide an exact zone.
+	// Multi-timezone countries such as US, CA, RU, and AU are deliberately not
+	// inferred; callers should provide an exact zone or fall back to UTC.
 	zones := map[string]string{
+		"AD": "Europe/Andorra",
+		"AL": "Europe/Tirane",
 		"AT": "Europe/Vienna",
-		"AU": "Australia/Sydney",
+		"BA": "Europe/Sarajevo",
 		"BE": "Europe/Brussels",
+		"BG": "Europe/Sofia",
 		"CH": "Europe/Zurich",
+		"CY": "Asia/Nicosia",
+		"CZ": "Europe/Prague",
 		"DE": "Europe/Berlin",
 		"DK": "Europe/Copenhagen",
+		"EE": "Europe/Tallinn",
 		"ES": "Europe/Madrid",
 		"FI": "Europe/Helsinki",
 		"FR": "Europe/Paris",
 		"GB": "Europe/London",
+		"GR": "Europe/Athens",
+		"HR": "Europe/Zagreb",
+		"HU": "Europe/Budapest",
 		"IE": "Europe/Dublin",
+		"IS": "Atlantic/Reykjavik",
 		"IT": "Europe/Rome",
 		"JP": "Asia/Tokyo",
+		"LI": "Europe/Vaduz",
+		"LT": "Europe/Vilnius",
+		"LU": "Europe/Luxembourg",
+		"LV": "Europe/Riga",
+		"MC": "Europe/Monaco",
+		"ME": "Europe/Podgorica",
+		"MK": "Europe/Skopje",
+		"MT": "Europe/Malta",
 		"NL": "Europe/Amsterdam",
 		"NO": "Europe/Oslo",
 		"PL": "Europe/Warsaw",
 		"PT": "Europe/Lisbon",
+		"RO": "Europe/Bucharest",
+		"RS": "Europe/Belgrade",
 		"SE": "Europe/Stockholm",
-		"US": "America/New_York",
+		"SI": "Europe/Ljubljana",
+		"SK": "Europe/Bratislava",
+		"SM": "Europe/San_Marino",
 	}
 
 	name, ok := zones[strings.ToUpper(alpha2)]

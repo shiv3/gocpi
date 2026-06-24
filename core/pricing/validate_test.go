@@ -66,20 +66,29 @@ func TestValidateInputRejectsNegativePeriodEnergy(t *testing.T) {
 	assert.Equal(t, InvalidInput, pe.Code)
 }
 
-func TestValidateInputRejectsUnsortedPeriods(t *testing.T) {
+func TestCalculateSortsUnsortedPeriods(t *testing.T) {
 	d := decimal.RequireFromString
 	start := time.Date(2026, 6, 24, 9, 0, 0, 0, time.UTC)
-	in := validValidationInput(start, d)
-	in.Periods = []Period{
+	sorted := validValidationInput(start, d)
+	sorted.Periods = []Period{
+		{Start: start, Energy: decimalPtr(d("0.5"))},
+		{Start: start.Add(30 * time.Minute), Energy: decimalPtr(d("0.5"))},
+	}
+	unsorted := sorted
+	unsorted.Periods = []Period{
 		{Start: start.Add(30 * time.Minute), Energy: decimalPtr(d("0.5"))},
 		{Start: start, Energy: decimalPtr(d("0.5"))},
 	}
+	firstStart := unsorted.Periods[0].Start
 
-	err := ValidateInput(in)
+	sortedReport, err := Calculate(sorted, Options{TimeZone: time.UTC})
+	require.NoError(t, err)
+	unsortedReport, err := Calculate(unsorted, Options{TimeZone: time.UTC})
+	require.NoError(t, err)
 
-	var pe *PricingError
-	require.ErrorAs(t, err, &pe)
-	assert.Equal(t, InvalidInput, pe.Code)
+	assert.Equal(t, firstStart, unsorted.Periods[0].Start, "Calculate must not mutate caller periods")
+	assert.True(t, unsortedReport.TotalCost.BeforeTaxes.Equal(sortedReport.TotalCost.BeforeTaxes))
+	assert.True(t, unsortedReport.Dimensions[Energy].Volume.Equal(sortedReport.Dimensions[Energy].Volume))
 }
 
 func TestValidateInputRejectsPeriodsOutsideCDRBounds(t *testing.T) {
