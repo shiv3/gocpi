@@ -52,8 +52,14 @@ import (
     "github.com/shiv3/gocpi/v221"
 )
 
-rep, err := v221.Calculate(cdr, tariff, pricing.Options{})
-verdict, err := v221.Verify(cdr, tariff, pricing.Options{})
+// Primary path: price using the tariffs embedded in the CDR (resolves each
+// charging period's tariff_id, including multi-tariff CDRs).
+rep, err := v221.CalculateCDR(cdr, pricing.Options{})
+verdict, err := v221.VerifyCDR(cdr, pricing.Options{})
+
+// Override path: price every period against an explicit tariff, ignoring
+// per-period tariff_id.
+rep, err = v221.CalculateWithTariff(cdr, tariff, pricing.Options{})
 ```
 
 The current v1 engine supports one tariff per CDR; CDRs that require multiple

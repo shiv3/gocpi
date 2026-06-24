@@ -53,7 +53,7 @@ func TestGoldenV221(t *testing.T) {
 
 			expected := cdr.TotalCost.ExclVAT
 
-			rep, err := v221.Calculate(cdr, tariff, pricing.Options{})
+			rep, err := v221.CalculateWithTariff(cdr, tariff, pricing.Options{})
 			require.NoErrorf(t, err, "expected excl_vat=%s computed excl_vat=<not produced>", expected.String())
 
 			got := rep.TotalCost.BeforeTaxes

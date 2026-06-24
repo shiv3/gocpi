@@ -13,8 +13,38 @@ func invalidInput(format string, a ...any) error {
 	return &pricing.PricingError{Code: pricing.InvalidInput, Msg: fmt.Sprintf(format, a...)}
 }
 
-// Calculate prices a v2.2.1 CDR against a Tariff and returns the cost breakdown.
-func Calculate(cdr CDR, tariff Tariff, opts pricing.Options) (pricing.Report, error) {
+// CalculateCDR prices a v2.2.1 CDR using the tariffs embedded in the CDR,
+// resolving each charging period to its tariff_id, and returns the cost
+// breakdown. Periods with no applicable tariff are excluded from cost. This is
+// the primary entry point; use CalculateWithTariff to price against an explicit
+// tariff that overrides the CDR's embedded tariffs.
+func CalculateCDR(cdr CDR, opts pricing.Options) (pricing.Report, error) {
+	in, err := fromCDRMultiTariff(cdr, opts)
+	if err != nil {
+		return pricing.Report{}, err
+	}
+	return pricing.Calculate(in, opts)
+}
+
+// VerifyCDR recomputes a v2.2.1 CDR's cost using the CDR's embedded tariffs and
+// per-period tariff_id, then compares it with the CDR's embedded totals.
+func VerifyCDR(cdr CDR, opts pricing.Options) (pricing.Verdict, error) {
+	in, err := fromCDRMultiTariff(cdr, opts)
+	if err != nil {
+		return pricing.Verdict{Status: pricing.StatusInvalidInput}, err
+	}
+	rep, err := pricing.Calculate(in, opts)
+	if err != nil {
+		return pricing.Verdict{Status: pricing.StatusInvalidInput}, err
+	}
+	return pricing.Verify(in, rep, opts), nil
+}
+
+// CalculateWithTariff prices a v2.2.1 CDR against an explicitly supplied Tariff
+// and returns the cost breakdown. Per-period tariff_id values are ignored; the
+// supplied tariff prices every period. Use CalculateCDR to honor the CDR's
+// embedded tariffs.
+func CalculateWithTariff(cdr CDR, tariff Tariff, opts pricing.Options) (pricing.Report, error) {
 	in, err := FromCDR(cdr, tariff, opts)
 	if err != nil {
 		return pricing.Report{}, err
@@ -22,8 +52,10 @@ func Calculate(cdr CDR, tariff Tariff, opts pricing.Options) (pricing.Report, er
 	return pricing.Calculate(in, opts)
 }
 
-// Verify recomputes a v2.2.1 CDR's cost and compares it against the CDR's embedded totals.
-func Verify(cdr CDR, tariff Tariff, opts pricing.Options) (pricing.Verdict, error) {
+// VerifyWithTariff recomputes a v2.2.1 CDR's cost against an explicitly supplied
+// Tariff and compares it with the CDR's embedded totals. Per-period tariff_id
+// values are ignored; use VerifyCDR to honor the CDR's embedded tariffs.
+func VerifyWithTariff(cdr CDR, tariff Tariff, opts pricing.Options) (pricing.Verdict, error) {
 	in, err := FromCDR(cdr, tariff, opts)
 	if err != nil {
 		return pricing.Verdict{Status: pricing.StatusInvalidInput}, err
@@ -35,37 +67,16 @@ func Verify(cdr CDR, tariff Tariff, opts pricing.Options) (pricing.Verdict, erro
 	return pricing.Verify(in, rep, opts), nil
 }
 
-// FromCDR converts a v2.2.1 CDR + Tariff into a version-neutral pricing.Input.
+// FromCDR converts a v2.2.1 CDR + explicit Tariff into a version-neutral
+// pricing.Input. Every period is priced against the supplied tariff; per-period
+// tariff_id values are ignored.
 func FromCDR(cdr CDR, tariff Tariff, opts pricing.Options) (pricing.Input, error) {
-	if err := rejectMultiTariff(cdr.ChargingPeriods); err != nil {
-		return pricing.Input{}, err
-	}
-
 	neutralTariff, err := tariffToInput(tariff)
 	if err != nil {
 		return pricing.Input{}, err
 	}
 
-	in := pricing.Input{
-		Version:     pricing.V221,
-		Currency:    cdr.Currency,
-		Start:       cdr.StartDateTime,
-		End:         cdr.EndDateTime,
-		CountryCode: cdr.CountryCode,
-		Tariffs:     []pricing.Tariff{neutralTariff},
-		Periods:     make([]pricing.Period, 0, len(cdr.ChargingPeriods)),
-		Embedded: pricing.EmbeddedTotals{
-			TotalCost:            moneyFromPrice(&cdr.TotalCost),
-			TotalEnergyCost:      moneyFromPrice(cdr.TotalEnergyCost),
-			TotalTimeCost:        moneyFromPrice(cdr.TotalTimeCost),
-			TotalParkingCost:     moneyFromPrice(cdr.TotalParkingCost),
-			TotalFixedCost:       moneyFromPrice(cdr.TotalFixedCost),
-			TotalReservationCost: moneyFromPrice(cdr.TotalReservationCost),
-			TotalEnergy:          decimalPtr(cdr.TotalEnergy),
-			TotalTime:            decimalPtr(cdr.TotalTime),
-		},
-	}
-
+	in := newNeutralInput(cdr, []pricing.Tariff{neutralTariff})
 	for _, cp := range cdr.ChargingPeriods {
 		period, warnings, err := periodToInput(cp)
 		if err != nil {
@@ -82,18 +93,96 @@ func FromCDR(cdr CDR, tariff Tariff, opts pricing.Options) (pricing.Input, error
 	return in, nil
 }
 
-func rejectMultiTariff(periods []ChargingPeriod) error {
-	seen := make(map[string]struct{})
-	for _, period := range periods {
-		if period.TariffID == nil {
-			continue
-		}
-		seen[*period.TariffID] = struct{}{}
-		if len(seen) > 1 {
-			return invalidInput("charging periods reference more than one tariff")
-		}
+// fromCDRMultiTariff converts a v2.2.1 CDR into a version-neutral pricing.Input
+// using the CDR's embedded tariffs, resolving each charging period's tariff_id
+// to a tariff index.
+func fromCDRMultiTariff(cdr CDR, _ pricing.Options) (pricing.Input, error) {
+	if len(cdr.Tariffs) == 0 {
+		return pricing.Input{}, invalidInput("CDR has no embedded tariffs")
 	}
-	return nil
+
+	tariffs := make([]pricing.Tariff, 0, len(cdr.Tariffs))
+	indexByID := make(map[string]int, len(cdr.Tariffs))
+	for i := range cdr.Tariffs {
+		neutralTariff, err := tariffToInput(cdr.Tariffs[i])
+		if err != nil {
+			return pricing.Input{}, err
+		}
+		if neutralTariff.ID != "" {
+			indexByID[neutralTariff.ID] = i
+		}
+		tariffs = append(tariffs, neutralTariff)
+	}
+	singleTariff := len(cdr.Tariffs) == 1
+
+	in := newNeutralInput(cdr, tariffs)
+	for _, cp := range cdr.ChargingPeriods {
+		period, warnings, err := periodToInput(cp)
+		if err != nil {
+			return pricing.Input{}, err
+		}
+		idx, err := resolveTariffIndex(cp.TariffID, singleTariff, indexByID)
+		if err != nil {
+			return pricing.Input{}, err
+		}
+		period.TariffIndex = idx
+		in.Periods = append(in.Periods, period)
+		in.Warnings = append(in.Warnings, warnings...)
+	}
+
+	if err := pricing.ValidateInput(in); err != nil {
+		return pricing.Input{}, err
+	}
+	return in, nil
+}
+
+// resolveTariffIndex maps a charging period's tariff_id to a tariff index. With
+// a single embedded tariff, a nil or matching tariff_id selects it and any other
+// value is rejected. With multiple tariffs, a nil tariff_id leaves the period
+// without a tariff (priced as zero with a warning) and a non-matching tariff_id
+// is rejected.
+func resolveTariffIndex(tariffID *string, singleTariff bool, indexByID map[string]int) (*int, error) {
+	if singleTariff {
+		if tariffID == nil {
+			return pricing.IntPtr(0), nil
+		}
+		if idx, ok := indexByID[*tariffID]; ok {
+			return pricing.IntPtr(idx), nil
+		}
+		return nil, invalidInput("charging period references unknown tariff_id %q", *tariffID)
+	}
+	if tariffID == nil {
+		return nil, nil
+	}
+	if idx, ok := indexByID[*tariffID]; ok {
+		return pricing.IntPtr(idx), nil
+	}
+	return nil, invalidInput("charging period references unknown tariff_id %q", *tariffID)
+}
+
+// newNeutralInput builds the version-neutral Input skeleton shared by the
+// explicit-tariff and embedded-tariff adapters (everything except per-period
+// TariffIndex).
+func newNeutralInput(cdr CDR, tariffs []pricing.Tariff) pricing.Input {
+	return pricing.Input{
+		Version:     pricing.V221,
+		Currency:    cdr.Currency,
+		Start:       cdr.StartDateTime,
+		End:         cdr.EndDateTime,
+		CountryCode: cdr.CountryCode,
+		Tariffs:     tariffs,
+		Periods:     make([]pricing.Period, 0, len(cdr.ChargingPeriods)),
+		Embedded: pricing.EmbeddedTotals{
+			TotalCost:            moneyFromPrice(&cdr.TotalCost),
+			TotalEnergyCost:      moneyFromPrice(cdr.TotalEnergyCost),
+			TotalTimeCost:        moneyFromPrice(cdr.TotalTimeCost),
+			TotalParkingCost:     moneyFromPrice(cdr.TotalParkingCost),
+			TotalFixedCost:       moneyFromPrice(cdr.TotalFixedCost),
+			TotalReservationCost: moneyFromPrice(cdr.TotalReservationCost),
+			TotalEnergy:          decimalPtr(cdr.TotalEnergy),
+			TotalTime:            decimalPtr(cdr.TotalTime),
+		},
+	}
 }
 
 func tariffToInput(tariff Tariff) (pricing.Tariff, error) {

@@ -48,7 +48,7 @@ func TestCalculateEndToEnd(t *testing.T) {
 		LastUpdated: start,
 	}
 
-	rep, err := v221.Calculate(cdr, v221Tariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
+	rep, err := v221.CalculateWithTariff(cdr, v221Tariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
 	require.NoError(t, err)
 	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
 }
@@ -74,7 +74,7 @@ func TestUnknownDimensionWarns(t *testing.T) {
 		LastUpdated: start,
 	}
 
-	rep, err := v221.Calculate(cdr, v221Tariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
+	rep, err := v221.CalculateWithTariff(cdr, v221Tariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
 
 	require.NoError(t, err)
 	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
@@ -102,7 +102,7 @@ func TestKnownUnpricedDimensionNoWarn(t *testing.T) {
 		LastUpdated: start,
 	}
 
-	rep, err := v221.Calculate(cdr, v221Tariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
+	rep, err := v221.CalculateWithTariff(cdr, v221Tariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
 
 	require.NoError(t, err)
 	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
@@ -143,7 +143,7 @@ func TestFromCDREmbeddedTotalsMapped(t *testing.T) {
 	assert.True(t, in.Embedded.TotalEnergy.Equal(d("10")))
 }
 
-func TestFromCDRRejectsMultiTariff(t *testing.T) {
+func TestFromCDROverridesPerPeriodTariffID(t *testing.T) {
 	d := decimal.RequireFromString
 	utc := time.UTC
 	start := time.Date(2026, 6, 24, 9, 0, 0, 0, utc)
@@ -163,10 +163,16 @@ func TestFromCDRRejectsMultiTariff(t *testing.T) {
 		LastUpdated: start,
 	}
 
-	_, err := v221.FromCDR(cdr, v221Tariff(d, start), pricing.Options{})
-	var pe *pricing.PricingError
-	require.ErrorAs(t, err, &pe)
-	assert.Equal(t, pricing.InvalidInput, pe.Code)
+	// The explicit-tariff path ignores per-period tariff_id and prices every
+	// period against the single supplied tariff (TariffIndex 0).
+	in, err := v221.FromCDR(cdr, v221Tariff(d, start), pricing.Options{})
+	require.NoError(t, err)
+	require.Len(t, in.Tariffs, 1)
+	require.Len(t, in.Periods, 2)
+	for i := range in.Periods {
+		require.NotNil(t, in.Periods[i].TariffIndex)
+		assert.Equal(t, 0, *in.Periods[i].TariffIndex)
+	}
 }
 
 func TestFromCDRRejectsDuplicateDimensionsInChargingPeriod(t *testing.T) {
@@ -237,7 +243,7 @@ func TestReservationElementExcludedFromNormalSession(t *testing.T) {
 		LastUpdated: start,
 	}
 
-	rep, err := v221.Calculate(cdr, tariff, pricing.Options{CurrencyPrecision: ptrInt(2)})
+	rep, err := v221.CalculateWithTariff(cdr, tariff, pricing.Options{CurrencyPrecision: ptrInt(2)})
 	require.NoError(t, err)
 	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
 }

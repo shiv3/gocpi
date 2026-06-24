@@ -35,7 +35,7 @@ func TestUnknownDimensionWarns(t *testing.T) {
 		LastUpdated: start,
 	}
 
-	rep, err := v230.Calculate(cdr, v230EnergyTariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
+	rep, err := v230.CalculateWithTariff(cdr, v230EnergyTariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
 
 	require.NoError(t, err)
 	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
@@ -63,7 +63,7 @@ func TestKnownUnpricedDimensionNoWarn(t *testing.T) {
 		LastUpdated: start,
 	}
 
-	rep, err := v230.Calculate(cdr, v230EnergyTariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
+	rep, err := v230.CalculateWithTariff(cdr, v230EnergyTariff(d, start), pricing.Options{CurrencyPrecision: ptrInt(2)})
 
 	require.NoError(t, err)
 	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "got %s", rep.TotalEnergyCost.BeforeTaxes)
@@ -102,7 +102,7 @@ func TestCalculateTaxIncludedYes(t *testing.T) {
 		LastUpdated: start,
 	}
 
-	rep, err := v230.Calculate(cdr, tariff, pricing.Options{CurrencyPrecision: ptrInt(2)})
+	rep, err := v230.CalculateWithTariff(cdr, tariff, pricing.Options{CurrencyPrecision: ptrInt(2)})
 	require.NoError(t, err)
 	assert.True(t, rep.TotalEnergyCost.BeforeTaxes.Equal(d("3.00")), "before-tax, got %s", rep.TotalEnergyCost.BeforeTaxes)
 }

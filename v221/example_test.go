@@ -45,7 +45,7 @@ func Example_calculate() {
 		LastUpdated: start,
 	}
 
-	rep, err := v221.Calculate(cdr, tariff, pricing.Options{CurrencyPrecision: &currencyPrecision})
+	rep, err := v221.CalculateWithTariff(cdr, tariff, pricing.Options{CurrencyPrecision: &currencyPrecision})
 	if err != nil {
 		fmt.Println(err)
 		return
