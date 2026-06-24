@@ -1,8 +1,6 @@
 package pricing
 
 import (
-	"time"
-
 	"github.com/shopspring/decimal"
 )
 
@@ -66,18 +64,15 @@ func activeComponents(tariff Tariff, start snapshot, p Period) (componentSet, []
 	return cs, warns
 }
 
-func currencyScale(code string) int {
-	return 2
-}
-
 func Calculate(in Input, opts Options) (Report, error) {
 	if err := ValidateInput(in); err != nil {
 		return Report{}, err
 	}
 
-	loc := opts.TimeZone
-	if loc == nil {
-		loc = time.UTC
+	hasLocalRestrictions := tariffHasLocalRestrictions(in.Tariff)
+	loc, zoneWarns, err := resolveZone(in, opts, hasLocalRestrictions)
+	if err != nil {
+		return Report{}, err
 	}
 
 	precision := currencyScale(in.Currency)
@@ -88,6 +83,7 @@ func Calculate(in Input, opts Options) (Report, error) {
 	rep := Report{
 		Dimensions: make(map[DimensionType]Dimension),
 	}
+	rep.Warnings = append(rep.Warnings, zoneWarns...)
 	rep.Warnings = append(rep.Warnings, tariffWindowWarnings(in)...)
 
 	// Pools are keyed by PriceComponent pointer identity into in.Tariff.Elements'
@@ -148,7 +144,6 @@ func Calculate(in Input, opts Options) (Report, error) {
 		cur = cur.next(period, end)
 	}
 
-	var err error
 	rep.TotalEnergyCost, rep.Dimensions[Energy], err = pricePooledDimension(energyPools, decimal.NewFromInt(energyBaseUnitsPerKwh))
 	if err != nil {
 		return Report{}, err
@@ -193,6 +188,19 @@ func addPool(pools map[*PriceComponent]decimal.Decimal, comp *PriceComponent, vo
 
 func componentSetHasAny(cs componentSet) bool {
 	return cs.energy != nil || cs.time != nil || cs.parking != nil || cs.flat != nil
+}
+
+func tariffHasLocalRestrictions(tariff Tariff) bool {
+	for i := range tariff.Elements {
+		r := tariff.Elements[i].Restrictions
+		if r == nil {
+			continue
+		}
+		if r.StartTime != nil || r.EndTime != nil || r.StartDate != nil || r.EndDate != nil || len(r.DayOfWeek) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func tariffWindowWarnings(in Input) []Warning {
