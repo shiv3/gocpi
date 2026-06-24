@@ -72,6 +72,7 @@ func activeComponents(tariff Tariff, start snapshot, p Period) (componentSet, []
 	return cs, warns
 }
 
+// Calculate prices a version-neutral Input and returns the cost breakdown.
 func Calculate(in Input, opts Options) (Report, error) {
 	periods := sortedPeriods(in.Periods)
 	validated := in

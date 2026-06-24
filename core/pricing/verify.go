@@ -2,6 +2,7 @@ package pricing
 
 import "github.com/shopspring/decimal"
 
+// Verify compares a pricing Report with the embedded totals from its Input.
 func Verify(in Input, rep Report, opts Options) Verdict {
 	v := Verdict{
 		Status:     StatusOK,

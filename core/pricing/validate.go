@@ -6,6 +6,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// ValidateInput checks whether a version-neutral Input can be priced.
 func ValidateInput(in Input) error {
 	if len(in.Tariff.Elements) == 0 {
 		return invalidInput("tariff must contain at least one element")

@@ -63,6 +63,14 @@ Reservation cost is not computed, though its sub-total is checked and returns
 unsupported and never match, and the local-time boundary-crossing diagnostic is
 deferred.
 
+Current v1 limitations:
+
+- Single tariff per CDR; multi-tariff CDRs return `InvalidInput`.
+- Reservation cost is not computed; its sub-total verifies as `NotVerifiable`.
+- OCPI 2.3.0 booking-restricted elements are unsupported.
+- Multi-timezone countries are not inferred; pass `Options.TimeZone`.
+- Totals stay at OCPI scale-4 unless `Options.CurrencyPrecision` is set.
+
 ## Install
 
 ```sh
