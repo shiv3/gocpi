@@ -381,17 +381,17 @@ export function App() {
       <main className="min-h-screen bg-muted/30 text-foreground">
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-4 py-3 lg:px-6">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
-            <div className="space-y-1">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:gap-6">
+            <div className="space-y-1 xl:shrink-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-semibold tracking-normal">gocpi pricing simulator</h1>
+                <h1 className="whitespace-nowrap text-xl font-semibold tracking-normal">gocpi pricing simulator</h1>
                 <Badge variant="secondary">OCPI {version}</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
                 Build a CDR pricing scenario, run the OCPI engine, and compare calculated totals.
               </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 xl:min-w-[920px]">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 xl:flex-1">
               <PresetPicker value={presetKey} isCustom={isPresetDirty} onChange={selectPreset} />
               <div className="space-y-2">
                 <Label htmlFor="header-currency">Currency</Label>
@@ -459,45 +459,51 @@ export function App() {
       <div className="mx-auto grid max-w-[1600px] gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1.9fr)_minmax(360px,1fr)] xl:grid-cols-[minmax(0,2.4fr)_minmax(340px,1fr)] lg:px-6">
         <section aria-label="Simulator input" className="min-w-0">
           {view === 'form' ? (
-            <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
+            <div className="space-y-4">
               {parseError && (
-                <Alert variant="destructive" className="py-3 xl:col-span-2">
+                <Alert variant="destructive" className="py-3">
                   <AlertTitle>Invalid JSON</AlertTitle>
                   <AlertDescription>{parseError}</AlertDescription>
                 </Alert>
               )}
-              <CalculationSettings
-                value={form}
-                timeZone={timeZone}
-                onCurrencyChange={setCurrency}
-                onCountryChange={(countryCode) => patchForm({ countryCode })}
-                onTimeZoneChange={setTimeZone}
-                onStartChange={(start) => patchForm({ start })}
-                onEndChange={(end) => patchForm({ end })}
-              />
-              <TariffSetup
-                value={form}
-                onChange={replaceForm}
-                onOpenAdvancedTariffs={() => setAdvancedOpen('tariffs-rules')}
-              />
-              <ChargingSession
-                value={form.periods}
-                calculationStart={form.start}
-                tariffIds={tariffIds}
-                hideTariffId={mode === 'override'}
-                onChange={updatePeriods}
-              />
-              <AdvancedSettings
-                value={form}
-                version={version}
-                mode={mode}
-                currencyPrecision={currencyPrecision}
-                openValue={advancedOpen}
-                onOpenChange={setAdvancedOpen}
-                onChange={replaceForm}
-                onModeChange={selectMode}
-                onCurrencyPrecisionChange={setCurrencyPrecision}
-              />
+              <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
+                <div className="space-y-4">
+                  <CalculationSettings
+                    value={form}
+                    timeZone={timeZone}
+                    onCurrencyChange={setCurrency}
+                    onCountryChange={(countryCode) => patchForm({ countryCode })}
+                    onTimeZoneChange={setTimeZone}
+                    onStartChange={(start) => patchForm({ start })}
+                    onEndChange={(end) => patchForm({ end })}
+                  />
+                  <ChargingSession
+                    value={form.periods}
+                    calculationStart={form.start}
+                    tariffIds={tariffIds}
+                    hideTariffId={mode === 'override'}
+                    onChange={updatePeriods}
+                  />
+                </div>
+                <div className="space-y-4">
+                  <TariffSetup
+                    value={form}
+                    onChange={replaceForm}
+                    onOpenAdvancedTariffs={() => setAdvancedOpen('tariffs-rules')}
+                  />
+                  <AdvancedSettings
+                    value={form}
+                    version={version}
+                    mode={mode}
+                    currencyPrecision={currencyPrecision}
+                    openValue={advancedOpen}
+                    onOpenChange={setAdvancedOpen}
+                    onChange={replaceForm}
+                    onModeChange={selectMode}
+                    onCurrencyPrecisionChange={setCurrencyPrecision}
+                  />
+                </div>
+              </div>
             </div>
           ) : (
             <JsonPanel

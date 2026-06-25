@@ -10,7 +10,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { NativeSelect } from '@/components/controls/NativeSelect'
 import { presetMeta, presets } from '@/presets'
@@ -27,7 +26,6 @@ function metaFor(key: string) {
 
 export function PresetPicker({ value, isCustom, onChange }: PresetPickerProps) {
   const [pendingPreset, setPendingPreset] = useState<string | null>(null)
-  const selectedMeta = metaFor(value)
 
   const choosePreset = (key: string) => {
     if (key === value) return
@@ -64,12 +62,6 @@ export function PresetPicker({ value, isCustom, onChange }: PresetPickerProps) {
           )
         })}
       </NativeSelect>
-      <Card className="rounded-md shadow-none">
-        <CardContent className="p-3">
-          <p className="text-xs font-medium">{selectedMeta.label}</p>
-          <p className="text-xs text-muted-foreground">{selectedMeta.description}</p>
-        </CardContent>
-      </Card>
 
       <AlertDialog open={pendingPreset != null} onOpenChange={(open) => !open && setPendingPreset(null)}>
         <AlertDialogContent>
