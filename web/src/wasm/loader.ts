@@ -45,15 +45,10 @@ function injectScript(src: string): Promise<void> {
 async function loadGoRuntime(base: string): Promise<void> {
   if (engineWindow().Go) return
 
-  try {
-    await import(/* @vite-ignore */ scriptURL(base))
-  } catch {
-    await injectScript(scriptURL(base))
-  }
-
-  if (!engineWindow().Go) {
-    await injectScript(scriptURL(base))
-  }
+  // wasm_exec.js is a classic script in /public that sets globalThis.Go as a side
+  // effect; it is NOT an ES module, so it must be loaded via a <script> tag, never
+  // import() (Vite dev rejects importing /public files from source code).
+  await injectScript(scriptURL(base))
 }
 
 export function loadEngine(): Promise<void> {
