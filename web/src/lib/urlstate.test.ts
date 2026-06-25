@@ -10,6 +10,7 @@ const state: PersistedState = {
   currencyPrecision: 4,
   view: 'json',
   presetKey: 'shared-case',
+  timeSeriesUnit: 60,
   rawJson:
     '{"country_code":"JP","currency":"JPY","tariffs":[{"id":"深夜-料金","currency":"JPY","elements":[]}]}',
   form: {
@@ -62,6 +63,19 @@ describe('urlstate', () => {
     expect(encoded).not.toContain('#')
     expect(decodeState(`#${encoded}`)).toEqual(state)
     expect(decodeState(encoded)).toEqual(state)
+  })
+
+  it('decodes legacy hashes without a time-series unit', () => {
+    const { timeSeriesUnit: _timeSeriesUnit, ...legacyState } = state
+    const encoded = encodeState(legacyState)
+
+    expect(decodeState(`#${encoded}`)).toEqual(legacyState)
+  })
+
+  it('round-trips a hash with a time-series unit', () => {
+    const encoded = encodeState({ ...state, timeSeriesUnit: 1 })
+
+    expect(decodeState(`#${encoded}`)?.timeSeriesUnit).toBe(1)
   })
 
   it('returns null for an empty hash', () => {

@@ -6,10 +6,13 @@ import { EmbeddedTotalsEditor } from './components/form/EmbeddedTotalsEditor'
 import { TariffEditor } from './components/form/TariffEditor'
 import { CostBreakdown } from './components/result/CostBreakdown'
 import { CostChart } from './components/result/CostChart'
+import { CostTimeSeries } from './components/result/CostTimeSeries'
 import { VerdictView } from './components/result/VerdictView'
 import { fromLocalInput, toLocalInput } from './lib/datetime'
 import { COMMON_COUNTRY_CODES, COMMON_CURRENCIES, TIME_ZONES, optionsWithCurrent } from './lib/options'
 import { deserialize, reportMoneyToCdr, serialize, serializeTariff } from './lib/serialize'
+import { computeCostSeries } from './lib/timeseries'
+import type { CostSeriesPoint } from './lib/timeseries'
 import { decodeState, encodeState } from './lib/urlstate'
 import type { PersistedState } from './lib/urlstate'
 import type { ElementForm, PeriodForm, SimForm, TariffForm } from './model/forms'
@@ -77,8 +80,11 @@ export function App() {
   const [isComputing, setIsComputing] = useState(false)
   const [view, setView] = useState<View>(() => boot?.view ?? 'form')
   const [mode, setMode] = useState<TariffSourceMode>(() => boot?.mode ?? 'embedded')
+  const [timeSeriesUnit, setTimeSeriesUnit] = useState<number>(() => boot?.timeSeriesUnit ?? 10)
+  const [series, setSeries] = useState<CostSeriesPoint[]>([])
   const [runNonce, setRunNonce] = useState(0)
   const requestIdRef = useRef(0)
+  const timeSeriesRequestIdRef = useRef(0)
 
   const serializedText = useMemo(() => JSON.stringify(serialize(form, version), null, 2), [form, version])
   const tariffIds = useMemo(() => form.tariffs.map((tariff) => tariff.id).filter(Boolean), [form.tariffs])
@@ -165,12 +171,13 @@ export function App() {
           form,
           rawJson,
           presetKey,
+          timeSeriesUnit,
         })}`,
       )
     }, 300)
 
     return () => window.clearTimeout(timeout)
-  }, [currencyPrecision, form, mode, presetKey, rawJson, timeZone, version, view])
+  }, [currencyPrecision, form, mode, presetKey, rawJson, timeSeriesUnit, timeZone, version, view])
 
   useEffect(() => {
     const requestId = requestIdRef.current + 1
@@ -273,6 +280,50 @@ export function App() {
       }
     }
   }, [currencyPrecision, form, mode, rawJson, runNonce, timeZone, version])
+
+  useEffect(() => {
+    const requestId = timeSeriesRequestIdRef.current + 1
+    timeSeriesRequestIdRef.current = requestId
+    const isLatest = () => timeSeriesRequestIdRef.current === requestId
+
+    if (mode === 'override' && form.tariffs.length === 0) {
+      setSeries([])
+      return
+    }
+
+    const timeout = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const engineOptions: EngineOptions = {
+            ...(currencyPrecision >= 0 ? { currencyPrecision } : {}),
+            ...(timeZone ? { timeZone } : {}),
+          }
+          const nextSeries = await computeCostSeries({
+            form,
+            version,
+            mode,
+            unitMinutes: timeSeriesUnit,
+            engineOptions,
+          })
+
+          if (isLatest()) {
+            setSeries(nextSeries)
+          }
+        } catch {
+          if (isLatest()) {
+            setSeries([])
+          }
+        }
+      })()
+    }, 400)
+
+    return () => {
+      window.clearTimeout(timeout)
+      if (timeSeriesRequestIdRef.current === requestId) {
+        timeSeriesRequestIdRef.current += 1
+      }
+    }
+  }, [currencyPrecision, form, mode, timeSeriesUnit, timeZone, version])
 
   const setTariff = (index: number, tariff: TariffForm) => {
     patchForm({ tariffs: form.tariffs.map((existing, currentIndex) => (currentIndex === index ? tariff : existing)) })
@@ -505,6 +556,12 @@ export function App() {
           {calc ? (
             <>
               <CostChart report={calc} />
+              <CostTimeSeries
+                series={series}
+                unitMinutes={timeSeriesUnit}
+                onUnitChange={setTimeSeriesUnit}
+                currency={form.currency}
+              />
               <CostBreakdown report={calc} />
             </>
           ) : (

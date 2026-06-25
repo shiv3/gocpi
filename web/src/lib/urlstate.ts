@@ -11,6 +11,7 @@ export interface PersistedState {
   form: SimForm
   rawJson: string | null
   presetKey: string
+  timeSeriesUnit?: number
 }
 
 const versions = new Set<Version>(['2.2.1', '2.3.0'])
@@ -136,7 +137,9 @@ function isPersistedState(value: unknown): value is PersistedState {
     views.has(value.view as PersistedState['view']) &&
     isSimForm(value.form) &&
     (value.rawJson === null || typeof value.rawJson === 'string') &&
-    typeof value.presetKey === 'string'
+    typeof value.presetKey === 'string' &&
+    (value.timeSeriesUnit === undefined ||
+      (typeof value.timeSeriesUnit === 'number' && Number.isFinite(value.timeSeriesUnit)))
   )
 }
 

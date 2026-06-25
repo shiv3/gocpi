@@ -79,6 +79,7 @@ function persistedState(): PersistedState {
     mode: 'override',
     timeZone: 'Asia/Tokyo',
     currencyPrecision: 3,
+    timeSeriesUnit: 60,
     view: 'json',
     presetKey: 'time-of-day',
     rawJson:
@@ -150,6 +151,7 @@ describe('App orchestration', () => {
       mode: 'embedded',
       timeZone: '',
       currencyPrecision: 2,
+      timeSeriesUnit: 10,
       view: 'form',
       rawJson: null,
       presetKey: defaultPreset,
@@ -171,6 +173,31 @@ describe('App orchestration', () => {
     expect(screen.getByRole('row', { name: /total - 4\.50 5\.45/i })).toBeInTheDocument()
     expect(screen.getByText('Verify verdict')).toBeInTheDocument()
     expect(screen.getByText('OK')).toBeInTheDocument()
+  })
+
+  it('computes a cumulative cost series for multiple ticks and recomputes when the unit changes', async () => {
+    renderApp()
+
+    await advanceDebounce(450)
+
+    expect(screen.getByRole('heading', { name: /cumulative cost over time/i })).toBeInTheDocument()
+    expect(screen.queryByText('no time-series')).not.toBeInTheDocument()
+
+    const cdrEndTimes = calculateMock.mock.calls
+      .map((call) => call[1])
+      .filter((cdr): cdr is Record<string, unknown> => typeof cdr === 'object' && cdr !== null)
+      .map((cdr) => cdr.end_date_time)
+
+    expect(calculateMock.mock.calls.length).toBeGreaterThanOrEqual(7)
+    expect(new Set(cdrEndTimes).size).toBeGreaterThan(1)
+    expect(cdrEndTimes).toEqual(expect.arrayContaining(['2026-06-24T09:10:00Z', '2026-06-24T10:00:00Z']))
+
+    calculateMock.mockClear()
+    fireEvent.change(screen.getByLabelText(/resolution/i), { target: { value: '60' } })
+    await advanceDebounce(450)
+
+    expect(calculateMock.mock.calls.length).toBeGreaterThanOrEqual(1)
+    expect(calculateMock.mock.calls[0][1]).toMatchObject({ end_date_time: '2026-06-24T10:00:00Z' })
   })
 
   it('switches to override mode and calls the explicit-tariff engine path with the first tariff', async () => {

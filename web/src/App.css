@@ -392,6 +392,20 @@ h3 {
   font-size: 0.8rem;
 }
 
+.cost-time-series__canvas {
+  width: 100%;
+  height: 16.25rem;
+  min-width: 0;
+}
+
+.inline-control {
+  display: inline-grid;
+  grid-template-columns: auto minmax(7rem, 1fr);
+  gap: 0.45rem;
+  align-items: center;
+  min-width: min(100%, 14rem);
+}
+
 .json-panel label {
   display: block;
   margin: 0.65rem 0 0.25rem;
