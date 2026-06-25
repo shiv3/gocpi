@@ -23,9 +23,11 @@ import { COMMON_CURRENCIES, TIME_ZONES, optionsWithCurrent } from './lib/options
 import { deserialize, reportMoneyToCdr, serialize, serializeTariff } from './lib/serialize'
 import { computeCostSeries } from './lib/timeseries'
 import type { CostSeriesPoint } from './lib/timeseries'
+import { applyUpdater } from './lib/updater'
+import type { Updater } from './lib/updater'
 import { decodeState, encodeState } from './lib/urlstate'
 import type { PersistedState } from './lib/urlstate'
-import type { SimForm } from './model/forms'
+import type { PeriodForm, SimForm } from './model/forms'
 import type { Report, Verdict } from './model/dto'
 import { defaultPreset, presets } from './presets'
 import { calculate, calculateWithTariff, verify, verifyWithTariff } from './wasm/api'
@@ -92,8 +94,8 @@ export function App() {
       : 'unsaved'
   const tariffIds = useMemo(() => form.tariffs.map((tariff) => tariff.id).filter(Boolean), [form.tariffs])
 
-  const replaceForm = (next: SimForm, options: { markCustom?: boolean } = {}) => {
-    setForm(next)
+  const replaceForm = (next: Updater<SimForm>, options: { markCustom?: boolean } = {}) => {
+    setForm((prev) => applyUpdater(next, prev))
     if (options.markCustom ?? true) {
       setIsPresetDirty(true)
     }
@@ -103,12 +105,15 @@ export function App() {
     setResultError(null)
   }
 
-  const patchForm = (patch: Partial<SimForm>) => replaceForm({ ...form, ...patch })
+  const patchForm = (patch: Partial<SimForm>) => replaceForm((prev) => ({ ...prev, ...patch }))
 
   // The engine requires the CDR currency to match every tariff currency, so changing
   // the CDR currency cascades to all tariffs (avoids a spurious "currency mismatch").
   const setCurrency = (currency: string) =>
-    patchForm({ currency, tariffs: form.tariffs.map((tariff) => ({ ...tariff, currency })) })
+    replaceForm((prev) => ({ ...prev, currency, tariffs: prev.tariffs.map((tariff) => ({ ...tariff, currency })) }))
+
+  const updatePeriods = (next: Updater<PeriodForm[]>) =>
+    replaceForm((prev) => ({ ...prev, periods: applyUpdater(next, prev.periods) }))
 
   const selectPreset = (key: string) => {
     setPresetKey(key)
@@ -480,7 +485,7 @@ export function App() {
                 calculationStart={form.start}
                 tariffIds={tariffIds}
                 hideTariffId={mode === 'override'}
-                onChange={(periods) => patchForm({ periods })}
+                onChange={updatePeriods}
               />
               <AdvancedSettings
                 value={form}

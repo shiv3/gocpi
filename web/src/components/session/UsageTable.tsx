@@ -12,6 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { NativeSelect } from '@/components/controls/NativeSelect'
+import type { Updater } from '@/lib/updater'
 import { usageUnitLabel } from '@/lib/units'
 import type { DimensionForm, DimType } from '@/model/forms'
 
@@ -26,23 +27,22 @@ function restoreAt<T>(items: T[], index: number, item: T): T[] {
 export interface UsageTableProps {
   value: DimensionForm[]
   idPrefix?: string
-  onChange(dimensions: DimensionForm[]): void
+  onChange(next: Updater<DimensionForm[]>): void
 }
 
 export function UsageTable({ value, idPrefix = 'usage', onChange }: UsageTableProps) {
   const setDimension = (index: number, dimension: DimensionForm) => {
-    onChange(value.map((existing, currentIndex) => (currentIndex === index ? dimension : existing)))
+    onChange((prev) => prev.map((existing, currentIndex) => (currentIndex === index ? dimension : existing)))
   }
 
   const removeDimension = (index: number) => {
     const removed = value[index]
     if (!removed) return
-    const next = value.filter((_, currentIndex) => currentIndex !== index)
-    onChange(next)
+    onChange((prev) => prev.filter((_, currentIndex) => currentIndex !== index))
     toast('Usage item deleted', {
       action: {
         label: 'Undo',
-        onClick: () => onChange(restoreAt(next, index, removed)),
+        onClick: () => onChange((prev) => restoreAt(prev, index, removed)),
       },
     })
   }
@@ -111,7 +111,7 @@ export function UsageTable({ value, idPrefix = 'usage', onChange }: UsageTablePr
           ))}
         </TableBody>
       </Table>
-      <Button type="button" variant="outline" size="sm" onClick={() => onChange([...value, defaultDimension()])}>
+      <Button type="button" variant="outline" size="sm" onClick={() => onChange((prev) => [...prev, defaultDimension()])}>
         <Plus className="h-4 w-4" />
         Add usage item
       </Button>

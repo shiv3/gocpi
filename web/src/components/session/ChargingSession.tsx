@@ -22,6 +22,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NativeSelect } from '@/components/controls/NativeSelect'
+import { applyUpdater } from '@/lib/updater'
+import type { Updater } from '@/lib/updater'
 import { fromLocalInput, toLocalInput } from '@/lib/datetime'
 import type { PeriodForm } from '@/model/forms'
 import { UsageTable } from './UsageTable'
@@ -45,7 +47,7 @@ export interface ChargingSessionProps {
   calculationStart: string
   tariffIds: string[]
   hideTariffId?: boolean
-  onChange(periods: PeriodForm[]): void
+  onChange(next: Updater<PeriodForm[]>): void
 }
 
 export function ChargingSession({
@@ -59,18 +61,17 @@ export function ChargingSession({
   const shouldHideTariffId = hideTariffId || tariffIds.length <= 1
 
   const setPeriod = (index: number, period: PeriodForm) => {
-    onChange(value.map((existing, currentIndex) => (currentIndex === index ? period : existing)))
+    onChange((prev) => prev.map((existing, currentIndex) => (currentIndex === index ? period : existing)))
   }
 
   const removePeriod = (index: number) => {
     const removed = value[index]
     if (!removed) return
-    const next = value.filter((_, currentIndex) => currentIndex !== index)
-    onChange(next)
+    onChange((prev) => prev.filter((_, currentIndex) => currentIndex !== index))
     toast('Charging period deleted', {
       action: {
         label: 'Undo',
-        onClick: () => onChange(restoreAt(next, index, removed)),
+        onClick: () => onChange((prev) => restoreAt(prev, index, removed)),
       },
     })
   }
@@ -87,7 +88,7 @@ export function ChargingSession({
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => onChange([...value, defaultPeriod(calculationStart, tariffIds[0])])}
+            onClick={() => onChange((prev) => [...prev, defaultPeriod(calculationStart, tariffIds[0])])}
           >
             <Plus className="h-4 w-4" />
             Add charging period
@@ -153,7 +154,15 @@ export function ChargingSession({
                   <UsageTable
                     idPrefix={`period-${index}`}
                     value={period.dimensions}
-                    onChange={(dimensions) => setPeriod(index, { ...period, dimensions })}
+                    onChange={(next) =>
+                      onChange((prev) =>
+                        prev.map((existing, currentIndex) =>
+                          currentIndex === index
+                            ? { ...existing, dimensions: applyUpdater(next, existing.dimensions) }
+                            : existing,
+                        ),
+                      )
+                    }
                   />
                 </div>
               </section>

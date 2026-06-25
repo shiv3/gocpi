@@ -31,6 +31,8 @@ import { Separator } from '@/components/ui/separator'
 import { NativeSelect } from '@/components/controls/NativeSelect'
 import { PriceComponentsTable } from '@/components/tariff/PriceComponentsTable'
 import { COMMON_CURRENCIES, optionsWithCurrent } from '@/lib/options'
+import { applyUpdater } from '@/lib/updater'
+import type { Updater } from '@/lib/updater'
 import type {
   ElementForm,
   EmbeddedTotalsForm,
@@ -105,7 +107,7 @@ export interface AdvancedSettingsProps {
   currencyPrecision: number
   openValue?: AdvancedSection
   onOpenChange(value?: AdvancedSection): void
-  onChange(form: SimForm): void
+  onChange(next: Updater<SimForm>): void
   onModeChange(mode: TariffSourceMode): void
   onCurrencyPrecisionChange(precision: number): void
 }
@@ -123,34 +125,36 @@ export function AdvancedSettings({
 }: AdvancedSettingsProps) {
   const [tariffToDelete, setTariffToDelete] = useState<number | null>(null)
 
-  const setTariff = (tariffIndex: number, tariff: TariffForm) => {
-    onChange({
-      ...value,
-      tariffs: value.tariffs.map((existing, index) => (index === tariffIndex ? tariff : existing)),
-    })
-  }
+  const updateTariff = (tariffIndex: number, next: Updater<TariffForm>) =>
+    onChange((prev) => ({
+      ...prev,
+      tariffs: prev.tariffs.map((existing, index) =>
+        index === tariffIndex ? applyUpdater(next, existing) : existing,
+      ),
+    }))
 
   const removeTariff = (tariffIndex: number) => {
     const removed = value.tariffs[tariffIndex]
     if (!removed) return
-    const nextTariffs = value.tariffs.filter((_, index) => index !== tariffIndex)
-    onChange({ ...value, tariffs: nextTariffs })
+    onChange((prev) => ({ ...prev, tariffs: prev.tariffs.filter((_, index) => index !== tariffIndex) }))
     toast('Tariff deleted', {
       action: {
         label: 'Undo',
-        onClick: () => onChange({ ...value, tariffs: restoreAt(nextTariffs, tariffIndex, removed) }),
+        onClick: () => onChange((prev) => ({ ...prev, tariffs: restoreAt(prev.tariffs, tariffIndex, removed) })),
       },
     })
   }
 
   const setEmbeddedField = (key: keyof EmbeddedTotalsForm, inputValue: string) => {
-    const embedded: EmbeddedTotalsForm = { ...value.embedded }
-    if (inputValue) {
-      embedded[key] = inputValue
-    } else {
-      delete embedded[key]
-    }
-    onChange({ ...value, embedded })
+    onChange((prev) => {
+      const embedded: EmbeddedTotalsForm = { ...prev.embedded }
+      if (inputValue) {
+        embedded[key] = inputValue
+      } else {
+        delete embedded[key]
+      }
+      return { ...prev, embedded }
+    })
   }
 
   return (
@@ -211,7 +215,12 @@ export function AdvancedSettings({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => onChange({ ...value, tariffs: [...value.tariffs, defaultTariff(value.currency, value.tariffs.length)] })}
+                    onClick={() =>
+                      onChange((prev) => ({
+                        ...prev,
+                        tariffs: [...prev.tariffs, defaultTariff(prev.currency, prev.tariffs.length)],
+                      }))
+                    }
                   >
                     <Plus className="h-4 w-4" />
                     Add tariff
@@ -243,7 +252,7 @@ export function AdvancedSettings({
                       value={tariff}
                       version={version}
                       tariffIndex={tariffIndex}
-                      onChange={(next) => setTariff(tariffIndex, next)}
+                      onChange={(next) => updateTariff(tariffIndex, next)}
                     />
                   </section>
                 ))}
@@ -311,28 +320,28 @@ interface TariffRulesEditorProps {
   value: TariffForm
   version: Version
   tariffIndex: number
-  onChange(tariff: TariffForm): void
+  onChange(next: Updater<TariffForm>): void
 }
 
 function TariffRulesEditor({ value, version, tariffIndex, onChange }: TariffRulesEditorProps) {
-  const set = (patch: Partial<TariffForm>) => onChange({ ...value, ...patch })
+  const set = (patch: Partial<TariffForm>) => onChange((prev) => ({ ...prev, ...patch }))
 
-  const setElement = (elementIndex: number, element: ElementForm) => {
-    onChange({
-      ...value,
-      elements: value.elements.map((existing, index) => (index === elementIndex ? element : existing)),
-    })
-  }
+  const updateElement = (elementIndex: number, next: Updater<ElementForm>) =>
+    onChange((prev) => ({
+      ...prev,
+      elements: prev.elements.map((existing, index) =>
+        index === elementIndex ? applyUpdater(next, existing) : existing,
+      ),
+    }))
 
   const removeElement = (elementIndex: number) => {
     const removed = value.elements[elementIndex]
     if (!removed) return
-    const nextElements = value.elements.filter((_, index) => index !== elementIndex)
-    onChange({ ...value, elements: nextElements })
+    onChange((prev) => ({ ...prev, elements: prev.elements.filter((_, index) => index !== elementIndex) }))
     toast('Tariff rule deleted', {
       action: {
         label: 'Undo',
-        onClick: () => onChange({ ...value, elements: restoreAt(nextElements, elementIndex, removed) }),
+        onClick: () => onChange((prev) => ({ ...prev, elements: restoreAt(prev.elements, elementIndex, removed) })),
       },
     })
   }
@@ -367,7 +376,10 @@ function TariffRulesEditor({ value, version, tariffIndex, onChange }: TariffRule
           <Input
             id={`advanced-min-price-${tariffIndex}`}
             value={value.minPrice ?? ''}
-            onChange={(event) => onChange(setOptionalPrice(value, 'minPrice', event.currentTarget.value))}
+            onChange={(event) => {
+              const price = event.currentTarget.value
+              onChange((prev) => setOptionalPrice(prev, 'minPrice', price))
+            }}
           />
         </div>
         <div className="space-y-2">
@@ -375,7 +387,10 @@ function TariffRulesEditor({ value, version, tariffIndex, onChange }: TariffRule
           <Input
             id={`advanced-max-price-${tariffIndex}`}
             value={value.maxPrice ?? ''}
-            onChange={(event) => onChange(setOptionalPrice(value, 'maxPrice', event.currentTarget.value))}
+            onChange={(event) => {
+              const price = event.currentTarget.value
+              onChange((prev) => setOptionalPrice(prev, 'maxPrice', price))
+            }}
           />
         </div>
         {version === '2.3.0' && (
@@ -401,7 +416,12 @@ function TariffRulesEditor({ value, version, tariffIndex, onChange }: TariffRule
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h4 className="text-sm font-medium">Tariff rules</h4>
-          <Button type="button" variant="outline" size="sm" onClick={() => onChange({ ...value, elements: [...value.elements, defaultElement()] })}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onChange((prev) => ({ ...prev, elements: [...prev.elements, defaultElement()] }))}
+          >
             <Plus className="h-4 w-4" />
             Add tariff rule
           </Button>
@@ -413,7 +433,7 @@ function TariffRulesEditor({ value, version, tariffIndex, onChange }: TariffRule
                 <h5 className="text-sm font-medium">Rule {elementIndex + 1}</h5>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="destructive"
                   size="icon"
                   aria-label={`Delete tariff rule ${elementIndex + 1}`}
                   onClick={() => removeElement(elementIndex)}
@@ -426,14 +446,19 @@ function TariffRulesEditor({ value, version, tariffIndex, onChange }: TariffRule
                 <RestrictionFields
                   value={element.restriction}
                   idPrefix={`tariff-${tariffIndex}-element-${elementIndex}`}
-                  onChange={(restriction) => setElement(elementIndex, { ...element, restriction })}
+                  onChange={(restriction) => updateElement(elementIndex, (prevElement) => ({ ...prevElement, restriction }))}
                 />
               </div>
               <PriceComponentsTable
                 idPrefix={`tariff-${tariffIndex}-element-${elementIndex}`}
                 value={element.components}
                 currency={value.currency}
-                onChange={(components) => setElement(elementIndex, { ...element, components })}
+                onChange={(next) =>
+                  updateElement(elementIndex, (prevElement) => ({
+                    ...prevElement,
+                    components: applyUpdater(next, prevElement.components),
+                  }))
+                }
               />
             </section>
           ))}

@@ -22,6 +22,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PriceComponentsTable } from './PriceComponentsTable'
+import { applyUpdater } from '@/lib/updater'
+import type { Updater } from '@/lib/updater'
 import type { ElementForm, SimForm, TariffForm } from '@/model/forms'
 
 function defaultElementIndex(tariff: TariffForm): number {
@@ -29,9 +31,13 @@ function defaultElementIndex(tariff: TariffForm): number {
   return unrestricted >= 0 ? unrestricted : 0
 }
 
+function restoreAt<T>(items: T[], index: number, item: T): T[] {
+  return [...items.slice(0, index), item, ...items.slice(index)]
+}
+
 export interface TariffSetupProps {
   value: SimForm
-  onChange(form: SimForm): void
+  onChange(next: Updater<SimForm>): void
   onOpenAdvancedTariffs(): void
 }
 
@@ -39,17 +45,19 @@ export function TariffSetup({ value, onChange, onOpenAdvancedTariffs }: TariffSe
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const primaryTariff = value.tariffs[0]
 
-  const setPrimaryTariff = (tariff: TariffForm) => {
-    onChange({ ...value, tariffs: value.tariffs.map((existing, index) => (index === 0 ? tariff : existing)) })
-  }
+  const updatePrimaryTariff = (next: Updater<TariffForm>) =>
+    onChange((prev) => ({
+      ...prev,
+      tariffs: prev.tariffs.map((existing, index) => (index === 0 ? applyUpdater(next, existing) : existing)),
+    }))
 
   const removePrimaryTariff = () => {
     if (!primaryTariff) return
-    onChange({ ...value, tariffs: value.tariffs.slice(1) })
+    onChange((prev) => ({ ...prev, tariffs: prev.tariffs.filter((_, index) => index !== 0) }))
     toast('Tariff deleted', {
       action: {
         label: 'Undo',
-        onClick: () => onChange({ ...value, tariffs: [primaryTariff, ...value.tariffs.slice(1)] }),
+        onClick: () => onChange((prev) => ({ ...prev, tariffs: restoreAt(prev.tariffs, 0, primaryTariff) })),
       },
     })
   }
@@ -78,12 +86,16 @@ export function TariffSetup({ value, onChange, onOpenAdvancedTariffs }: TariffSe
     primaryTariff.elements.length > 1 ||
     Boolean(primaryTariff.elements[elementIndex]?.restriction)
 
-  const setDefaultElement = (nextElement: ElementForm) => {
-    const elements = primaryTariff.elements.length
-      ? primaryTariff.elements.map((existing, index) => (index === elementIndex ? nextElement : existing))
-      : [nextElement]
-    setPrimaryTariff({ ...primaryTariff, elements })
-  }
+  const updateDefaultElement = (next: Updater<ElementForm>) =>
+    updatePrimaryTariff((prevTariff) => {
+      const index = defaultElementIndex(prevTariff)
+      const elements = prevTariff.elements.length
+        ? prevTariff.elements.map((existing, currentIndex) =>
+            currentIndex === index ? applyUpdater(next, existing) : existing,
+          )
+        : [applyUpdater(next, { components: [] })]
+      return { ...prevTariff, elements }
+    })
 
   return (
     <>
@@ -117,7 +129,10 @@ export function TariffSetup({ value, onChange, onOpenAdvancedTariffs }: TariffSe
             <Input
               id="primary-tariff-name"
               value={primaryTariff.id}
-              onChange={(event) => setPrimaryTariff({ ...primaryTariff, id: event.currentTarget.value })}
+              onChange={(event) => {
+                const id = event.currentTarget.value
+                updatePrimaryTariff((prev) => ({ ...prev, id }))
+              }}
             />
           </div>
 
@@ -132,7 +147,12 @@ export function TariffSetup({ value, onChange, onOpenAdvancedTariffs }: TariffSe
               idPrefix="primary-tariff-components"
               value={element.components}
               currency={primaryTariff.currency || value.currency}
-              onChange={(components) => setDefaultElement({ ...element, components })}
+              onChange={(next) =>
+                updateDefaultElement((prevElement) => ({
+                  ...prevElement,
+                  components: applyUpdater(next, prevElement.components),
+                }))
+              }
             />
           </div>
 

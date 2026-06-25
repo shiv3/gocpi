@@ -12,6 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { NativeSelect } from '@/components/controls/NativeSelect'
+import type { Updater } from '@/lib/updater'
 import { billingUnitHuman, priceUnitLabel } from '@/lib/units'
 import type { ComponentForm, DimType } from '@/model/forms'
 
@@ -27,12 +28,12 @@ export interface PriceComponentsTableProps {
   value: ComponentForm[]
   currency: string
   idPrefix?: string
-  onChange(components: ComponentForm[]): void
+  onChange(next: Updater<ComponentForm[]>): void
 }
 
 export function PriceComponentsTable({ value, currency, idPrefix = 'price-components', onChange }: PriceComponentsTableProps) {
   const setComponent = (index: number, component: ComponentForm) => {
-    onChange(value.map((existing, currentIndex) => (currentIndex === index ? component : existing)))
+    onChange((prev) => prev.map((existing, currentIndex) => (currentIndex === index ? component : existing)))
   }
 
   const setVat = (index: number, vat: string) => {
@@ -48,12 +49,11 @@ export function PriceComponentsTable({ value, currency, idPrefix = 'price-compon
   const removeComponent = (index: number) => {
     const removed = value[index]
     if (!removed) return
-    const next = value.filter((_, currentIndex) => currentIndex !== index)
-    onChange(next)
+    onChange((prev) => prev.filter((_, currentIndex) => currentIndex !== index))
     toast('Price component deleted', {
       action: {
         label: 'Undo',
-        onClick: () => onChange(restoreAt(next, index, removed)),
+        onClick: () => onChange((prev) => restoreAt(prev, index, removed)),
       },
     })
   }
@@ -152,7 +152,7 @@ export function PriceComponentsTable({ value, currency, idPrefix = 'price-compon
           })}
         </TableBody>
       </Table>
-      <Button type="button" variant="outline" size="sm" onClick={() => onChange([...value, defaultComponent()])}>
+      <Button type="button" variant="outline" size="sm" onClick={() => onChange((prev) => [...prev, defaultComponent()])}>
         <Plus className="h-4 w-4" />
         Add price component
       </Button>
