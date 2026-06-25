@@ -81,6 +81,18 @@ function renderStrictApp() {
   )
 }
 
+function switchToForm() {
+  fireEvent.click(screen.getByRole('tab', { name: 'Form' }))
+}
+
+function switchToJson() {
+  fireEvent.click(screen.getByRole('tab', { name: 'JSON' }))
+}
+
+function openAdvancedSection(name: RegExp | string) {
+  fireEvent.click(screen.getByRole('button', { name }))
+}
+
 function persistedState(): PersistedState {
   return {
     v: 1,
@@ -135,10 +147,14 @@ describe('App orchestration', () => {
     renderApp()
 
     expect(screen.getByLabelText(/version/i)).toHaveValue('2.3.0')
-    expect(screen.getByLabelText(/tariff source/i)).toHaveValue('override')
     expect(screen.getByLabelText(/time zone/i)).toHaveValue('Asia/Tokyo')
-    expect(screen.getByLabelText(/money decimals/i)).toHaveValue('3')
     expect(screen.getByLabelText('JSON')).toHaveValue(state.rawJson)
+
+    switchToForm()
+    openAdvancedSection(/tariff source/i)
+    expect(screen.getByRole('combobox', { name: /tariff source/i })).toHaveValue('override')
+    openAdvancedSection(/calculation precision/i)
+    expect(screen.getByLabelText(/money decimals/i)).toHaveValue('3')
   })
 
   it('persists simulator state changes into a replaceState hash', async () => {
@@ -178,6 +194,8 @@ describe('App orchestration', () => {
 
     expect(replaceStateSpy).not.toHaveBeenCalled()
 
+    switchToForm()
+    openAdvancedSection(/calculation precision/i)
     fireEvent.change(screen.getByLabelText(/money decimals/i), { target: { value: '4' } })
     await advanceDebounce()
 
@@ -186,6 +204,7 @@ describe('App orchestration', () => {
     expect(typeof url).toBe('string')
     expect(decodeState(url as string)).toMatchObject({
       v: 1,
+      view: 'form',
       currencyPrecision: 4,
       rawJson: state.rawJson,
     })
@@ -255,7 +274,7 @@ describe('App orchestration', () => {
     const rawJson =
       '{"country_code":"NL","party_id":"EXA","id":"raw-series-cdr","start_date_time":"2026-06-24T09:00:00Z","end_date_time":"2026-06-24T10:00:00Z","currency":"EUR","tariffs":[{"id":"raw","currency":"EUR","elements":[{"price_components":[{"type":"ENERGY","price":"11","step_size":1}]}]}],"charging_periods":[{"start_date_time":"2026-06-24T09:00:00Z","tariff_id":"raw","dimensions":[{"type":"ENERGY","volume":"1"}]}],"total_cost":{"excl_vat":"11"},"total_energy":"1","total_time":"0","last_updated":"2026-06-24T09:00:00Z"}'
 
-    fireEvent.click(screen.getByRole('button', { name: 'JSON' }))
+    switchToJson()
     fireEvent.change(screen.getByLabelText('JSON'), { target: { value: rawJson } })
     await advanceDebounce(450)
 
@@ -280,12 +299,11 @@ describe('App orchestration', () => {
     calculateWithTariffMock.mockClear()
     verifyWithTariffMock.mockClear()
 
-    fireEvent.change(screen.getByLabelText(/tariff source/i), { target: { value: 'override' } })
+    openAdvancedSection(/tariff source/i)
+    fireEvent.change(screen.getByRole('combobox', { name: /tariff source/i }), { target: { value: 'override' } })
 
-    expect(screen.getByRole('heading', { name: /override tariff/i })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /add tariff/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /remove tariff/i })).not.toBeInTheDocument()
-    expect(screen.queryByLabelText(/tariff_id/i)).not.toBeInTheDocument()
+    expect(screen.getByText(/tariff setup/i)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/^tariff$/i)).not.toBeInTheDocument()
 
     await advanceDebounce()
 
@@ -333,7 +351,7 @@ describe('App orchestration', () => {
     calculateMock.mockClear()
     verifyMock.mockClear()
 
-    fireEvent.change(screen.getByLabelText(/time zone/i), { target: { value: 'Asia/Tokyo' } })
+    fireEvent.change(screen.getAllByLabelText(/time zone/i)[0], { target: { value: 'Asia/Tokyo' } })
     await advanceDebounce()
 
     expect(calculateMock).toHaveBeenCalledTimes(1)
@@ -341,7 +359,7 @@ describe('App orchestration', () => {
 
     calculateMock.mockClear()
     verifyMock.mockClear()
-    fireEvent.change(screen.getByLabelText(/time zone/i), { target: { value: '' } })
+    fireEvent.change(screen.getAllByLabelText(/time zone/i)[0], { target: { value: '' } })
     await advanceDebounce()
 
     expect(calculateMock).toHaveBeenCalledTimes(1)
@@ -349,6 +367,7 @@ describe('App orchestration', () => {
 
     calculateMock.mockClear()
     verifyMock.mockClear()
+    openAdvancedSection(/calculation precision/i)
     fireEvent.change(screen.getByLabelText(/money decimals/i), { target: { value: '3' } })
     await advanceDebounce()
 
@@ -367,14 +386,18 @@ describe('App orchestration', () => {
 
     expect(calculateMock).toHaveBeenCalledTimes(1)
     expect(latestCalculateCall()[0]).toBe('2.3.0')
+    openAdvancedSection(/tariffs & rules/i)
     expect(screen.getByLabelText(/tax included/i)).toBeInTheDocument()
 
     calculateMock.mockClear()
     verifyMock.mockClear()
     fireEvent.change(screen.getByLabelText(/preset/i), { target: { value: 'time-of-day' } })
 
-    expect(screen.getByLabelText(/tariff id/i)).toHaveValue('tod')
-    expect(screen.getByLabelText(/start_time/i)).toHaveValue('09:00')
+    expect(screen.getAllByLabelText(/tariff name/i)[0]).toHaveValue('tod')
+    const restrictionStart = screen
+      .getAllByLabelText(/^start time$/i)
+      .find((input) => input instanceof HTMLInputElement && input.type === 'time')
+    expect(restrictionStart).toHaveValue('09:00')
 
     await advanceDebounce()
 
@@ -397,7 +420,7 @@ describe('App orchestration', () => {
     calculateMock.mockClear()
     verifyMock.mockClear()
 
-    fireEvent.change(screen.getByLabelText(/country_code/i), { target: { value: 'DE' } })
+    fireEvent.change(screen.getByLabelText(/country/i), { target: { value: 'DE' } })
     await advanceDebounce()
 
     expect(calculateMock).toHaveBeenCalledTimes(1)
@@ -406,7 +429,7 @@ describe('App orchestration', () => {
     expect(screen.queryByText('Cost charts')).not.toBeInTheDocument()
     expect(screen.queryByText('Cost breakdown')).not.toBeInTheDocument()
     expect(screen.queryByText('Verify verdict')).not.toBeInTheDocument()
-    expect(screen.getByText(/no calculation yet/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/no calculation yet/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/no verification yet/i)).toBeInTheDocument()
   })
 
@@ -419,7 +442,7 @@ describe('App orchestration', () => {
     const rawJson =
       '{"country_code":"NL","party_id":"EXA","id":"raw-cdr","start_date_time":"2026-06-24T09:00:00Z","end_date_time":"2026-06-24T10:00:00Z","currency":"JPY","tariffs":[{"id":"raw","currency":"JPY","elements":[{"price_components":[{"type":"ENERGY","price":"11","step_size":1}]}]}],"charging_periods":[{"start_date_time":"2026-06-24T09:00:00Z","tariff_id":"raw","dimensions":[{"type":"ENERGY","volume":"1"}]}],"total_cost":{"excl_vat":"11"},"total_energy":"1","total_time":"0","last_updated":"2026-06-24T09:00:00Z"}'
 
-    fireEvent.click(screen.getByRole('button', { name: 'JSON' }))
+    switchToJson()
     fireEvent.change(screen.getByLabelText('JSON'), { target: { value: rawJson } })
     await advanceDebounce()
 
@@ -443,7 +466,8 @@ describe('App orchestration', () => {
     calculateMock.mockClear()
     verifyMock.mockClear()
 
-    fireEvent.change(screen.getByLabelText(/^total_cost$/i), { target: { value: '' } })
+    openAdvancedSection(/embedded totals/i)
+    fireEvent.change(screen.getByLabelText(/^total cost$/i), { target: { value: '' } })
     await advanceDebounce()
 
     expect(verifyMock).toHaveBeenCalledTimes(1)
@@ -460,18 +484,18 @@ describe('App orchestration', () => {
     const rawJson =
       '{"country_code":"NL","party_id":"EXA","id":"raw-cdr","start_date_time":"2026-06-24T09:00:00Z","end_date_time":"2026-06-24T10:00:00Z","currency":"USD","tariffs":[{"id":"raw","currency":"USD","elements":[{"price_components":[{"type":"ENERGY","price":"11","step_size":1}]}]}],"charging_periods":[{"start_date_time":"2026-06-24T09:00:00Z","tariff_id":"raw","dimensions":[{"type":"ENERGY","volume":"1"}]}],"total_cost":{"excl_vat":"11"},"total_energy":"1","total_time":"0","last_updated":"2026-06-24T09:00:00Z"}'
 
-    fireEvent.click(screen.getByRole('button', { name: 'JSON' }))
+    switchToJson()
     fireEvent.change(screen.getByLabelText('JSON'), { target: { value: rawJson } })
-    fireEvent.click(screen.getByRole('button', { name: 'Form' }))
+    switchToForm()
 
     expect(screen.getAllByLabelText(/^currency$/i)[0]).toHaveValue('USD')
 
-    fireEvent.click(screen.getByRole('button', { name: 'JSON' }))
+    switchToJson()
     fireEvent.change(screen.getByLabelText('JSON'), { target: { value: '[' } })
 
     expect(screen.getByRole('alert')).toHaveTextContent(/unexpected end of json input/i)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Form' }))
+    switchToForm()
 
     expect(screen.getAllByLabelText(/^currency$/i)[0]).toHaveValue('USD')
   })
