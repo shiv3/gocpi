@@ -98,6 +98,36 @@ export const presets: Record<string, SimForm> = {
     ],
     embedded: { totalCost: '1.60', totalEnergy: '1.4', totalTime: '0.5' },
   },
+  'time-of-day': {
+    currency: 'EUR',
+    countryCode: 'NL',
+    start: '2026-06-24T08:00:00Z',
+    end: '2026-06-24T11:00:00Z',
+    tariffs: [
+      {
+        id: 'tod',
+        currency: 'EUR',
+        taxIncluded: 'NO',
+        elements: [
+          {
+            restriction: { startTime: '09:00', endTime: '18:00' },
+            components: [{ type: 'ENERGY', price: '0.40', stepSize: 1 }],
+          },
+          {
+            components: [{ type: 'ENERGY', price: '0.20', stepSize: 1 }],
+          },
+        ],
+      },
+    ],
+    periods: [
+      {
+        start: '2026-06-24T08:30:00Z',
+        tariffId: 'tod',
+        dimensions: [{ type: 'ENERGY', volume: '10' }],
+      },
+    ],
+    embedded: { totalEnergy: '10' },
+  },
 }
 
 export const defaultPreset = 'single-energy'

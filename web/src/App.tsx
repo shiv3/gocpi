@@ -8,7 +8,7 @@ import { CostBreakdown } from './components/result/CostBreakdown'
 import { CostChart } from './components/result/CostChart'
 import { VerdictView } from './components/result/VerdictView'
 import { fromLocalInput, toLocalInput } from './lib/datetime'
-import { COMMON_COUNTRY_CODES, COMMON_CURRENCIES, optionsWithCurrent } from './lib/options'
+import { COMMON_COUNTRY_CODES, COMMON_CURRENCIES, TIME_ZONES, optionsWithCurrent } from './lib/options'
 import { deserialize, reportMoneyToCdr, serialize } from './lib/serialize'
 import type { ElementForm, PeriodForm, SimForm, TariffForm } from './model/forms'
 import type { Report, Verdict } from './model/dto'
@@ -18,7 +18,7 @@ import type { EngineOptions, Version } from './wasm/api'
 
 type View = 'form' | 'json'
 
-const engineOptions: EngineOptions = {}
+const MONEY_DECIMALS = [2, 3, 4] as const
 
 function cloneForm(form: SimForm): SimForm {
   return JSON.parse(JSON.stringify(form)) as SimForm
@@ -51,6 +51,8 @@ function defaultPeriod(start: string, tariffId?: string): PeriodForm {
 
 export function App() {
   const [version, setVersion] = useState<Version>('2.2.1')
+  const [timeZone, setTimeZone] = useState<string>('')
+  const [currencyPrecision, setCurrencyPrecision] = useState<number>(2)
   const [presetKey, setPresetKey] = useState(defaultPreset)
   const [form, setForm] = useState<SimForm>(() => cloneForm(presets[defaultPreset]))
   const [rawJson, setRawJson] = useState<string | null>(null)
@@ -132,6 +134,10 @@ export function App() {
         setResultError(null)
 
         try {
+          const engineOptions: EngineOptions = {
+            ...(currencyPrecision >= 0 ? { currencyPrecision } : {}),
+            ...(timeZone ? { timeZone } : {}),
+          }
           const input = rawJson != null ? rawJson : serialize(form, version)
           const calculation = await calculate(version, input, engineOptions)
           if (!isLatest()) return
@@ -193,7 +199,7 @@ export function App() {
         requestIdRef.current += 1
       }
     }
-  }, [form, rawJson, version])
+  }, [currencyPrecision, form, rawJson, timeZone, version])
 
   const setTariff = (index: number, tariff: TariffForm) => {
     patchForm({ tariffs: form.tariffs.map((existing, currentIndex) => (currentIndex === index ? tariff : existing)) })
@@ -231,6 +237,27 @@ export function App() {
               {Object.keys(presets).map((key) => (
                 <option key={key} value={key}>
                   {key}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            time zone
+            <select value={timeZone} onChange={(event) => setTimeZone(event.currentTarget.value)}>
+              <option value="">(infer from country)</option>
+              {TIME_ZONES.map((zone) => (
+                <option key={zone} value={zone}>
+                  {zone}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            money decimals
+            <select value={currencyPrecision} onChange={(event) => setCurrencyPrecision(Number(event.currentTarget.value))}>
+              {MONEY_DECIMALS.map((decimals) => (
+                <option key={decimals} value={decimals}>
+                  {decimals}
                 </option>
               ))}
             </select>
