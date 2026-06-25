@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { TariffEditor } from './TariffEditor'
-import type { TariffForm } from '../../model/forms'
+import type { TariffForm, TaxIncluded } from '../../model/forms'
 
 const tariff: TariffForm = {
   id: 'fast',
@@ -45,6 +45,16 @@ describe('TariffEditor', () => {
     rerender(<TariffEditor value={tariff} version="2.2.1" onChange={vi.fn()} />)
 
     expect(screen.queryByLabelText(/tax included/i)).not.toBeInTheDocument()
+  })
+
+  it.each<TaxIncluded>(['YES', 'NO', 'N/A'])('emits tax_included %s for OCPI 2.3.0', (taxIncluded) => {
+    const onChange = vi.fn()
+    const value: TariffForm = { ...tariff, taxIncluded: taxIncluded === 'NO' ? 'YES' : 'NO' }
+    render(<TariffEditor value={value} version="2.3.0" onChange={onChange} />)
+
+    fireEvent.change(screen.getByLabelText(/tax included/i), { target: { value: taxIncluded } })
+
+    expect(onChange).toHaveBeenCalledWith({ ...value, taxIncluded })
   })
 
   it('adds a default element', () => {

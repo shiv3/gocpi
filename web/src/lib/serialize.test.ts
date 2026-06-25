@@ -316,6 +316,109 @@ describe('serialize', () => {
   )('deserialize(serialize(%s, %s)) round-trips meaningful fields', (_name, preset, version) => {
     expect(deserialize(serialize(preset, version), version)).toEqual(expectedRoundTrip(preset))
   })
+
+  it('deserialize coerces imported numeric money, volume, price, and vat values to strings', () => {
+    const form = deserialize(
+      {
+        currency: 'EUR',
+        country_code: 'NL',
+        start_date_time: base.start,
+        end_date_time: base.end,
+        tariffs: [
+          {
+            id: 'numeric',
+            currency: 'EUR',
+            elements: [{ price_components: [{ type: 'ENERGY', price: 0.3, step_size: 1000, vat: 21 }] }],
+          },
+        ],
+        charging_periods: [
+          {
+            start_date_time: base.start,
+            tariff_id: 'numeric',
+            dimensions: [{ type: 'ENERGY', volume: 2.5 }],
+          },
+        ],
+        total_cost: { excl_vat: 3 },
+        total_energy: 2.5,
+        total_time: 0,
+      },
+      '2.2.1',
+    )
+
+    expect(form.tariffs[0].elements[0].components[0]).toEqual({
+      type: 'ENERGY',
+      price: '0.3',
+      stepSize: 1000,
+      vat: '21',
+    })
+    expect(form.periods[0].dimensions[0]).toEqual({ type: 'ENERGY', volume: '2.5' })
+    expect(form.embedded.totalCost).toBe('3')
+    expect(form.embedded.totalEnergy).toBe('2.5')
+    expect(form.embedded.totalTime).toBeUndefined()
+  })
+
+  it('deserialize returns empty arrays when imported JSON omits tariff and charging period arrays', () => {
+    const form = deserialize({ currency: 'EUR', country_code: 'NL' }, '2.2.1')
+
+    expect(form.tariffs).toEqual([])
+    expect(form.periods).toEqual([])
+    expect(form.currency).toBe('EUR')
+  })
+
+  it('deserialize falls back to the first tariff currency when top-level currency is absent', () => {
+    const form = deserialize(
+      {
+        country_code: 'NL',
+        tariffs: [{ id: 'usd', currency: 'USD', elements: [] }],
+        charging_periods: [],
+      },
+      '2.2.1',
+    )
+
+    expect(form.currency).toBe('USD')
+    expect(form.tariffs[0].currency).toBe('USD')
+  })
+
+  it('deserialize filters unknown charging-period dimension types from imported JSON', () => {
+    const form = deserialize(
+      {
+        currency: 'EUR',
+        country_code: 'NL',
+        charging_periods: [
+          {
+            start_date_time: base.start,
+            dimensions: [
+              { type: 'ENERGY', volume: '1' },
+              { type: 'CURRENT', volume: '32' },
+              { type: 'FLAT', volume: '1' },
+            ],
+          },
+        ],
+      },
+      '2.2.1',
+    )
+
+    expect(form.periods[0].dimensions).toEqual([{ type: 'ENERGY', volume: '1' }])
+  })
+
+  it.each([
+    ['2.2.1', { excl_vat: '4.20' }, { excl_vat: '1.00' }],
+    ['2.3.0', { before_taxes: '4.20' }, { before_taxes: '1.00' }],
+  ] as const)('deserialize reads imported %s money fields', (version, totalCost, minPrice) => {
+    const form = deserialize(
+      {
+        currency: 'EUR',
+        country_code: 'NL',
+        total_cost: totalCost,
+        tariffs: [{ id: 'money', currency: 'EUR', min_price: minPrice, elements: [] }],
+        charging_periods: [],
+      },
+      version,
+    )
+
+    expect(form.embedded.totalCost).toBe('4.20')
+    expect(form.tariffs[0].minPrice).toBe('1.00')
+  })
 })
 
 describe('reportMoneyToCdr', () => {

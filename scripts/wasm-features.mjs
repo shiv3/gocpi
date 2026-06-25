@@ -369,6 +369,64 @@ function verifyMismatch(version) {
   assert(verdict.mismatches.some((m) => m.field === 'total_cost'), `verify mismatch total_cost entry ${version}`)
 }
 
+function vatTotalCost(version) {
+  return version === '2.2.1'
+    ? { excl_vat: '10.00', incl_vat: '12.00' }
+    : { before_taxes: '10.00', taxes: [{ name: 'VAT', amount: '2.00' }] }
+}
+
+function verifyVatOK(version) {
+  const cdr = baseCdr(version, {
+    totalCost: '10.00',
+    totalEnergy: '10',
+    tariffs: [
+      tariff(version, {
+        taxIncluded: 'NO',
+        elements: [{ price_components: [component('ENERGY', '1.00', 1, '20')] }],
+      }),
+    ],
+    periods: [period(start, [dim('ENERGY', '10')], 'a')],
+  })
+  cdr.total_cost = vatTotalCost(version)
+
+  const rep = calculate('verify VAT after-tax embedded total', version, cdr)
+  assertEq(rep.totalCost.beforeTaxes, '10.00', `verify VAT before tax ${version}`)
+  assertEq(rep.totalCost.afterTaxes, '12.00', `verify VAT after tax ${version}`)
+
+  const verdict = verify('verify VAT after-tax embedded total', version, cdr)
+  assertEq(verdict.status, 'OK', `verify VAT after-tax status ${version}`)
+  assertEq(verdict.mismatches.length, 0, `verify VAT after-tax mismatches ${version}`)
+
+  const beforeOnly = JSON.parse(JSON.stringify(cdr))
+  beforeOnly.total_cost = money(version, '10.00')
+  const beforeOnlyVerdict = verify('verify VAT before-tax-only embedded total', version, beforeOnly)
+  assertEq(beforeOnlyVerdict.status, 'NotVerifiable', `verify VAT before-tax-only status ${version}`)
+  assertEq(beforeOnlyVerdict.mismatches.length, 0, `verify VAT before-tax-only mismatches ${version}`)
+  assert(
+    beforeOnlyVerdict.warnings.some((w) => w.message.includes('total_cost after-tax total is not derivable')),
+    `verify VAT before-tax-only warning ${version}: ${JSON.stringify(beforeOnlyVerdict.warnings)}`,
+  )
+}
+
+function verifyReservationNotVerifiable(version) {
+  const cdr = baseCdr(version, {
+    totalCost: '3.00',
+    totalEnergy: '10',
+    tariffs: [tariff(version, { elements: [{ price_components: [component('ENERGY', '0.30')] }] })],
+  })
+  cdr.total_reservation_cost = money(version, '1.00')
+
+  const verdict = verify('verify reservation not computed', version, cdr)
+  assertEq(verdict.status, 'NotVerifiable', `verify reservation status ${version}`)
+  assertEq(verdict.mismatches.length, 0, `verify reservation mismatches ${version}`)
+  assertWarning(
+    verdict.warnings,
+    'WarnReservationNotComputed',
+    `verify reservation warning ${version}`,
+    (w) => w.message.includes('total_reservation_cost'),
+  )
+}
+
 function mixedStepSize(version) {
   const cdr = baseCdr(version, {
     totalCost: '0.42',
@@ -566,6 +624,8 @@ for (const version of versions) {
   kwhRestriction(version)
   verifyOK(version)
   verifyMismatch(version)
+  verifyVatOK(version)
+  verifyReservationNotVerifiable(version)
   mixedStepSize(version)
   unusedTariff(version)
   currencyPrecision(version)

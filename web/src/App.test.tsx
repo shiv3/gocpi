@@ -205,6 +205,54 @@ describe('App orchestration', () => {
     expect(verifyMock.mock.calls[0][1]).toBe(rawJson)
   })
 
+  it('prefills missing form-mode total_cost from the calculated rich money before verify', async () => {
+    calculateMock.mockResolvedValue({
+      ok: true,
+      error: null,
+      report: {
+        ...report(),
+        totalCost: { beforeTaxes: '3.00', afterTaxes: '3.63', taxes: [] },
+      },
+    })
+
+    renderApp()
+    await advanceDebounce()
+    calculateMock.mockClear()
+    verifyMock.mockClear()
+
+    fireEvent.change(screen.getByLabelText(/^total_cost$/i), { target: { value: '' } })
+    await advanceDebounce()
+
+    expect(verifyMock).toHaveBeenCalledTimes(1)
+    expect(verifyMock.mock.calls[0][0]).toBe('2.2.1')
+    expect(verifyMock.mock.calls[0][1]).toMatchObject({
+      total_cost: { excl_vat: '3.00', incl_vat: '3.63' },
+    })
+  })
+
+  it('syncs valid JSON edits back into the form and keeps invalid JSON as a parse error', async () => {
+    renderApp()
+    await advanceDebounce()
+
+    const rawJson =
+      '{"country_code":"NL","party_id":"EXA","id":"raw-cdr","start_date_time":"2026-06-24T09:00:00Z","end_date_time":"2026-06-24T10:00:00Z","currency":"USD","tariffs":[{"id":"raw","currency":"USD","elements":[{"price_components":[{"type":"ENERGY","price":"11","step_size":1}]}]}],"charging_periods":[{"start_date_time":"2026-06-24T09:00:00Z","tariff_id":"raw","dimensions":[{"type":"ENERGY","volume":"1"}]}],"total_cost":{"excl_vat":"11"},"total_energy":"1","total_time":"0","last_updated":"2026-06-24T09:00:00Z"}'
+
+    fireEvent.click(screen.getByRole('button', { name: 'JSON' }))
+    fireEvent.change(screen.getByLabelText('JSON'), { target: { value: rawJson } })
+    fireEvent.click(screen.getByRole('button', { name: 'Form' }))
+
+    expect(screen.getAllByLabelText(/^currency$/i)[0]).toHaveValue('USD')
+
+    fireEvent.click(screen.getByRole('button', { name: 'JSON' }))
+    fireEvent.change(screen.getByLabelText('JSON'), { target: { value: '[' } })
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/unexpected end of json input/i)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Form' }))
+
+    expect(screen.getAllByLabelText(/^currency$/i)[0]).toHaveValue('USD')
+  })
+
   it('shows the computing indicator while a run is in flight and clears it after completion', async () => {
     let resolveCalculation: (response: CalculateResponse) => void = () => {}
     const pendingCalculation = new Promise<CalculateResponse>((resolve) => {
