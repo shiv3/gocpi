@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { StrictMode } from 'react'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { App } from './App'
 import { serializeTariff } from './lib/serialize'
@@ -72,6 +73,14 @@ function renderApp() {
   render(<App />)
 }
 
+function renderStrictApp() {
+  render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+}
+
 function persistedState(): PersistedState {
   return {
     v: 1,
@@ -135,7 +144,7 @@ describe('App orchestration', () => {
   it('persists simulator state changes into a replaceState hash', async () => {
     const replaceStateSpy = vi.spyOn(window.history, 'replaceState')
 
-    renderApp()
+    renderStrictApp()
     fireEvent.change(screen.getByLabelText(/version/i), { target: { value: '2.3.0' } })
 
     await advanceDebounce()
@@ -157,6 +166,43 @@ describe('App orchestration', () => {
       presetKey: defaultPreset,
     })
     expect(decoded?.form).toEqual(presets[defaultPreset])
+  })
+
+  it('does not clobber the mounted share hash until the user changes state', async () => {
+    const state = persistedState()
+    window.location.hash = `#${encodeState(state)}`
+    const replaceStateSpy = vi.spyOn(window.history, 'replaceState')
+
+    renderStrictApp()
+    await advanceDebounce()
+
+    expect(replaceStateSpy).not.toHaveBeenCalled()
+
+    fireEvent.change(screen.getByLabelText(/money decimals/i), { target: { value: '4' } })
+    await advanceDebounce()
+
+    expect(replaceStateSpy).toHaveBeenCalledTimes(1)
+    const url = replaceStateSpy.mock.calls[0]?.[2]
+    expect(typeof url).toBe('string')
+    expect(decodeState(url as string)).toMatchObject({
+      v: 1,
+      currencyPrecision: 4,
+      rawJson: state.rawJson,
+    })
+  })
+
+  it('ignores replaceState failures during URL persistence', async () => {
+    const replaceStateSpy = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {
+      throw new DOMException('URL too long', 'SecurityError')
+    })
+
+    renderApp()
+    fireEvent.change(screen.getByLabelText(/version/i), { target: { value: '2.3.0' } })
+
+    await advanceDebounce()
+
+    expect(replaceStateSpy).toHaveBeenCalled()
+    expect(screen.getByLabelText(/version/i)).toHaveValue('2.3.0')
   })
 
   it('runs calculate and verify on mount and renders report and verdict results', async () => {
@@ -198,6 +244,28 @@ describe('App orchestration', () => {
 
     expect(calculateMock.mock.calls.length).toBeGreaterThanOrEqual(1)
     expect(calculateMock.mock.calls[0][1]).toMatchObject({ end_date_time: '2026-06-24T10:00:00Z' })
+  })
+
+  it('recomputes the time series from the raw JSON CDR when JSON changes', async () => {
+    renderApp()
+    await advanceDebounce(450)
+    calculateMock.mockClear()
+    verifyMock.mockClear()
+
+    const rawJson =
+      '{"country_code":"NL","party_id":"EXA","id":"raw-series-cdr","start_date_time":"2026-06-24T09:00:00Z","end_date_time":"2026-06-24T10:00:00Z","currency":"EUR","tariffs":[{"id":"raw","currency":"EUR","elements":[{"price_components":[{"type":"ENERGY","price":"11","step_size":1}]}]}],"charging_periods":[{"start_date_time":"2026-06-24T09:00:00Z","tariff_id":"raw","dimensions":[{"type":"ENERGY","volume":"1"}]}],"total_cost":{"excl_vat":"11"},"total_energy":"1","total_time":"0","last_updated":"2026-06-24T09:00:00Z"}'
+
+    fireEvent.click(screen.getByRole('button', { name: 'JSON' }))
+    fireEvent.change(screen.getByLabelText('JSON'), { target: { value: rawJson } })
+    await advanceDebounce(450)
+
+    const seriesInputs = calculateMock.mock.calls
+      .map((call) => call[1])
+      .filter((input): input is Record<string, unknown> => typeof input === 'object' && input !== null)
+
+    expect(seriesInputs.length).toBeGreaterThan(0)
+    expect(seriesInputs.every((input) => input.id === 'raw-series-cdr')).toBe(true)
+    expect(seriesInputs.map((input) => input.end_date_time)).toContain('2026-06-24T10:00:00Z')
   })
 
   it('switches to override mode and calls the explicit-tariff engine path with the first tariff', async () => {

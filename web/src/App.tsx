@@ -85,6 +85,9 @@ export function App() {
   const [runNonce, setRunNonce] = useState(0)
   const requestIdRef = useRef(0)
   const timeSeriesRequestIdRef = useRef(0)
+  const skipFirstPersistRef = useRef(true)
+  const initialPersistEncodedRef = useRef<string | null>(null)
+  const hasPersistableChangeRef = useRef(false)
 
   const serializedText = useMemo(() => JSON.stringify(serialize(form, version), null, 2), [form, version])
   const tariffIds = useMemo(() => form.tariffs.map((tariff) => tariff.id).filter(Boolean), [form.tariffs])
@@ -157,23 +160,39 @@ export function App() {
       return
     }
 
+    const encodedState = encodeState({
+      v: 1,
+      version,
+      mode,
+      timeZone,
+      currencyPrecision,
+      view,
+      form,
+      rawJson,
+      presetKey,
+      timeSeriesUnit,
+    })
+
+    if (skipFirstPersistRef.current) {
+      skipFirstPersistRef.current = false
+      initialPersistEncodedRef.current = encodedState
+      return
+    }
+
+    if (encodedState !== initialPersistEncodedRef.current) {
+      hasPersistableChangeRef.current = true
+    }
+
+    if (!hasPersistableChangeRef.current) {
+      return
+    }
+
     const timeout = window.setTimeout(() => {
-      window.history.replaceState(
-        null,
-        '',
-        `#${encodeState({
-          v: 1,
-          version,
-          mode,
-          timeZone,
-          currencyPrecision,
-          view,
-          form,
-          rawJson,
-          presetKey,
-          timeSeriesUnit,
-        })}`,
-      )
+      try {
+        window.history.replaceState(null, '', `#${encodedState}`)
+      } catch {
+        // URL persistence is best-effort; oversized or blocked history writes should not break the simulator.
+      }
     }, 300)
 
     return () => window.clearTimeout(timeout)
@@ -298,12 +317,19 @@ export function App() {
             ...(currencyPrecision >= 0 ? { currencyPrecision } : {}),
             ...(timeZone ? { timeZone } : {}),
           }
+          const input = rawJson != null ? JSON.parse(rawJson) : serialize(form, version)
+          if (input == null || typeof input !== 'object' || Array.isArray(input)) {
+            throw new Error('CDR input must be a JSON object')
+          }
+          const overrideTariff =
+            mode === 'override' ? serializeTariff(form.tariffs[0], version, form.countryCode, form.start) : null
           const nextSeries = await computeCostSeries({
-            form,
+            cdr: input as Record<string, unknown>,
             version,
             mode,
             unitMinutes: timeSeriesUnit,
             engineOptions,
+            overrideTariff,
           })
 
           if (isLatest()) {
@@ -323,7 +349,7 @@ export function App() {
         timeSeriesRequestIdRef.current += 1
       }
     }
-  }, [currencyPrecision, form, mode, timeSeriesUnit, timeZone, version])
+  }, [currencyPrecision, form, mode, rawJson, timeSeriesUnit, timeZone, version])
 
   const setTariff = (index: number, tariff: TariffForm) => {
     patchForm({ tariffs: form.tariffs.map((existing, currentIndex) => (currentIndex === index ? tariff : existing)) })
