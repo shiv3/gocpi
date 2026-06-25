@@ -63,6 +63,7 @@ export function App() {
   const [resultError, setResultError] = useState<string | null>(null)
   const [isComputing, setIsComputing] = useState(false)
   const [view, setView] = useState<View>('form')
+  const [runNonce, setRunNonce] = useState(0)
   const requestIdRef = useRef(0)
 
   const serializedText = useMemo(() => JSON.stringify(serialize(form, version), null, 2), [form, version])
@@ -199,7 +200,7 @@ export function App() {
         requestIdRef.current += 1
       }
     }
-  }, [currencyPrecision, form, rawJson, timeZone, version])
+  }, [currencyPrecision, form, rawJson, runNonce, timeZone, version])
 
   const setTariff = (index: number, tariff: TariffForm) => {
     patchForm({ tariffs: form.tariffs.map((existing, currentIndex) => (currentIndex === index ? tariff : existing)) })
@@ -270,6 +271,14 @@ export function App() {
               JSON
             </button>
           </div>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => setRunNonce((nonce) => nonce + 1)}
+            disabled={isComputing}
+          >
+            {isComputing ? 'Calculating…' : 'Calculate'}
+          </button>
         </div>
       </header>
 
