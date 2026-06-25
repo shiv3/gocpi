@@ -21,7 +21,7 @@ const report: Report = {
 }
 
 describe('CostAnalysis', () => {
-  it('renders chart sections after opening', () => {
+  it('renders chart sections (open by default)', () => {
     render(
       <CostAnalysis
         report={report}
@@ -32,11 +32,23 @@ describe('CostAnalysis', () => {
       />,
     )
 
-    expect(screen.queryByText('Cost charts')).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Cost analysis' }))
-
+    // Cost analysis is open by default so the charts are visible without a click.
     expect(screen.getByText('Cost charts')).toBeInTheDocument()
     expect(screen.getByText('Cumulative cost over time')).toBeInTheDocument()
+  })
+
+  it('can be collapsed', () => {
+    render(
+      <CostAnalysis
+        report={report}
+        series={[{ t: '2026-06-24T09:10:00Z', label: '09:10', cost: 1.25 }]}
+        unitMinutes={10}
+        onUnitChange={() => {}}
+        currency="EUR"
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cost analysis' }))
+    expect(screen.queryByText('Cost charts')).not.toBeInTheDocument()
   })
 })

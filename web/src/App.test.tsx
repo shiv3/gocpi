@@ -94,7 +94,7 @@ function openAdvancedSection(name: RegExp | string) {
 }
 
 function openCostAnalysis() {
-  fireEvent.click(screen.getByRole('button', { name: 'Cost analysis' }))
+  // Cost analysis is open by default; the charts are already visible.
 }
 
 function persistedState(): PersistedState {

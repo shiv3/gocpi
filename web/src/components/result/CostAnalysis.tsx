@@ -16,7 +16,7 @@ export function CostAnalysis({ report, series, unitMinutes, onUnitChange, curren
   return (
     <Card className="rounded-md">
       <CardContent className="p-5">
-        <Accordion type="single" collapsible>
+        <Accordion type="single" collapsible defaultValue="cost-analysis">
           <AccordionItem value="cost-analysis">
             <AccordionTrigger>Cost analysis</AccordionTrigger>
             <AccordionContent className="space-y-4">
