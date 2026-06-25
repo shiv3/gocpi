@@ -6,7 +6,7 @@
     "moduleResolution": "Bundler",
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    "types": ["vitest"]
+    "types": ["vitest", "node"]
   },
   "include": ["vite.config.ts"]
 }
