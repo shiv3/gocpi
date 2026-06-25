@@ -19,7 +19,7 @@ export function CostAnalysis({ report, series, unitMinutes, onUnitChange, curren
         <Accordion type="single" collapsible defaultValue="cost-analysis">
           <AccordionItem value="cost-analysis">
             <AccordionTrigger>Cost analysis</AccordionTrigger>
-            <AccordionContent className="space-y-4">
+            <AccordionContent className="grid gap-6 lg:grid-cols-2 lg:items-start">
               <CostChart report={report} />
               <CostTimeSeries
                 series={series}

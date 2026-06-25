@@ -541,17 +541,20 @@ export function App() {
             ) : (
               <p className="rounded-md border bg-background p-4 text-sm text-muted-foreground">No verification yet</p>
             )}
-            {calc && (
-              <CostAnalysis
-                report={calc}
-                series={series}
-                unitMinutes={timeSeriesUnit}
-                onUnitChange={setTimeSeriesUnit}
-                currency={form.currency}
-              />
-            )}
           </div>
         </aside>
+
+        {calc && (
+          <section aria-label="Cost analysis" className="min-w-0 lg:col-span-2">
+            <CostAnalysis
+              report={calc}
+              series={series}
+              unitMinutes={timeSeriesUnit}
+              onUnitChange={setTimeSeriesUnit}
+              currency={form.currency}
+            />
+          </section>
+        )}
       </div>
       </main>
       <Toaster />
