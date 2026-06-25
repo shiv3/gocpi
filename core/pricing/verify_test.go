@@ -132,6 +132,9 @@ func TestVerifyAfterTaxEmbeddedNotDerivable_NotVerifiable(t *testing.T) {
 	v := Verify(Input{Embedded: embedded}, rep, Options{})
 	assert.Equal(t, StatusNotVerifiable, v.Status)
 	assert.Len(t, v.Mismatches, 0)
+	require.Len(t, v.Warnings, 1)
+	assert.Equal(t, WarnAfterTaxNotDerivable, v.Warnings[0].Code)
+	assert.NotEqual(t, WarnUnsupportedRestriction, v.Warnings[0].Code)
 }
 
 func TestVerifyVolumeAuditMismatch(t *testing.T) {

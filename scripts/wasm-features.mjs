@@ -402,9 +402,15 @@ function verifyVatOK(version) {
   const beforeOnlyVerdict = verify('verify VAT before-tax-only embedded total', version, beforeOnly)
   assertEq(beforeOnlyVerdict.status, 'NotVerifiable', `verify VAT before-tax-only status ${version}`)
   assertEq(beforeOnlyVerdict.mismatches.length, 0, `verify VAT before-tax-only mismatches ${version}`)
+  assertWarning(
+    beforeOnlyVerdict.warnings,
+    'WarnAfterTaxNotDerivable',
+    `verify VAT before-tax-only warning ${version}`,
+    (w) => w.message.includes('total_cost after-tax total is not derivable'),
+  )
   assert(
-    beforeOnlyVerdict.warnings.some((w) => w.message.includes('total_cost after-tax total is not derivable')),
-    `verify VAT before-tax-only warning ${version}: ${JSON.stringify(beforeOnlyVerdict.warnings)}`,
+    !warning(beforeOnlyVerdict.warnings, 'WarnUnsupportedRestriction'),
+    `verify VAT before-tax-only warning code ${version}: ${JSON.stringify(beforeOnlyVerdict.warnings)}`,
   )
 }
 

@@ -46,9 +46,54 @@ func TestEnumStrings(t *testing.T) {
 	assert.Equal(t, "OK", statusString(pricing.StatusOK))
 	assert.Equal(t, "Mismatch", statusString(pricing.StatusMismatch))
 	assert.Equal(t, "NotVerifiable", statusString(pricing.StatusNotVerifiable))
-	assert.Equal(t, "WarnPeriodNoTariff", warningCodeString(pricing.WarnPeriodNoTariff))
 	assert.Equal(t, "warning", warningKindString(pricing.KindWarning))
 	assert.Equal(t, "diagnostic", warningKindString(pricing.KindDiagnostic))
+}
+
+func TestWarningCodeString_AllCodes(t *testing.T) {
+	cases := []struct {
+		code pricing.WarningCode
+		want string
+	}{
+		{pricing.WarnUnsupportedRestriction, "WarnUnsupportedRestriction"},
+		{pricing.WarnTZInferred, "WarnTZInferred"},
+		{pricing.WarnTZUTC, "WarnTZUTC"},
+		{pricing.WarnNoElement, "WarnNoElement"},
+		{pricing.WarnReservationNotComputed, "WarnReservationNotComputed"},
+		{pricing.WarnBoundaryCross, "WarnBoundaryCross"},
+		{pricing.WarnTariffWindow, "WarnTariffWindow"},
+		{pricing.WarnPeriodOutsideBounds, "WarnPeriodOutsideBounds"},
+		{pricing.WarnUnknownDimension, "WarnUnknownDimension"},
+		{pricing.WarnPeriodNoTariff, "WarnPeriodNoTariff"},
+		{pricing.WarnMinMaxUndefinedMultiTariff, "WarnMinMaxUndefinedMultiTariff"},
+		{pricing.WarnMixedStepSize, "WarnMixedStepSize"},
+		{pricing.WarnUnusedTariff, "WarnUnusedTariff"},
+		{pricing.WarnAfterTaxNotDerivable, "WarnAfterTaxNotDerivable"},
+	}
+
+	require.Len(t, cases, int(pricing.WarnAfterTaxNotDerivable)+1)
+	for i, tc := range cases {
+		assert.Equal(t, pricing.WarningCode(i), tc.code)
+		assert.Equal(t, tc.want, warningCodeString(tc.code))
+	}
+}
+
+func TestVerifyDTO_AfterTaxNotDerivableWarningCode(t *testing.T) {
+	v := pricing.Verdict{
+		Status: pricing.StatusNotVerifiable,
+		Warnings: []pricing.Warning{{
+			Code: pricing.WarnAfterTaxNotDerivable,
+			Kind: pricing.KindWarning,
+			Msg:  "total_cost after-tax total is not derivable from embedded data",
+		}},
+	}
+
+	resp := toVerifyResponse(v)
+	require.True(t, resp.OK)
+	require.NotNil(t, resp.Verdict)
+	require.Len(t, resp.Verdict.Warnings, 1)
+	assert.Equal(t, "WarnAfterTaxNotDerivable", resp.Verdict.Warnings[0].Code)
+	assert.NotEqual(t, "WarnUnsupportedRestriction", resp.Verdict.Warnings[0].Code)
 }
 
 func TestReportDTO_AllFourDimensionsAndReservationNil(t *testing.T) {

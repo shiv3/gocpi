@@ -30,6 +30,8 @@ const (
 	WarnMixedStepSize
 	// WarnUnusedTariff means an embedded tariff was not referenced by any priced charging period.
 	WarnUnusedTariff
+	// WarnAfterTaxNotDerivable means an embedded after-tax total could not be derived from the embedded data, so the comparison was skipped.
+	WarnAfterTaxNotDerivable
 )
 
 // ErrCode identifies a pricing error category.

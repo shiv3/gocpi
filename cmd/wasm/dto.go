@@ -161,6 +161,8 @@ func warningCodeString(c pricing.WarningCode) string {
 		return "WarnMixedStepSize"
 	case pricing.WarnUnusedTariff:
 		return "WarnUnusedTariff"
+	case pricing.WarnAfterTaxNotDerivable:
+		return "WarnAfterTaxNotDerivable"
 	default:
 		return "Warn(" + decimal.NewFromInt(int64(c)).String() + ")"
 	}
