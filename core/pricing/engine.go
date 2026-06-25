@@ -225,8 +225,8 @@ func Calculate(in Input, opts Options) (Report, error) {
 		{Time, timePeriods},
 		{ParkingTime, parkingPeriods},
 	} {
-		if w, ok := mixedStepWarning(mw.dim, mw.periods); ok {
-			rep.Warnings = append(rep.Warnings, w)
+		if w := mixedStepWarning(mw.dim, mw.periods); w != nil {
+			rep.Warnings = append(rep.Warnings, *w)
 		}
 	}
 
@@ -417,7 +417,7 @@ func usedTariffsHaveMinMax(tariffs []Tariff, used map[int]struct{}) bool {
 // mixedStepWarning returns a WarnMixedStepSize warning when the contributing
 // periods for a dimension reference price components with differing step_size
 // values. The step is still applied once per session at the last priced period.
-func mixedStepWarning(dim DimensionType, periods []pricedPeriod) (Warning, bool) {
+func mixedStepWarning(dim DimensionType, periods []pricedPeriod) *Warning {
 	seen := false
 	var firstStep int
 	for i := range periods {
@@ -431,15 +431,15 @@ func mixedStepWarning(dim DimensionType, periods []pricedPeriod) (Warning, bool)
 			continue
 		}
 		if step != firstStep {
-			return Warning{
+			return &Warning{
 				Code:      WarnMixedStepSize,
 				Kind:      KindWarning,
 				Dimension: dim,
 				Msg:       "price components for this dimension used different step_size values; step is applied once per session at the last priced period",
-			}, true
+			}
 		}
 	}
-	return Warning{}, false
+	return nil
 }
 
 func noElementWarning(msg string) Warning {

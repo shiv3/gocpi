@@ -1,0 +1,3 @@
+/* Legacy global styles retired in the shadcn/ui migration (Phase 0).
+   Global theme + base now live in src/index.css (Tailwind + shadcn vars).
+   Layout/styling is rebuilt with Tailwind utilities during the redesign phases. */

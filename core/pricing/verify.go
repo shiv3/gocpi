@@ -44,6 +44,7 @@ func Verify(in Input, rep Report, opts Options) Verdict {
 		embeddedAfter, embeddedOK := embedded.afterTax()
 		if !embeddedOK {
 			addNotVerifiable(Warning{
+				Code: WarnAfterTaxNotDerivable,
 				Kind: KindWarning,
 				Msg:  field + " after-tax total is not derivable from embedded data",
 			})
