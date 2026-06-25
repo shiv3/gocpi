@@ -43,6 +43,12 @@ describe('ChargingPeriodEditor', () => {
     ])
   })
 
+  it('does not render tariff_id when hidden', () => {
+    render(<ChargingPeriodEditor value={period} tariffIds={['energy', 'time']} hideTariffId onChange={vi.fn()} />)
+
+    expect(screen.queryByLabelText(/tariff_id/i)).not.toBeInTheDocument()
+  })
+
   it('adds a default dimension', () => {
     const onChange = vi.fn()
     render(<ChargingPeriodEditor value={period} tariffIds={['energy']} onChange={onChange} />)

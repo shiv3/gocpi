@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { deserialize, reportMoneyToCdr, serialize } from './serialize'
+import { deserialize, reportMoneyToCdr, serialize, serializeTariff } from './serialize'
 import { COMMON_COUNTRY_CODES } from './options'
 import { presets } from '../presets'
 import type { SimForm } from '../model/forms'
@@ -418,6 +418,50 @@ describe('serialize', () => {
 
     expect(form.embedded.totalCost).toBe('4.20')
     expect(form.tariffs[0].minPrice).toBe('1.00')
+  })
+})
+
+describe('serializeTariff', () => {
+  it('emits v2.2.1 tariff JSON without tax_included', () => {
+    const out: any = serializeTariff(featureForm.tariffs[0], '2.2.1', featureForm.countryCode, featureForm.start)
+
+    expect(out).toMatchObject({
+      country_code: 'NL',
+      party_id: 'EXA',
+      id: 'full',
+      currency: 'EUR',
+      last_updated: featureForm.start,
+      min_price: { excl_vat: '1.00' },
+      max_price: { excl_vat: '9.00' },
+    })
+    expect(out).not.toHaveProperty('tax_included')
+    expect(out.elements[0].price_components[0]).toEqual({
+      type: 'ENERGY',
+      price: '0.30',
+      step_size: 1000,
+      vat: '21',
+    })
+  })
+
+  it('emits v2.3.0 tariff JSON with tax_included', () => {
+    const out: any = serializeTariff(featureForm.tariffs[0], '2.3.0', featureForm.countryCode, featureForm.start)
+
+    expect(out).toMatchObject({
+      country_code: 'NL',
+      party_id: 'EXA',
+      id: 'full',
+      currency: 'EUR',
+      last_updated: featureForm.start,
+      min_price: { before_taxes: '1.00' },
+      max_price: { before_taxes: '9.00' },
+      tax_included: 'YES',
+    })
+    expect(out.elements[0].price_components[0]).toEqual({
+      type: 'ENERGY',
+      price: '0.30',
+      step_size: 1000,
+      vat: '21',
+    })
   })
 })
 

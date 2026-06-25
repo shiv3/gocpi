@@ -8,10 +8,11 @@ const defaultDimension = (): DimensionForm => ({ type: 'ENERGY', volume: '0' })
 export interface ChargingPeriodEditorProps {
   value: PeriodForm
   tariffIds: string[]
+  hideTariffId?: boolean
   onChange(p: PeriodForm): void
 }
 
-export function ChargingPeriodEditor({ value, tariffIds, onChange }: ChargingPeriodEditorProps) {
+export function ChargingPeriodEditor({ value, tariffIds, hideTariffId = false, onChange }: ChargingPeriodEditorProps) {
   const availableTariffIds = value.tariffId && !tariffIds.includes(value.tariffId) ? [...tariffIds, value.tariffId] : tariffIds
 
   const setDimension = (index: number, dimension: DimensionForm) => {
@@ -36,20 +37,22 @@ export function ChargingPeriodEditor({ value, tariffIds, onChange }: ChargingPer
             onChange={(event) => onChange({ ...value, start: fromLocalInput(event.currentTarget.value) })}
           />
         </label>
-        <label>
-          tariff_id
-          <select
-            value={value.tariffId ?? ''}
-            onChange={(event) => onChange({ ...value, tariffId: event.currentTarget.value || undefined })}
-          >
-            <option value="">(none)</option>
-            {availableTariffIds.map((tariffId) => (
-              <option key={tariffId} value={tariffId}>
-                {tariffId}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!hideTariffId && (
+          <label>
+            tariff_id
+            <select
+              value={value.tariffId ?? ''}
+              onChange={(event) => onChange({ ...value, tariffId: event.currentTarget.value || undefined })}
+            >
+              <option value="">(none)</option>
+              {availableTariffIds.map((tariffId) => (
+                <option key={tariffId} value={tariffId}>
+                  {tariffId}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
       <div className="subsection-heading">
         <h4>dimensions</h4>

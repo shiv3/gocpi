@@ -9,14 +9,15 @@ import { CostChart } from './components/result/CostChart'
 import { VerdictView } from './components/result/VerdictView'
 import { fromLocalInput, toLocalInput } from './lib/datetime'
 import { COMMON_COUNTRY_CODES, COMMON_CURRENCIES, TIME_ZONES, optionsWithCurrent } from './lib/options'
-import { deserialize, reportMoneyToCdr, serialize } from './lib/serialize'
+import { deserialize, reportMoneyToCdr, serialize, serializeTariff } from './lib/serialize'
 import type { ElementForm, PeriodForm, SimForm, TariffForm } from './model/forms'
 import type { Report, Verdict } from './model/dto'
 import { defaultPreset, presets } from './presets'
-import { calculate, verify } from './wasm/api'
+import { calculate, calculateWithTariff, verify, verifyWithTariff } from './wasm/api'
 import type { EngineOptions, Version } from './wasm/api'
 
 type View = 'form' | 'json'
+type TariffSourceMode = 'embedded' | 'override'
 
 const MONEY_DECIMALS = [2, 3, 4] as const
 
@@ -63,6 +64,7 @@ export function App() {
   const [resultError, setResultError] = useState<string | null>(null)
   const [isComputing, setIsComputing] = useState(false)
   const [view, setView] = useState<View>('form')
+  const [mode, setMode] = useState<TariffSourceMode>('embedded')
   const [runNonce, setRunNonce] = useState(0)
   const requestIdRef = useRef(0)
 
@@ -91,6 +93,14 @@ export function App() {
 
   const selectVersion = (nextVersion: Version) => {
     setVersion(nextVersion)
+    setRawJson(null)
+    setParseError(undefined)
+    setEngineError(null)
+    setResultError(null)
+  }
+
+  const selectMode = (nextMode: TariffSourceMode) => {
+    setMode(nextMode)
     setRawJson(null)
     setParseError(undefined)
     setEngineError(null)
@@ -130,9 +140,18 @@ export function App() {
         const runErrors: string[] = []
 
         if (!isLatest()) return
-        setIsComputing(true)
         setEngineError(null)
         setResultError(null)
+
+        if (mode === 'override' && form.tariffs.length === 0) {
+          setCalc(null)
+          setVerd(null)
+          setResultError('Override mode needs a tariff')
+          setIsComputing(false)
+          return
+        }
+
+        setIsComputing(true)
 
         try {
           const engineOptions: EngineOptions = {
@@ -140,7 +159,12 @@ export function App() {
             ...(timeZone ? { timeZone } : {}),
           }
           const input = rawJson != null ? rawJson : serialize(form, version)
-          const calculation = await calculate(version, input, engineOptions)
+          const overrideTariff =
+            mode === 'override' ? serializeTariff(form.tariffs[0], version, form.countryCode, form.start) : null
+          const calculation =
+            mode === 'override' && overrideTariff != null
+              ? await calculateWithTariff(version, input, overrideTariff, engineOptions)
+              : await calculate(version, input, engineOptions)
           if (!isLatest()) return
 
           if (calculation.ok && calculation.report) {
@@ -151,7 +175,10 @@ export function App() {
           }
 
           if (rawJson != null) {
-            const response = await verify(version, rawJson, engineOptions)
+            const response =
+              mode === 'override' && overrideTariff != null
+                ? await verifyWithTariff(version, rawJson, overrideTariff, engineOptions)
+                : await verify(version, rawJson, engineOptions)
             if (!isLatest()) return
 
             if (response.ok && response.verdict) {
@@ -166,7 +193,10 @@ export function App() {
               cdr.total_cost = reportMoneyToCdr(calculation.report.totalCost, version)
             }
 
-            const response = await verify(version, cdr, engineOptions)
+            const response =
+              mode === 'override' && overrideTariff != null
+                ? await verifyWithTariff(version, cdr, overrideTariff, engineOptions)
+                : await verify(version, cdr, engineOptions)
             if (!isLatest()) return
 
             if (response.ok && response.verdict) {
@@ -200,7 +230,7 @@ export function App() {
         requestIdRef.current += 1
       }
     }
-  }, [currencyPrecision, form, rawJson, runNonce, timeZone, version])
+  }, [currencyPrecision, form, mode, rawJson, runNonce, timeZone, version])
 
   const setTariff = (index: number, tariff: TariffForm) => {
     patchForm({ tariffs: form.tariffs.map((existing, currentIndex) => (currentIndex === index ? tariff : existing)) })
@@ -240,6 +270,13 @@ export function App() {
                   {key}
                 </option>
               ))}
+            </select>
+          </label>
+          <label>
+            tariff source
+            <select value={mode} onChange={(event) => selectMode(event.currentTarget.value as TariffSourceMode)}>
+              <option value="embedded">Embedded</option>
+              <option value="override">Override</option>
             </select>
           </label>
           <label>
@@ -338,31 +375,37 @@ export function App() {
 
               <section className="form-section" aria-labelledby="tariffs-heading">
                 <div className="section-heading">
-                  <h2 id="tariffs-heading">Tariffs</h2>
-                  <button
-                    type="button"
-                    onClick={() => patchForm({ tariffs: [...form.tariffs, defaultTariff(form.currency, form.tariffs.length)] })}
-                  >
-                    Add tariff
-                  </button>
+                  <h2 id="tariffs-heading">{mode === 'override' ? 'Override tariff' : 'Tariffs'}</h2>
+                  {mode === 'embedded' && (
+                    <button
+                      type="button"
+                      onClick={() => patchForm({ tariffs: [...form.tariffs, defaultTariff(form.currency, form.tariffs.length)] })}
+                    >
+                      Add tariff
+                    </button>
+                  )}
                 </div>
-                <div className="stack">
-                  {form.tariffs.map((tariff, index) => (
-                    <details className="collapsible-row" key={`${tariff.id}-${index}`} open>
-                      <summary>
-                        Tariff {index + 1}: {tariff.id || '(no id)'} ({tariff.currency || form.currency})
-                      </summary>
-                      <div className="collapsible-row__body">
-                        <TariffEditor value={tariff} version={version} onChange={(next) => setTariff(index, next)} />
-                        <div className="row-actions">
-                          <button type="button" className="ghost-button" onClick={() => removeTariff(index)}>
-                            Remove tariff
-                          </button>
+                {mode === 'override' ? (
+                  form.tariffs[0] && <TariffEditor value={form.tariffs[0]} version={version} onChange={(next) => setTariff(0, next)} />
+                ) : (
+                  <div className="stack">
+                    {form.tariffs.map((tariff, index) => (
+                      <details className="collapsible-row" key={`${tariff.id}-${index}`} open>
+                        <summary>
+                          Tariff {index + 1}: {tariff.id || '(no id)'} ({tariff.currency || form.currency})
+                        </summary>
+                        <div className="collapsible-row__body">
+                          <TariffEditor value={tariff} version={version} onChange={(next) => setTariff(index, next)} />
+                          <div className="row-actions">
+                            <button type="button" className="ghost-button" onClick={() => removeTariff(index)}>
+                              Remove tariff
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </details>
-                  ))}
-                </div>
+                      </details>
+                    ))}
+                  </div>
+                )}
               </section>
 
               <section className="form-section" aria-labelledby="periods-heading">
@@ -382,7 +425,12 @@ export function App() {
                         Period {index + 1} - {period.start || '(no start)'} {period.tariffId || '(no tariff)'}
                       </summary>
                       <div className="collapsible-row__body">
-                        <ChargingPeriodEditor value={period} tariffIds={tariffIds} onChange={(next) => setPeriod(index, next)} />
+                        <ChargingPeriodEditor
+                          value={period}
+                          tariffIds={tariffIds}
+                          hideTariffId={mode === 'override'}
+                          onChange={(next) => setPeriod(index, next)}
+                        />
                         <div className="row-actions">
                           <button type="button" className="ghost-button" onClick={() => removePeriod(index)}>
                             Remove period

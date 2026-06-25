@@ -134,9 +134,21 @@ function callCalculate(version, cdr, opts = { currencyPrecision: 2 }) {
   return JSON.parse(globalThis.gocpiCalculate(version, JSON.stringify(cdr), JSON.stringify(opts)))
 }
 
+function callCalculateWithTariff(version, cdr, explicitTariff, opts = { currencyPrecision: 2 }) {
+  return JSON.parse(
+    globalThis.gocpiCalculateWithTariff(version, JSON.stringify(cdr), JSON.stringify(explicitTariff), JSON.stringify(opts)),
+  )
+}
+
 function calculate(label, version, cdr, opts = { currencyPrecision: 2 }) {
   const out = callCalculate(version, cdr, opts)
   assert(out.ok, `${label} calculate ${version}: ${JSON.stringify(out)}`)
+  return out.report
+}
+
+function calculateWithTariff(label, version, cdr, explicitTariff, opts = { currencyPrecision: 2 }) {
+  const out = callCalculateWithTariff(version, cdr, explicitTariff, opts)
+  assert(out.ok, `${label} calculateWithTariff ${version}: ${JSON.stringify(out)}`)
   return out.report
 }
 
@@ -144,9 +156,21 @@ function callVerify(version, cdr, opts = { currencyPrecision: 2 }) {
   return JSON.parse(globalThis.gocpiVerify(version, JSON.stringify(cdr), JSON.stringify(opts)))
 }
 
+function callVerifyWithTariff(version, cdr, explicitTariff, opts = { currencyPrecision: 2 }) {
+  return JSON.parse(
+    globalThis.gocpiVerifyWithTariff(version, JSON.stringify(cdr), JSON.stringify(explicitTariff), JSON.stringify(opts)),
+  )
+}
+
 function verify(label, version, cdr, opts = { currencyPrecision: 2 }) {
   const out = callVerify(version, cdr, opts)
   assert(out.ok, `${label} verify ${version}: ${JSON.stringify(out)}`)
+  return out.verdict
+}
+
+function verifyWithTariff(label, version, cdr, explicitTariff, opts = { currencyPrecision: 2 }) {
+  const out = callVerifyWithTariff(version, cdr, explicitTariff, opts)
+  assert(out.ok, `${label} verifyWithTariff ${version}: ${JSON.stringify(out)}`)
   return out.verdict
 }
 
@@ -478,6 +502,26 @@ function currencyPrecision(version) {
   assertEq(p4.totalEnergyCost.beforeTaxes, '3.0000', `currencyPrecision 4 ${version}`)
 }
 
+function tariffOverride(version) {
+  const cdr = baseCdr(version, {
+    totalCost: '5.00',
+    totalEnergy: '10',
+    tariffs: [tariff(version, { id: 'embedded', elements: [{ price_components: [component('ENERGY', '0.10')] }] })],
+    periods: [period(start, [dim('ENERGY', '10')], 'embedded')],
+  })
+  const explicitTariff = tariff(version, {
+    id: 'override',
+    elements: [{ price_components: [component('ENERGY', '0.50')] }],
+  })
+
+  const rep = calculateWithTariff('explicit tariff override', version, cdr, explicitTariff)
+  assertEq(rep.totalEnergyCost.beforeTaxes, '5.00', `explicit tariff override energy cost ${version}`)
+  assertEq(rep.totalCost.beforeTaxes, '5.00', `explicit tariff override total ${version}`)
+
+  const verdict = verifyWithTariff('explicit tariff override', version, cdr, explicitTariff)
+  assertEq(verdict.status, 'OK', `explicit tariff override verify status ${version}`)
+}
+
 function v221Vat() {
   const version = '2.2.1'
   const cdr = baseCdr(version, {
@@ -635,6 +679,7 @@ for (const version of versions) {
   mixedStepSize(version)
   unusedTariff(version)
   currencyPrecision(version)
+  tariffOverride(version)
   errorCases(version)
 }
 

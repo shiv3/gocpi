@@ -80,6 +80,45 @@ func calculate(version, cdrJSON, optsJSON string) response {
 	}
 }
 
+func calculateWithTariff(version, cdrJSON, tariffJSON, optsJSON string) response {
+	opts, _, err := parseOptions(optsJSON)
+	if err != nil {
+		return errorResponse(err)
+	}
+	switch version {
+	case "2.2.1":
+		var cdr v221.CDR
+		if err := json.Unmarshal([]byte(cdrJSON), &cdr); err != nil {
+			return errorResponse(fmt.Errorf("invalid CDR json: %w", err))
+		}
+		var tariff v221.Tariff
+		if err := json.Unmarshal([]byte(tariffJSON), &tariff); err != nil {
+			return errorResponse(fmt.Errorf("invalid tariff json: %w", err))
+		}
+		rep, err := v221.CalculateWithTariff(cdr, tariff, opts)
+		if err != nil {
+			return errorResponse(err)
+		}
+		return toCalculateResponse(rep, cdr.Currency)
+	case "2.3.0":
+		var cdr v230.CDR
+		if err := json.Unmarshal([]byte(cdrJSON), &cdr); err != nil {
+			return errorResponse(fmt.Errorf("invalid CDR json: %w", err))
+		}
+		var tariff v230.Tariff
+		if err := json.Unmarshal([]byte(tariffJSON), &tariff); err != nil {
+			return errorResponse(fmt.Errorf("invalid tariff json: %w", err))
+		}
+		rep, err := v230.CalculateWithTariff(cdr, tariff, opts)
+		if err != nil {
+			return errorResponse(err)
+		}
+		return toCalculateResponse(rep, cdr.Currency)
+	default:
+		return errorResponse(fmt.Errorf("unknown version %q", version))
+	}
+}
+
 func verify(version, cdrJSON, optsJSON string) response {
 	opts, _, err := parseOptions(optsJSON)
 	if err != nil {
@@ -111,6 +150,45 @@ func verify(version, cdrJSON, optsJSON string) response {
 	}
 }
 
+func verifyWithTariff(version, cdrJSON, tariffJSON, optsJSON string) response {
+	opts, _, err := parseOptions(optsJSON)
+	if err != nil {
+		return errorResponse(err)
+	}
+	switch version {
+	case "2.2.1":
+		var cdr v221.CDR
+		if err := json.Unmarshal([]byte(cdrJSON), &cdr); err != nil {
+			return errorResponse(fmt.Errorf("invalid CDR json: %w", err))
+		}
+		var tariff v221.Tariff
+		if err := json.Unmarshal([]byte(tariffJSON), &tariff); err != nil {
+			return errorResponse(fmt.Errorf("invalid tariff json: %w", err))
+		}
+		v, err := v221.VerifyWithTariff(cdr, tariff, opts)
+		if err != nil {
+			return errorResponse(err)
+		}
+		return toVerifyResponse(v)
+	case "2.3.0":
+		var cdr v230.CDR
+		if err := json.Unmarshal([]byte(cdrJSON), &cdr); err != nil {
+			return errorResponse(fmt.Errorf("invalid CDR json: %w", err))
+		}
+		var tariff v230.Tariff
+		if err := json.Unmarshal([]byte(tariffJSON), &tariff); err != nil {
+			return errorResponse(fmt.Errorf("invalid tariff json: %w", err))
+		}
+		v, err := v230.VerifyWithTariff(cdr, tariff, opts)
+		if err != nil {
+			return errorResponse(err)
+		}
+		return toVerifyResponse(v)
+	default:
+		return errorResponse(fmt.Errorf("unknown version %q", version))
+	}
+}
+
 func toJSON(r response) string {
 	b, err := json.Marshal(r)
 	if err != nil {
@@ -133,8 +211,24 @@ func wrap(fn func(version, cdrJSON, optsJSON string) response) js.Func {
 	})
 }
 
+func wrap4(fn func(version, cdrJSON, tariffJSON, optsJSON string) response) js.Func {
+	return js.FuncOf(func(_ js.Value, args []js.Value) (result any) {
+		defer func() {
+			if r := recover(); r != nil {
+				result = toJSON(errorResponse(fmt.Errorf("engine panic: %v", r)))
+			}
+		}()
+		if len(args) < 4 {
+			return toJSON(errorResponse(fmt.Errorf("expected (version, cdrJSON, tariffJSON, optsJSON)")))
+		}
+		return toJSON(fn(args[0].String(), args[1].String(), args[2].String(), args[3].String()))
+	})
+}
+
 func main() {
 	js.Global().Set("gocpiCalculate", wrap(calculate))
 	js.Global().Set("gocpiVerify", wrap(verify))
+	js.Global().Set("gocpiCalculateWithTariff", wrap4(calculateWithTariff))
+	js.Global().Set("gocpiVerifyWithTariff", wrap4(verifyWithTariff))
 	select {} // keep the wasm instance alive
 }

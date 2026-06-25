@@ -1,16 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { App } from './App'
-import { calculate, verify } from './wasm/api'
+import { serializeTariff } from './lib/serialize'
+import { defaultPreset, presets } from './presets'
+import { calculate, calculateWithTariff, verify, verifyWithTariff } from './wasm/api'
 import type { CalculateResponse, Money, Report, Verdict, VerifyResponse } from './model/dto'
 
 vi.mock('./wasm/api', () => ({
   calculate: vi.fn(),
+  calculateWithTariff: vi.fn(),
   verify: vi.fn(),
+  verifyWithTariff: vi.fn(),
 }))
 
 const calculateMock = vi.mocked(calculate)
+const calculateWithTariffMock = vi.mocked(calculateWithTariff)
 const verifyMock = vi.mocked(verify)
+const verifyWithTariffMock = vi.mocked(verifyWithTariff)
 
 const m = (beforeTaxes: string, afterTaxes: string | null = null): Money => ({ beforeTaxes, afterTaxes, taxes: [] })
 
@@ -43,12 +49,20 @@ async function advanceDebounce(ms = 300) {
 
 function mockSuccess(currency = 'EUR') {
   calculateMock.mockResolvedValue({ ok: true, error: null, report: report(currency) })
+  calculateWithTariffMock.mockResolvedValue({ ok: true, error: null, report: report(currency) })
   verifyMock.mockResolvedValue({ ok: true, error: null, verdict: verdict() })
+  verifyWithTariffMock.mockResolvedValue({ ok: true, error: null, verdict: verdict() })
 }
 
 function latestCalculateCall() {
   const call = calculateMock.mock.calls[calculateMock.mock.calls.length - 1]
   if (!call) throw new Error('calculate was not called')
+  return call
+}
+
+function latestCalculateWithTariffCall() {
+  const call = calculateWithTariffMock.mock.calls[calculateWithTariffMock.mock.calls.length - 1]
+  if (!call) throw new Error('calculateWithTariff was not called')
   return call
 }
 
@@ -74,12 +88,51 @@ describe('App orchestration', () => {
     await advanceDebounce()
 
     expect(calculateMock).toHaveBeenCalledTimes(1)
+    expect(calculateWithTariffMock).not.toHaveBeenCalled()
     expect(verifyMock).toHaveBeenCalledTimes(1)
+    expect(verifyWithTariffMock).not.toHaveBeenCalled()
     expect(screen.getByText('Cost charts')).toBeInTheDocument()
     expect(screen.getByText('Cost breakdown')).toBeInTheDocument()
     expect(screen.getByRole('row', { name: /total - 4\.50 5\.45/i })).toBeInTheDocument()
     expect(screen.getByText('Verify verdict')).toBeInTheDocument()
     expect(screen.getByText('OK')).toBeInTheDocument()
+  })
+
+  it('switches to override mode and calls the explicit-tariff engine path with the first tariff', async () => {
+    renderApp()
+    await advanceDebounce()
+
+    expect(calculateMock).toHaveBeenCalledTimes(1)
+    expect(calculateWithTariffMock).not.toHaveBeenCalled()
+
+    calculateMock.mockClear()
+    verifyMock.mockClear()
+    calculateWithTariffMock.mockClear()
+    verifyWithTariffMock.mockClear()
+
+    fireEvent.change(screen.getByLabelText(/tariff source/i), { target: { value: 'override' } })
+
+    expect(screen.getByRole('heading', { name: /override tariff/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /add tariff/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /remove tariff/i })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/tariff_id/i)).not.toBeInTheDocument()
+
+    await advanceDebounce()
+
+    expect(calculateMock).not.toHaveBeenCalled()
+    expect(verifyMock).not.toHaveBeenCalled()
+    expect(calculateWithTariffMock).toHaveBeenCalledTimes(1)
+    expect(verifyWithTariffMock).toHaveBeenCalledTimes(1)
+
+    const preset = presets[defaultPreset]
+    const [version, cdr, overrideTariff, opts] = latestCalculateWithTariffCall()
+    expect(version).toBe('2.2.1')
+    expect(cdr).toMatchObject({
+      charging_periods: [expect.objectContaining({ tariff_id: 'energy' })],
+    })
+    expect(overrideTariff).toEqual(serializeTariff(preset.tariffs[0], '2.2.1', preset.countryCode, preset.start))
+    expect(opts).toEqual({ currencyPrecision: 2 })
+    expect(verifyWithTariffMock.mock.calls[0][2]).toEqual(overrideTariff)
   })
 
   it('cascades CDR currency changes to every tariff and sends the updated object to calculate', async () => {

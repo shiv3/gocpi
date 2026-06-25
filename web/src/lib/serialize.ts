@@ -126,6 +126,10 @@ function tariff(t: TariffForm, version: Version, start: string, countryCode: str
   return out
 }
 
+export function serializeTariff(t: TariffForm, version: Version, countryCode: string, start: string): object {
+  return tariff(t, version, start, countryCode)
+}
+
 export function serialize(form: SimForm, version: Version): object {
   const cdr: any = {
     country_code: form.countryCode,
