@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { App } from './App'
 import { serializeTariff } from './lib/serialize'
+import { decodeState, encodeState } from './lib/urlstate'
+import type { PersistedState } from './lib/urlstate'
 import { defaultPreset, presets } from './presets'
 import { calculate, calculateWithTariff, verify, verifyWithTariff } from './wasm/api'
 import type { CalculateResponse, Money, Report, Verdict, VerifyResponse } from './model/dto'
@@ -70,18 +72,91 @@ function renderApp() {
   render(<App />)
 }
 
+function persistedState(): PersistedState {
+  return {
+    v: 1,
+    version: '2.3.0',
+    mode: 'override',
+    timeZone: 'Asia/Tokyo',
+    currencyPrecision: 3,
+    view: 'json',
+    presetKey: 'time-of-day',
+    rawJson:
+      '{"country_code":"JP","party_id":"EXA","id":"shared-cdr","start_date_time":"2026-06-24T09:00:00Z","end_date_time":"2026-06-24T10:00:00Z","currency":"JPY","tariffs":[{"id":"共有","currency":"JPY","tax_included":"YES","elements":[{"price_components":[{"type":"ENERGY","price":"30","step_size":1}]}]}],"charging_periods":[{"start_date_time":"2026-06-24T09:00:00Z","tariff_id":"共有","dimensions":[{"type":"ENERGY","volume":"1"}]}],"total_cost":{"before_taxes":"30"},"total_energy":"1","total_time":"0","last_updated":"2026-06-24T09:00:00Z"}',
+    form: {
+      currency: 'JPY',
+      countryCode: 'JP',
+      start: '2026-06-24T09:00:00Z',
+      end: '2026-06-24T10:00:00Z',
+      tariffs: [
+        {
+          id: '共有',
+          currency: 'JPY',
+          taxIncluded: 'YES',
+          elements: [{ components: [{ type: 'ENERGY', price: '30', stepSize: 1, vat: '10' }] }],
+        },
+      ],
+      periods: [
+        { start: '2026-06-24T09:00:00Z', tariffId: '共有', dimensions: [{ type: 'ENERGY', volume: '1' }] },
+      ],
+      embedded: { totalCost: '30', totalEnergy: '1' },
+    },
+  }
+}
+
 beforeEach(() => {
   vi.useFakeTimers()
   mockSuccess()
 })
 
 afterEach(() => {
+  window.location.hash = ''
+  vi.restoreAllMocks()
   vi.clearAllTimers()
   vi.useRealTimers()
   vi.resetAllMocks()
 })
 
 describe('App orchestration', () => {
+  it('restores simulator controls, JSON view, and raw JSON from the URL hash', () => {
+    const state = persistedState()
+    window.location.hash = `#${encodeState(state)}`
+
+    renderApp()
+
+    expect(screen.getByLabelText(/version/i)).toHaveValue('2.3.0')
+    expect(screen.getByLabelText(/tariff source/i)).toHaveValue('override')
+    expect(screen.getByLabelText(/time zone/i)).toHaveValue('Asia/Tokyo')
+    expect(screen.getByLabelText(/money decimals/i)).toHaveValue('3')
+    expect(screen.getByLabelText('JSON')).toHaveValue(state.rawJson)
+  })
+
+  it('persists simulator state changes into a replaceState hash', async () => {
+    const replaceStateSpy = vi.spyOn(window.history, 'replaceState')
+
+    renderApp()
+    fireEvent.change(screen.getByLabelText(/version/i), { target: { value: '2.3.0' } })
+
+    await advanceDebounce()
+
+    expect(replaceStateSpy).toHaveBeenCalled()
+    const url = replaceStateSpy.mock.calls[replaceStateSpy.mock.calls.length - 1]?.[2]
+    expect(typeof url).toBe('string')
+
+    const decoded = decodeState(url as string)
+    expect(decoded).toMatchObject({
+      v: 1,
+      version: '2.3.0',
+      mode: 'embedded',
+      timeZone: '',
+      currencyPrecision: 2,
+      view: 'form',
+      rawJson: null,
+      presetKey: defaultPreset,
+    })
+    expect(decoded?.form).toEqual(presets[defaultPreset])
+  })
+
   it('runs calculate and verify on mount and renders report and verdict results', async () => {
     renderApp()
 

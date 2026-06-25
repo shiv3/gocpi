@@ -10,14 +10,16 @@ import { VerdictView } from './components/result/VerdictView'
 import { fromLocalInput, toLocalInput } from './lib/datetime'
 import { COMMON_COUNTRY_CODES, COMMON_CURRENCIES, TIME_ZONES, optionsWithCurrent } from './lib/options'
 import { deserialize, reportMoneyToCdr, serialize, serializeTariff } from './lib/serialize'
+import { decodeState, encodeState } from './lib/urlstate'
+import type { PersistedState } from './lib/urlstate'
 import type { ElementForm, PeriodForm, SimForm, TariffForm } from './model/forms'
 import type { Report, Verdict } from './model/dto'
 import { defaultPreset, presets } from './presets'
 import { calculate, calculateWithTariff, verify, verifyWithTariff } from './wasm/api'
 import type { EngineOptions, Version } from './wasm/api'
 
-type View = 'form' | 'json'
-type TariffSourceMode = 'embedded' | 'override'
+type View = PersistedState['view']
+type TariffSourceMode = PersistedState['mode']
 
 const MONEY_DECIMALS = [2, 3, 4] as const
 
@@ -27,6 +29,10 @@ function cloneForm(form: SimForm): SimForm {
 
 function messageFromError(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
+}
+
+function readBootState(): PersistedState | null {
+  return typeof window === 'undefined' ? null : decodeState(window.location.hash)
 }
 
 function defaultElement(): ElementForm {
@@ -51,20 +57,26 @@ function defaultPeriod(start: string, tariffId?: string): PeriodForm {
 }
 
 export function App() {
-  const [version, setVersion] = useState<Version>('2.2.1')
-  const [timeZone, setTimeZone] = useState<string>('')
-  const [currencyPrecision, setCurrencyPrecision] = useState<number>(2)
-  const [presetKey, setPresetKey] = useState(defaultPreset)
-  const [form, setForm] = useState<SimForm>(() => cloneForm(presets[defaultPreset]))
-  const [rawJson, setRawJson] = useState<string | null>(null)
+  const bootRef = useRef<PersistedState | null | undefined>(undefined)
+  if (bootRef.current === undefined) {
+    bootRef.current = readBootState()
+  }
+  const boot = bootRef.current
+
+  const [version, setVersion] = useState<Version>(() => boot?.version ?? '2.2.1')
+  const [timeZone, setTimeZone] = useState<string>(() => boot?.timeZone ?? '')
+  const [currencyPrecision, setCurrencyPrecision] = useState<number>(() => boot?.currencyPrecision ?? 2)
+  const [presetKey, setPresetKey] = useState(() => boot?.presetKey ?? defaultPreset)
+  const [form, setForm] = useState<SimForm>(() => (boot ? cloneForm(boot.form) : cloneForm(presets[defaultPreset])))
+  const [rawJson, setRawJson] = useState<string | null>(() => boot?.rawJson ?? null)
   const [parseError, setParseError] = useState<string | undefined>()
   const [calc, setCalc] = useState<Report | null>(null)
   const [verd, setVerd] = useState<Verdict | null>(null)
   const [engineError, setEngineError] = useState<string | null>(null)
   const [resultError, setResultError] = useState<string | null>(null)
   const [isComputing, setIsComputing] = useState(false)
-  const [view, setView] = useState<View>('form')
-  const [mode, setMode] = useState<TariffSourceMode>('embedded')
+  const [view, setView] = useState<View>(() => boot?.view ?? 'form')
+  const [mode, setMode] = useState<TariffSourceMode>(() => boot?.mode ?? 'embedded')
   const [runNonce, setRunNonce] = useState(0)
   const requestIdRef = useRef(0)
 
@@ -129,6 +141,36 @@ export function App() {
       setParseError(messageFromError(parseOrDeserializeError))
     }
   }
+
+  useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      !window.history ||
+      typeof window.history.replaceState !== 'function'
+    ) {
+      return
+    }
+
+    const timeout = window.setTimeout(() => {
+      window.history.replaceState(
+        null,
+        '',
+        `#${encodeState({
+          v: 1,
+          version,
+          mode,
+          timeZone,
+          currencyPrecision,
+          view,
+          form,
+          rawJson,
+          presetKey,
+        })}`,
+      )
+    }, 300)
+
+    return () => window.clearTimeout(timeout)
+  }, [currencyPrecision, form, mode, presetKey, rawJson, timeZone, version, view])
 
   useEffect(() => {
     const requestId = requestIdRef.current + 1
