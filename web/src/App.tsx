@@ -456,12 +456,12 @@ export function App() {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-[1600px] gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1.9fr)_minmax(360px,1fr)] lg:px-6">
+      <div className="mx-auto grid max-w-[1600px] gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1.9fr)_minmax(360px,1fr)] xl:grid-cols-[minmax(0,2.4fr)_minmax(340px,1fr)] lg:px-6">
         <section aria-label="Simulator input" className="min-w-0">
           {view === 'form' ? (
-            <div className="space-y-4">
+            <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
               {parseError && (
-                <Alert variant="destructive" className="py-3">
+                <Alert variant="destructive" className="py-3 xl:col-span-2">
                   <AlertTitle>Invalid JSON</AlertTitle>
                   <AlertDescription>{parseError}</AlertDescription>
                 </Alert>
