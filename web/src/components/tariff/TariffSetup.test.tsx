@@ -6,7 +6,7 @@ import { serialize } from '@/lib/serialize'
 import { applyUpdater } from '@/lib/updater'
 import type { Updater } from '@/lib/updater'
 import { presets } from '@/presets'
-import type { ComponentForm, SimForm } from '@/model/forms'
+import type { ComponentForm, SimForm, TariffForm } from '@/model/forms'
 import { toast } from 'sonner'
 
 vi.mock('sonner', () => ({
@@ -139,6 +139,74 @@ describe('TariffSetup', () => {
     expect(latest.tariffs[0].elements[0].components[0]).toEqual(removed)
   })
 
+  it('undoes a primary-tariff delete into current state without restoring a later deleted tariff', () => {
+    const removedA = testTariff('a', '0.10')
+    const removedB = testTariff('b', '0.20')
+    const keptC = testTariff('c', '0.30')
+    let latest: SimForm = { ...clone(presets['single-energy']), tariffs: [removedA, removedB, keptC] }
+
+    function Harness() {
+      const [form, setForm] = useState<SimForm>(latest)
+      return (
+        <TariffSetup
+          value={form}
+          onChange={(next) =>
+            setForm((prev) => {
+              latest = applyUpdater(next, prev)
+              return latest
+            })
+          }
+          onOpenAdvancedTariffs={vi.fn()}
+        />
+      )
+    }
+
+    const toastMock = vi.mocked(toast)
+    toastMock.mockClear()
+    render(<Harness />)
+
+    deletePrimaryTariff()
+    deletePrimaryTariff()
+
+    expect(latest.tariffs).toEqual([keptC])
+    act(() => getToastUndo(0)())
+    expect(latest.tariffs).toEqual([removedA, keptC])
+    expect(latest.tariffs[0]).toEqual(removedA)
+  })
+
+  it('preserves sibling tariff edits when undoing a primary-tariff delete', () => {
+    const removedA = testTariff('a', '0.10')
+    const siblingB = testTariff('b', '0.20')
+    let latest: SimForm = { ...clone(presets['single-energy']), tariffs: [removedA, siblingB] }
+
+    function Harness() {
+      const [form, setForm] = useState<SimForm>(latest)
+      return (
+        <TariffSetup
+          value={form}
+          onChange={(next) =>
+            setForm((prev) => {
+              latest = applyUpdater(next, prev)
+              return latest
+            })
+          }
+          onOpenAdvancedTariffs={vi.fn()}
+        />
+      )
+    }
+
+    const toastMock = vi.mocked(toast)
+    toastMock.mockClear()
+    render(<Harness />)
+
+    deletePrimaryTariff()
+    fireEvent.change(screen.getByLabelText('Tariff name'), { target: { value: 'b-edited' } })
+    act(() => getToastUndo(0)())
+
+    expect(latest.tariffs.map((tariff) => tariff.id)).toEqual(['a', 'b-edited'])
+    expect(latest.tariffs[0]).toEqual(removedA)
+  })
+
   it('surfaces additional tariffs and restricted rules through Advanced', () => {
     const openAdvanced = vi.fn()
     const multiTariff = clone(presets['multi-tariff'])
@@ -158,6 +226,21 @@ describe('TariffSetup', () => {
     expect(timeOfDay.tariffs[0].elements[0].restriction).toEqual({ startTime: '09:00', endTime: '18:00' })
   })
 })
+
+function testTariff(id: string, price: string): TariffForm {
+  return {
+    id,
+    currency: 'EUR',
+    taxIncluded: 'NO',
+    elements: [{ components: [{ type: 'ENERGY', price, stepSize: 1 }] }],
+  }
+}
+
+function deletePrimaryTariff() {
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Tariff actions' }), { key: 'Enter' })
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Delete tariff' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Delete tariff' }))
+}
 
 function getToastUndo(callIndex: number): () => void {
   const options = vi.mocked(toast).mock.calls[callIndex]?.[1] as
