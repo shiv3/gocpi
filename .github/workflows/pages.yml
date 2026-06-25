@@ -25,6 +25,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Test Go
+        run: go test ./...
       - name: Build wasm
         run: |
           mkdir -p web/public
@@ -32,11 +34,17 @@ jobs:
           cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" web/public/wasm_exec.js
       - name: Smoke-test wasm
         run: node scripts/wasm-smoke.mjs
+      - name: Feature-test wasm
+        run: node scripts/wasm-features.mjs
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+      - name: Test web
+        working-directory: web
+        run: npm test
       - name: Build web
         working-directory: web
-        run: |
-          npm ci
-          npm run build
+        run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web/dist
