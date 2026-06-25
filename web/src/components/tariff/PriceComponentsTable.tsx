@@ -1,4 +1,5 @@
-import { Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,6 +18,10 @@ import type { ComponentForm, DimType } from '@/model/forms'
 const PRICE_TYPES: DimType[] = ['ENERGY', 'TIME', 'PARKING_TIME', 'FLAT']
 
 const defaultComponent = (): ComponentForm => ({ type: 'ENERGY', price: '0', stepSize: 1 })
+
+function restoreAt<T>(items: T[], index: number, item: T): T[] {
+  return [...items.slice(0, index), item, ...items.slice(index)]
+}
 
 export interface PriceComponentsTableProps {
   value: ComponentForm[]
@@ -41,7 +46,16 @@ export function PriceComponentsTable({ value, currency, idPrefix = 'price-compon
   }
 
   const removeComponent = (index: number) => {
-    onChange(value.filter((_, currentIndex) => currentIndex !== index))
+    const removed = value[index]
+    if (!removed) return
+    const next = value.filter((_, currentIndex) => currentIndex !== index)
+    onChange(next)
+    toast('Price component deleted', {
+      action: {
+        label: 'Undo',
+        onClick: () => onChange(restoreAt(next, index, removed)),
+      },
+    })
   }
 
   return (
@@ -125,7 +139,7 @@ export function PriceComponentsTable({ value, currency, idPrefix = 'price-compon
                 <TableCell>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="destructive"
                     size="icon"
                     aria-label={`Delete price component ${row}`}
                     onClick={() => removeComponent(index)}
@@ -139,6 +153,7 @@ export function PriceComponentsTable({ value, currency, idPrefix = 'price-compon
         </TableBody>
       </Table>
       <Button type="button" variant="outline" size="sm" onClick={() => onChange([...value, defaultComponent()])}>
+        <Plus className="h-4 w-4" />
         Add price component
       </Button>
     </div>

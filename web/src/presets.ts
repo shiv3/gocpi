@@ -130,4 +130,27 @@ export const presets: Record<string, SimForm> = {
   },
 }
 
+export const presetMeta: Record<string, { label: string; description: string }> = {
+  'single-energy': {
+    label: 'Single energy',
+    description: 'One energy tariff and one charging period for a straightforward kWh calculation.',
+  },
+  'multi-tariff': {
+    label: 'Multi-tariff',
+    description: 'Two tariffs across separate charging periods to compare peak and off-peak pricing.',
+  },
+  'min-price-clamp': {
+    label: 'Minimum price clamp',
+    description: 'A low usage session where the tariff minimum price controls the final total.',
+  },
+  'mixed-step': {
+    label: 'Mixed billing units',
+    description: 'Energy and time components using different billing units in one tariff.',
+  },
+  'time-of-day': {
+    label: 'Time of day',
+    description: 'A tariff with a restricted daytime rule plus a fallback price component.',
+  },
+}
+
 export const defaultPreset = 'single-energy'

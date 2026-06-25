@@ -1,4 +1,16 @@
-import { Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { MoreHorizontal, Plus, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -7,6 +19,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
@@ -76,6 +94,10 @@ function setRestrictionField(
   return { ...(restriction ?? {}), [key]: value || undefined }
 }
 
+function restoreAt<T>(items: T[], index: number, item: T): T[] {
+  return [...items.slice(0, index), item, ...items.slice(index)]
+}
+
 export interface AdvancedSettingsProps {
   value: SimForm
   version: Version
@@ -99,6 +121,8 @@ export function AdvancedSettings({
   onModeChange,
   onCurrencyPrecisionChange,
 }: AdvancedSettingsProps) {
+  const [tariffToDelete, setTariffToDelete] = useState<number | null>(null)
+
   const setTariff = (tariffIndex: number, tariff: TariffForm) => {
     onChange({
       ...value,
@@ -107,7 +131,16 @@ export function AdvancedSettings({
   }
 
   const removeTariff = (tariffIndex: number) => {
-    onChange({ ...value, tariffs: value.tariffs.filter((_, index) => index !== tariffIndex) })
+    const removed = value.tariffs[tariffIndex]
+    if (!removed) return
+    const nextTariffs = value.tariffs.filter((_, index) => index !== tariffIndex)
+    onChange({ ...value, tariffs: nextTariffs })
+    toast('Tariff deleted', {
+      action: {
+        label: 'Undo',
+        onClick: () => onChange({ ...value, tariffs: restoreAt(nextTariffs, tariffIndex, removed) }),
+      },
+    })
   }
 
   const setEmbeddedField = (key: keyof EmbeddedTotalsForm, inputValue: string) => {
@@ -180,6 +213,7 @@ export function AdvancedSettings({
                     size="sm"
                     onClick={() => onChange({ ...value, tariffs: [...value.tariffs, defaultTariff(value.currency, value.tariffs.length)] })}
                   >
+                    <Plus className="h-4 w-4" />
                     Add tariff
                   </Button>
                 </div>
@@ -187,15 +221,23 @@ export function AdvancedSettings({
                   <section key={`${tariff.id}-${tariffIndex}`} className="rounded-md border bg-background p-4">
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <h3 className="text-sm font-medium">Tariff {tariffIndex + 1}</h3>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`Delete tariff ${tariffIndex + 1}`}
-                        onClick={() => removeTariff(tariffIndex)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button type="button" variant="ghost" size="icon" aria-label={`Tariff ${tariffIndex + 1} actions`}>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onSelect={() => {
+                              setTariffToDelete(tariffIndex)
+                            }}
+                          >
+                            Delete tariff
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                     <TariffRulesEditor
                       value={tariff}
@@ -237,6 +279,30 @@ export function AdvancedSettings({
           </AccordionItem>
         </Accordion>
       </CardContent>
+      <AlertDialog open={tariffToDelete != null} onOpenChange={(open) => !open && setTariffToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete tariff?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tariff {tariffToDelete == null ? '' : tariffToDelete + 1} will be removed from this scenario.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (tariffToDelete != null) {
+                  removeTariff(tariffToDelete)
+                }
+                setTariffToDelete(null)
+              }}
+            >
+              Delete tariff
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   )
 }
@@ -259,7 +325,16 @@ function TariffRulesEditor({ value, version, tariffIndex, onChange }: TariffRule
   }
 
   const removeElement = (elementIndex: number) => {
-    onChange({ ...value, elements: value.elements.filter((_, index) => index !== elementIndex) })
+    const removed = value.elements[elementIndex]
+    if (!removed) return
+    const nextElements = value.elements.filter((_, index) => index !== elementIndex)
+    onChange({ ...value, elements: nextElements })
+    toast('Tariff rule deleted', {
+      action: {
+        label: 'Undo',
+        onClick: () => onChange({ ...value, elements: restoreAt(nextElements, elementIndex, removed) }),
+      },
+    })
   }
 
   return (
@@ -327,6 +402,7 @@ function TariffRulesEditor({ value, version, tariffIndex, onChange }: TariffRule
         <div className="flex items-center justify-between gap-3">
           <h4 className="text-sm font-medium">Tariff rules</h4>
           <Button type="button" variant="outline" size="sm" onClick={() => onChange({ ...value, elements: [...value.elements, defaultElement()] })}>
+            <Plus className="h-4 w-4" />
             Add tariff rule
           </Button>
         </div>

@@ -19,11 +19,21 @@ const report: Report = {
 
 describe('ResultSummary', () => {
   it('shows the after-tax total as the largest value', () => {
-    render(<ResultSummary report={report} currency="EUR" />)
+    const { rerender } = render(<ResultSummary report={report} currency="EUR" />)
 
-    expect(screen.getByLabelText('Total after tax')).toHaveTextContent('5.45 EUR')
-    expect(screen.getByLabelText('Total after tax')).toHaveClass('text-4xl')
+    const total = screen.getByLabelText('Total after tax')
+    expect(total).toHaveTextContent('5.45 EUR')
+    expect(total).toHaveClass('text-4xl')
+    expect(total).toHaveClass('animate-value-flash')
+    expect(total).toHaveAttribute('data-value-key', '5.45 EUR')
     expect(screen.getByLabelText('Before tax')).toHaveTextContent('4.50 EUR')
     expect(screen.getByLabelText('VAT')).toHaveTextContent('0.95 EUR')
+
+    rerender(<ResultSummary report={{ ...report, totalCost: m('5.00', '6.05') }} currency="EUR" />)
+
+    const changedTotal = screen.getByLabelText('Total after tax')
+    expect(changedTotal).not.toBe(total)
+    expect(changedTotal).toHaveClass('animate-value-flash')
+    expect(changedTotal).toHaveAttribute('data-value-key', '6.05 EUR')
   })
 })

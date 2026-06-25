@@ -417,6 +417,28 @@ describe('App orchestration', () => {
     })
   })
 
+  it('renders preset descriptions and confirms overwriting edited form input', () => {
+    renderApp()
+
+    expect(screen.getAllByText(/one energy tariff and one charging period/i).length).toBeGreaterThan(0)
+
+    fireEvent.change(screen.getByLabelText(/country/i), { target: { value: 'DE' } })
+    expect(screen.getByText('Custom')).toBeInTheDocument()
+
+    const presetSelect = screen.getByLabelText('Preset', { selector: 'select' })
+    fireEvent.change(presetSelect, { target: { value: 'time-of-day' } })
+
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('This overwrites your current input')
+    expect(presetSelect).toHaveValue(defaultPreset)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Apply preset' }))
+
+    expect(screen.getByLabelText('Preset', { selector: 'select' })).toHaveValue('time-of-day')
+    expect(screen.getAllByText(/restricted daytime rule/i).length).toBeGreaterThan(0)
+    expect(screen.queryByText('Custom')).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/tariff name/i)).toHaveValue('tod')
+  })
+
   it('shows calculate errors and clears prior report and verdict UI', async () => {
     renderApp()
     await advanceDebounce()
@@ -492,7 +514,10 @@ describe('App orchestration', () => {
       '{"country_code":"NL","party_id":"EXA","id":"raw-cdr","start_date_time":"2026-06-24T09:00:00Z","end_date_time":"2026-06-24T10:00:00Z","currency":"USD","tariffs":[{"id":"raw","currency":"USD","elements":[{"price_components":[{"type":"ENERGY","price":"11","step_size":1}]}]}],"charging_periods":[{"start_date_time":"2026-06-24T09:00:00Z","tariff_id":"raw","dimensions":[{"type":"ENERGY","volume":"1"}]}],"total_cost":{"excl_vat":"11"},"total_energy":"1","total_time":"0","last_updated":"2026-06-24T09:00:00Z"}'
 
     switchToJson()
+    expect(screen.getByText('Developer mode')).toBeInTheDocument()
+    expect(screen.getByText('Synced')).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('JSON'), { target: { value: rawJson } })
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
     switchToForm()
 
     expect(screen.getAllByLabelText(/^currency$/i)[0]).toHaveValue('USD')
@@ -500,10 +525,12 @@ describe('App orchestration', () => {
     switchToJson()
     fireEvent.change(screen.getByLabelText('JSON'), { target: { value: '[' } })
 
+    expect(screen.getAllByText('Invalid JSON').length).toBeGreaterThan(0)
     expect(screen.getAllByRole('alert').some((alert) => /unexpected end of json input/i.test(alert.textContent ?? ''))).toBe(true)
 
     switchToForm()
 
+    expect(screen.getAllByRole('alert').some((alert) => /unexpected end of json input/i.test(alert.textContent ?? ''))).toBe(true)
     expect(screen.getAllByLabelText(/^currency$/i)[0]).toHaveValue('USD')
   })
 

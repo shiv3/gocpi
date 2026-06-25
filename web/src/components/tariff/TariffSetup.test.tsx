@@ -53,7 +53,9 @@ describe('TariffSetup', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add price component' }))
     expect((onChange.mock.calls[0][0] as SimForm).tariffs[0].elements[0].components).toHaveLength(2)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete price component 1' }))
+    const deleteButton = screen.getByRole('button', { name: 'Delete price component 1' })
+    expect(deleteButton).toHaveClass('bg-destructive')
+    fireEvent.click(deleteButton)
     expect((onChange.mock.calls[1][0] as SimForm).tariffs[0].elements[0].components).toHaveLength(0)
     expect(form.tariffs[0].elements[0].components).toHaveLength(1)
   })

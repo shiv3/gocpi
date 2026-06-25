@@ -140,7 +140,10 @@ describe('AdvancedSettings', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add tariff' }))
     expect(latest.tariffs).toHaveLength(2)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete tariff 2' }))
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Tariff 2 actions' }), { key: 'Enter' })
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete tariff' }))
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Delete tariff?')
+    fireEvent.click(screen.getByRole('button', { name: 'Delete tariff' }))
     expect(latest.tariffs).toHaveLength(1)
 
     fireEvent.click(screen.getByRole('button', { name: 'Add tariff rule' }))

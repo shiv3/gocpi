@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { JsonPanel } from './components/JsonPanel'
+import type { JsonSyncStatus } from './components/JsonPanel'
 import { AdvancedSettings } from './components/advanced/AdvancedSettings'
 import type { AdvancedSection, TariffSourceMode } from './components/advanced/AdvancedSettings'
 import { NativeSelect } from './components/controls/NativeSelect'
 import { CalculationSettings } from './components/settings/CalculationSettings'
+import { PresetPicker } from './components/settings/PresetPicker'
 import { ChargingSession } from './components/session/ChargingSession'
 import { TariffSetup } from './components/tariff/TariffSetup'
 import { Alert, AlertDescription, AlertTitle } from './components/ui/alert'
@@ -12,6 +14,7 @@ import { Badge } from './components/ui/badge'
 import { Button } from './components/ui/button'
 import { Label } from './components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from './components/ui/tabs'
+import { Toaster } from './components/ui/sonner'
 import { CostAnalysis } from './components/result/CostAnalysis'
 import { CostBreakdown } from './components/result/CostBreakdown'
 import { ResultSummary } from './components/result/ResultSummary'
@@ -42,6 +45,10 @@ function readBootState(): PersistedState | null {
   return typeof window === 'undefined' ? null : decodeState(window.location.hash)
 }
 
+function formMatchesPreset(form: SimForm, key: string): boolean {
+  return presets[key] != null && JSON.stringify(form) === JSON.stringify(presets[key])
+}
+
 export function App() {
   const bootRef = useRef<PersistedState | null | undefined>(undefined)
   if (bootRef.current === undefined) {
@@ -54,6 +61,9 @@ export function App() {
   const [currencyPrecision, setCurrencyPrecision] = useState<number>(() => boot?.currencyPrecision ?? 2)
   const [presetKey, setPresetKey] = useState(() => boot?.presetKey ?? defaultPreset)
   const [form, setForm] = useState<SimForm>(() => (boot ? cloneForm(boot.form) : cloneForm(presets[defaultPreset])))
+  const [isPresetDirty, setIsPresetDirty] = useState(() =>
+    boot ? !formMatchesPreset(boot.form, boot.presetKey ?? defaultPreset) : false,
+  )
   const [rawJson, setRawJson] = useState<string | null>(() => boot?.rawJson ?? null)
   const [parseError, setParseError] = useState<string | undefined>()
   const [calc, setCalc] = useState<Report | null>(null)
@@ -75,10 +85,18 @@ export function App() {
   const hasPersistableChangeRef = useRef(false)
 
   const serializedText = useMemo(() => JSON.stringify(serialize(form, version), null, 2), [form, version])
+  const jsonSyncStatus: JsonSyncStatus = parseError
+    ? 'invalid'
+    : rawJson == null || rawJson === serializedText
+      ? 'synced'
+      : 'unsaved'
   const tariffIds = useMemo(() => form.tariffs.map((tariff) => tariff.id).filter(Boolean), [form.tariffs])
 
-  const replaceForm = (next: SimForm) => {
+  const replaceForm = (next: SimForm, options: { markCustom?: boolean } = {}) => {
     setForm(next)
+    if (options.markCustom ?? true) {
+      setIsPresetDirty(true)
+    }
     setRawJson(null)
     setParseError(undefined)
     setEngineError(null)
@@ -94,7 +112,8 @@ export function App() {
 
   const selectPreset = (key: string) => {
     setPresetKey(key)
-    replaceForm(cloneForm(presets[key]))
+    setIsPresetDirty(false)
+    replaceForm(cloneForm(presets[key]), { markCustom: false })
   }
 
   const selectVersion = (nextVersion: Version) => {
@@ -117,7 +136,6 @@ export function App() {
     if (rawJson == null) {
       setRawJson(serializedText)
     }
-    setParseError(undefined)
     setView('json')
   }
 
@@ -147,6 +165,7 @@ export function App() {
       const parsed = JSON.parse(text)
       setParseError(undefined)
       setForm(deserialize(parsed, version))
+      setIsPresetDirty(true)
     } catch (parseOrDeserializeError) {
       setParseError(messageFromError(parseOrDeserializeError))
     }
@@ -353,7 +372,8 @@ export function App() {
   }, [currencyPrecision, form, mode, rawJson, timeSeriesUnit, timeZone, version])
 
   return (
-    <main className="min-h-screen bg-muted/30 text-foreground">
+    <>
+      <main className="min-h-screen bg-muted/30 text-foreground">
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-4 lg:px-6">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
@@ -367,16 +387,7 @@ export function App() {
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 xl:min-w-[920px]">
-              <div className="space-y-2">
-                <Label htmlFor="header-preset">Preset</Label>
-                <NativeSelect id="header-preset" value={presetKey} onChange={(event) => selectPreset(event.currentTarget.value)}>
-                  {Object.keys(presets).map((key) => (
-                    <option key={key} value={key}>
-                      {key}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </div>
+              <PresetPicker value={presetKey} isCustom={isPresetDirty} onChange={selectPreset} />
               <div className="space-y-2">
                 <Label htmlFor="header-currency">Currency</Label>
                 <NativeSelect id="header-currency" value={form.currency} onChange={(event) => setCurrency(event.currentTarget.value)}>
@@ -444,6 +455,12 @@ export function App() {
         <section aria-label="Simulator input" className="min-w-0">
           {view === 'form' ? (
             <div className="space-y-5">
+              {parseError && (
+                <Alert variant="destructive" className="py-3">
+                  <AlertTitle>Invalid JSON</AlertTitle>
+                  <AlertDescription>{parseError}</AlertDescription>
+                </Alert>
+              )}
               <CalculationSettings
                 value={form}
                 timeZone={timeZone}
@@ -478,7 +495,12 @@ export function App() {
               />
             </div>
           ) : (
-            <JsonPanel text={rawJson ?? serializedText} onChange={onJsonChange} parseError={parseError} />
+            <JsonPanel
+              text={rawJson ?? serializedText}
+              onChange={onJsonChange}
+              parseError={parseError}
+              syncStatus={jsonSyncStatus}
+            />
           )}
         </section>
 
@@ -520,7 +542,9 @@ export function App() {
           </div>
         </aside>
       </div>
-    </main>
+      </main>
+      <Toaster />
+    </>
   )
 }
 

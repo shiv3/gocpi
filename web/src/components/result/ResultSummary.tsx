@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { money } from '@/lib/units'
+import { cn } from '@/lib/utils'
 import type { Report } from '@/model/dto'
 
 export interface ResultSummaryProps {
@@ -27,6 +28,10 @@ export function ResultSummary({ report, currency }: ResultSummaryProps) {
   const beforeTaxes = report.totalCost.beforeTaxes
   const afterTaxes = report.totalCost.afterTaxes ?? beforeTaxes
   const vat = subtractMoney(report.totalCost.afterTaxes, beforeTaxes)
+  const afterTaxesText = money(afterTaxes, currency)
+  const beforeTaxesText = money(beforeTaxes, currency)
+  const vatText = vat == null ? '—' : money(vat, currency)
+  const flashClass = 'animate-value-flash rounded-sm px-1 -mx-1'
 
   return (
     <Card className="rounded-md">
@@ -36,21 +41,31 @@ export function ResultSummary({ report, currency }: ResultSummaryProps) {
       <CardContent className="space-y-4 p-5 pt-0">
         <div className="space-y-1">
           <p className="text-sm font-medium text-muted-foreground">Total after tax</p>
-          <p aria-label="Total after tax" className="text-4xl font-semibold tracking-normal">
-            {money(afterTaxes, currency)}
+          <p
+            key={afterTaxesText}
+            aria-label="Total after tax"
+            data-value-key={afterTaxesText}
+            className={cn('text-4xl font-semibold tracking-normal', flashClass)}
+          >
+            {afterTaxesText}
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-md border bg-muted/30 p-3">
             <p className="text-xs font-medium text-muted-foreground">Before tax</p>
-            <p aria-label="Before tax" className="text-lg font-semibold">
-              {money(beforeTaxes, currency)}
+            <p
+              key={beforeTaxesText}
+              aria-label="Before tax"
+              data-value-key={beforeTaxesText}
+              className={cn('text-lg font-semibold', flashClass)}
+            >
+              {beforeTaxesText}
             </p>
           </div>
           <div className="rounded-md border bg-muted/30 p-3">
             <p className="text-xs font-medium text-muted-foreground">VAT</p>
-            <p aria-label="VAT" className="text-lg font-semibold">
-              {vat == null ? '—' : money(vat, currency)}
+            <p key={vatText} aria-label="VAT" data-value-key={vatText} className={cn('text-lg font-semibold', flashClass)}>
+              {vatText}
             </p>
           </div>
         </div>

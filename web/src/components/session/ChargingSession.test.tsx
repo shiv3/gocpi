@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { ChargingSession } from './ChargingSession'
+import { Toaster } from '@/components/ui/sonner'
 import { serialize } from '@/lib/serialize'
 import { presets } from '@/presets'
 import type { PeriodForm, SimForm } from '@/model/forms'
@@ -71,12 +72,14 @@ describe('ChargingSession', () => {
     })
   })
 
-  it('adds and removes usage items and charging periods', () => {
-    let latest = clone(presets['single-energy']).periods
+  it('adds and removes usage items and confirms charging-period deletes with undo', async () => {
+    const form = clone(presets['single-energy'])
+    let latest = form.periods
 
     function Harness() {
       const [periods, setPeriods] = useState<PeriodForm[]>(latest)
       return (
+        <>
         <ChargingSession
           value={periods}
           calculationStart="2026-06-24T09:00:00Z"
@@ -86,6 +89,8 @@ describe('ChargingSession', () => {
             setPeriods(next)
           }}
         />
+        <Toaster />
+        </>
       )
     }
 
@@ -101,7 +106,18 @@ describe('ChargingSession', () => {
     expect(latest).toHaveLength(2)
 
     fireEvent.keyDown(screen.getByRole('button', { name: 'Charging period 2 actions' }), { key: 'Enter' })
-    fireEvent.click(screen.getByText('Delete charging period'))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete charging period' }))
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Delete charging period?')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete charging period' }))
     expect(latest).toHaveLength(1)
+
+    expect((serialize({ ...form, periods: latest }, '2.2.1') as { charging_periods: unknown[] }).charging_periods).toHaveLength(1)
+
+    const periodToast = (await screen.findByText('Charging period deleted')).closest('[data-sonner-toast]')
+    if (!periodToast) throw new Error('Charging period toast was not rendered')
+    fireEvent.click(within(periodToast as HTMLElement).getByRole('button', { name: 'Undo' }))
+    expect(latest).toHaveLength(2)
+    expect((serialize({ ...form, periods: latest }, '2.2.1') as { charging_periods: unknown[] }).charging_periods).toHaveLength(2)
   })
 })
