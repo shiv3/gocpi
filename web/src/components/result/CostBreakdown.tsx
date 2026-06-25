@@ -1,61 +1,105 @@
-import type { Money, Report } from '../../model/dto'
-import { WarningsList } from './WarningsList'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { money, usageUnitLabel } from '@/lib/units'
+import type { DimensionResult, Money, Report } from '@/model/dto'
 
-const DIMENSIONS = ['ENERGY', 'TIME', 'PARKING_TIME', 'FLAT']
+const DIMENSIONS = ['ENERGY', 'TIME', 'PARKING_TIME', 'FLAT'] as const
+
+type DimensionName = (typeof DIMENSIONS)[number]
 
 export interface CostBreakdownProps {
   report: Report
+  currency: string
 }
 
-function afterTaxes(money: Money): string {
-  return money.afterTaxes ?? 'n/a'
+const ITEM_LABELS: Record<DimensionName, string> = {
+  ENERGY: 'Energy',
+  TIME: 'Charging time',
+  PARKING_TIME: 'Parking time',
+  FLAT: 'Flat fee',
 }
 
-export function CostBreakdown({ report }: CostBreakdownProps) {
-  const dimensions = DIMENSIONS.flatMap((dimension) => {
-    const result = report.dimensions[dimension]
-    return result ? [{ name: dimension, volume: result.volume, cost: result.cost }] : []
+const TOTAL_COST_BY_DIMENSION: Record<DimensionName, keyof Report> = {
+  ENERGY: 'totalEnergyCost',
+  TIME: 'totalTimeCost',
+  PARKING_TIME: 'totalParkingCost',
+  FLAT: 'totalFixedCost',
+}
+
+function numericValue(value: string | null | undefined): number {
+  if (value == null || value === '') return 0
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function hasCost(value: Money | null | undefined): boolean {
+  return numericValue(value?.beforeTaxes) !== 0 || numericValue(value?.afterTaxes) !== 0
+}
+
+function isUsed(dimension: DimensionResult | undefined, cost: Money | null | undefined): boolean {
+  return numericValue(dimension?.volume) !== 0 || hasCost(dimension?.cost) || hasCost(cost)
+}
+
+function formatUsage(dimension: DimensionResult | undefined, name: DimensionName): string {
+  if (!dimension?.volume) return 'Not used'
+
+  const unit = usageUnitLabel(name)
+  return unit ? `${dimension.volume} ${unit}` : dimension.volume
+}
+
+function formatMoneyValue(value: string | null | undefined, currency: string): string {
+  return money(value, currency)
+}
+
+export function CostBreakdown({ report, currency }: CostBreakdownProps) {
+  const rows = DIMENSIONS.flatMap((name) => {
+    const dimension = report.dimensions[name]
+    const totalCost = report[TOTAL_COST_BY_DIMENSION[name]] as Money
+    const cost = dimension?.cost ?? totalCost
+
+    if (!isUsed(dimension, cost)) return []
+
+    return [{ name, dimension, cost }]
   })
 
   return (
-    <section className="result-section" aria-labelledby="cost-breakdown-heading">
-      <div className="section-heading">
-        <h2 id="cost-breakdown-heading">Cost breakdown</h2>
-        <span className="currency-badge">{report.currency}</span>
-      </div>
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th scope="col">item</th>
-            <th scope="col">volume</th>
-            <th scope="col">before taxes</th>
-            <th scope="col">after taxes</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <th scope="row">total</th>
-            <td>-</td>
-            <td>{report.totalCost.beforeTaxes}</td>
-            <td>{afterTaxes(report.totalCost)}</td>
-          </tr>
-          {dimensions.map((dimension) => (
-            <tr key={dimension.name}>
-              <th scope="row">{dimension.name}</th>
-              <td>{dimension.volume}</td>
-              <td>
-                {dimension.cost.beforeTaxes}
-                <span className="sr-only"> {dimension.name} before taxes</span>
-              </td>
-              <td>
-                {afterTaxes(dimension.cost)}
-                <span className="sr-only"> {dimension.name} after taxes</span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <WarningsList warnings={report.warnings} />
-    </section>
+    <Card className="rounded-md">
+      <CardHeader className="p-5">
+        <CardTitle className="text-lg">Cost breakdown</CardTitle>
+      </CardHeader>
+      <CardContent className="p-5 pt-0">
+        {rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No used dimensions.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Item</TableHead>
+                <TableHead>Usage</TableHead>
+                <TableHead>Before tax</TableHead>
+                <TableHead>After tax</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.name}>
+                  <TableCell className="font-medium">{ITEM_LABELS[row.name]}</TableCell>
+                  <TableCell>{formatUsage(row.dimension, row.name)}</TableCell>
+                  <TableCell>{formatMoneyValue(row.cost.beforeTaxes, currency)}</TableCell>
+                  <TableCell>{formatMoneyValue(row.cost.afterTaxes, currency)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   )
 }

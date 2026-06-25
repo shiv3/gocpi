@@ -7,16 +7,15 @@ import { NativeSelect } from './components/controls/NativeSelect'
 import { CalculationSettings } from './components/settings/CalculationSettings'
 import { ChargingSession } from './components/session/ChargingSession'
 import { TariffSetup } from './components/tariff/TariffSetup'
-import { Alert, AlertDescription } from './components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from './components/ui/alert'
 import { Badge } from './components/ui/badge'
 import { Button } from './components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card'
 import { Label } from './components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from './components/ui/tabs'
+import { CostAnalysis } from './components/result/CostAnalysis'
 import { CostBreakdown } from './components/result/CostBreakdown'
-import { CostChart } from './components/result/CostChart'
-import { CostTimeSeries } from './components/result/CostTimeSeries'
-import { VerdictView } from './components/result/VerdictView'
+import { ResultSummary } from './components/result/ResultSummary'
+import { ValidationResult } from './components/result/ValidationResult'
 import { COMMON_CURRENCIES, TIME_ZONES, optionsWithCurrent } from './lib/options'
 import { deserialize, reportMoneyToCdr, serialize, serializeTariff } from './lib/serialize'
 import { computeCostSeries } from './lib/timeseries'
@@ -70,6 +69,7 @@ export function App() {
   const [advancedOpen, setAdvancedOpen] = useState<AdvancedSection | undefined>()
   const requestIdRef = useRef(0)
   const timeSeriesRequestIdRef = useRef(0)
+  const headerTimeZoneRef = useRef<HTMLSelectElement>(null)
   const skipFirstPersistRef = useRef(true)
   const initialPersistEncodedRef = useRef<string | null>(null)
   const hasPersistableChangeRef = useRef(false)
@@ -122,6 +122,22 @@ export function App() {
   }
 
   const showForm = () => setView('form')
+
+  const openValidationTarget = (target: string) => {
+    if (target === 'header-time-zone') {
+      headerTimeZoneRef.current?.focus()
+      return
+    }
+
+    setView('form')
+
+    if (target === 'calculation-settings') {
+      window.requestAnimationFrame(() => document.getElementById('calculation-start')?.focus())
+      return
+    }
+
+    setAdvancedOpen(target as AdvancedSection)
+  }
 
   const onJsonChange = (text: string) => {
     setRawJson(text)
@@ -373,7 +389,12 @@ export function App() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="header-time-zone">Time zone</Label>
-                <NativeSelect id="header-time-zone" value={timeZone} onChange={(event) => setTimeZone(event.currentTarget.value)}>
+                <NativeSelect
+                  ref={headerTimeZoneRef}
+                  id="header-time-zone"
+                  value={timeZone}
+                  onChange={(event) => setTimeZone(event.currentTarget.value)}
+                >
                   <option value="">(infer from country)</option>
                   {TIME_ZONES.map((zone) => (
                     <option key={zone} value={zone}>
@@ -421,12 +442,6 @@ export function App() {
 
       <div className="mx-auto grid max-w-[1600px] gap-5 px-4 py-5 lg:grid-cols-[minmax(0,1.9fr)_minmax(360px,1fr)] lg:px-6">
         <section aria-label="Simulator input" className="min-w-0">
-          {engineError && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{engineError}</AlertDescription>
-            </Alert>
-          )}
-
           {view === 'form' ? (
             <div className="space-y-5">
               <CalculationSettings
@@ -469,46 +484,39 @@ export function App() {
 
         <aside aria-label="Engine results" className="min-w-0">
           <div className="sticky top-4 space-y-4">
-            <Card className="rounded-md">
-              <CardHeader className="p-5">
-                <CardTitle className="text-lg">Result summary</CardTitle>
-                <CardDescription>Total cost summary is redesigned in Phase 1B.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-5 pt-0">
-                {calc ? (
-                  <p className="text-sm text-muted-foreground">
-                    Current result currency: <span className="font-medium text-foreground">{calc.currency}</span>
-                  </p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No calculation yet</p>
-                )}
-              </CardContent>
-            </Card>
+            {(engineError || resultError) && (
+              <Alert variant="destructive">
+                <AlertTitle>Calculation problem</AlertTitle>
+                <AlertDescription>{engineError ?? resultError}</AlertDescription>
+              </Alert>
+            )}
             {isComputing && (
               <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
                 computing...
               </p>
             )}
-            {resultError && (
-              <Alert variant="destructive">
-                <AlertDescription>{resultError}</AlertDescription>
-              </Alert>
-            )}
             {calc ? (
               <>
-                <CostChart report={calc} />
-                <CostTimeSeries
-                  series={series}
-                  unitMinutes={timeSeriesUnit}
-                  onUnitChange={setTimeSeriesUnit}
-                  currency={form.currency}
-                />
-                <CostBreakdown report={calc} />
+                <ResultSummary report={calc} currency={form.currency} />
+                <CostBreakdown report={calc} currency={form.currency} />
               </>
             ) : (
               <p className="rounded-md border bg-background p-4 text-sm text-muted-foreground">No calculation yet</p>
             )}
-            {verd ? <VerdictView verdict={verd} /> : <p className="rounded-md border bg-background p-4 text-sm text-muted-foreground">No verification yet</p>}
+            {verd ? (
+              <ValidationResult verdict={verd} onOpenAdvanced={openValidationTarget} />
+            ) : (
+              <p className="rounded-md border bg-background p-4 text-sm text-muted-foreground">No verification yet</p>
+            )}
+            {calc && (
+              <CostAnalysis
+                report={calc}
+                series={series}
+                unitMinutes={timeSeriesUnit}
+                onUnitChange={setTimeSeriesUnit}
+                currency={form.currency}
+              />
+            )}
           </div>
         </aside>
       </div>

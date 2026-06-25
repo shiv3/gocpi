@@ -93,6 +93,10 @@ function openAdvancedSection(name: RegExp | string) {
   fireEvent.click(screen.getByRole('button', { name }))
 }
 
+function openCostAnalysis() {
+  fireEvent.click(screen.getByRole('button', { name: 'Cost analysis' }))
+}
+
 function persistedState(): PersistedState {
   return {
     v: 1,
@@ -233,11 +237,13 @@ describe('App orchestration', () => {
     expect(calculateWithTariffMock).not.toHaveBeenCalled()
     expect(verifyMock).toHaveBeenCalledTimes(1)
     expect(verifyWithTariffMock).not.toHaveBeenCalled()
-    expect(screen.getByText('Cost charts')).toBeInTheDocument()
+    expect(screen.getByLabelText('Total after tax')).toHaveTextContent('5.45 EUR')
     expect(screen.getByText('Cost breakdown')).toBeInTheDocument()
-    expect(screen.getByRole('row', { name: /total - 4\.50 5\.45/i })).toBeInTheDocument()
-    expect(screen.getByText('Verify verdict')).toBeInTheDocument()
-    expect(screen.getByText('OK')).toBeInTheDocument()
+    expect(screen.getByRole('row', { name: /energy 10 kwh 3\.00 eur 3\.63 eur/i })).toBeInTheDocument()
+    expect(screen.getByText('Validation result')).toBeInTheDocument()
+    expect(screen.getAllByText('Success').length).toBeGreaterThan(0)
+    openCostAnalysis()
+    expect(screen.getByText('Cost charts')).toBeInTheDocument()
   })
 
   it('computes a cumulative cost series for multiple ticks and recomputes when the unit changes', async () => {
@@ -245,6 +251,7 @@ describe('App orchestration', () => {
 
     await advanceDebounce(450)
 
+    openCostAnalysis()
     expect(screen.getByRole('heading', { name: /cumulative cost over time/i })).toBeInTheDocument()
     expect(screen.queryByText('no time-series')).not.toBeInTheDocument()
 
@@ -414,7 +421,7 @@ describe('App orchestration', () => {
     renderApp()
     await advanceDebounce()
     expect(screen.getByText('Cost breakdown')).toBeInTheDocument()
-    expect(screen.getByText('Verify verdict')).toBeInTheDocument()
+    expect(screen.getByText('Validation result')).toBeInTheDocument()
 
     calculateMock.mockResolvedValue({ ok: false, error: 'currency mismatch between CDR and tariff' })
     calculateMock.mockClear()
@@ -428,7 +435,7 @@ describe('App orchestration', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('currency mismatch between CDR and tariff')
     expect(screen.queryByText('Cost charts')).not.toBeInTheDocument()
     expect(screen.queryByText('Cost breakdown')).not.toBeInTheDocument()
-    expect(screen.queryByText('Verify verdict')).not.toBeInTheDocument()
+    expect(screen.queryByText('Validation result')).not.toBeInTheDocument()
     expect(screen.getAllByText(/no calculation yet/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/no verification yet/i)).toBeInTheDocument()
   })
@@ -493,7 +500,7 @@ describe('App orchestration', () => {
     switchToJson()
     fireEvent.change(screen.getByLabelText('JSON'), { target: { value: '[' } })
 
-    expect(screen.getByRole('alert')).toHaveTextContent(/unexpected end of json input/i)
+    expect(screen.getAllByRole('alert').some((alert) => /unexpected end of json input/i.test(alert.textContent ?? ''))).toBe(true)
 
     switchToForm()
 
