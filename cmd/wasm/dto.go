@@ -1,3 +1,6 @@
+// Package main exposes the gocpi OCPI pricing engine to JavaScript via
+// WebAssembly: it registers calculate/verify entry points on the global scope
+// when built for js/wasm, and is a no-op binary otherwise.
 package main
 
 import (
