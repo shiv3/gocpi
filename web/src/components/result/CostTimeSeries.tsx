@@ -8,7 +8,7 @@ import {
   YAxis,
 } from 'recharts'
 
-const CHART_SIZE = { width: 420, height: 260 }
+const CHART_SIZE = { width: 360, height: 200 }
 
 export interface CostTimeSeriesProps {
   series: { t: string; label: string; cost: number }[]
@@ -21,12 +21,18 @@ export function CostTimeSeries({ series, unitMinutes, onUnitChange, currency }: 
   const formatMoney = (value: unknown) => [`${Number(value).toLocaleString()} ${currency}`, 'cumulative cost']
 
   return (
-    <section className="result-section cost-time-series" aria-labelledby="cost-time-series-heading">
-      <div className="section-heading">
-        <h2 id="cost-time-series-heading">Cumulative cost over time</h2>
-        <label className="inline-control">
+    <section aria-labelledby="cost-time-series-heading" className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <h3 id="cost-time-series-heading" className="text-sm font-medium">
+          Cumulative cost over time
+        </h3>
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
           resolution
-          <select value={unitMinutes} onChange={(event) => onUnitChange(Number(event.currentTarget.value))}>
+          <select
+            className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+            value={unitMinutes}
+            onChange={(event) => onUnitChange(Number(event.currentTarget.value))}
+          >
             <option value={1}>1 min</option>
             <option value={10}>10 min</option>
             <option value={60}>1 hour</option>
@@ -34,10 +40,10 @@ export function CostTimeSeries({ series, unitMinutes, onUnitChange, currency }: 
         </label>
       </div>
       {series.length === 0 ? (
-        <p className="empty-state">no time-series</p>
+        <p className="text-sm text-muted-foreground">no time-series</p>
       ) : (
-        <div className="cost-time-series__canvas">
-          <ResponsiveContainer width="100%" height={260} initialDimension={CHART_SIZE}>
+        <div className="h-52 w-full">
+          <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_SIZE}>
             <LineChart data={series} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="label" tick={{ fontSize: 12 }} />

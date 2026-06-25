@@ -71,10 +71,10 @@ export function CostBreakdown({ report, currency }: CostBreakdownProps) {
 
   return (
     <Card className="rounded-md">
-      <CardHeader className="p-5">
-        <CardTitle className="text-lg">Cost breakdown</CardTitle>
+      <CardHeader className="p-4">
+        <CardTitle className="text-base">Cost breakdown</CardTitle>
       </CardHeader>
-      <CardContent className="p-5 pt-0">
+      <CardContent className="p-4 pt-0">
         {rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">No used dimensions.</p>
         ) : (

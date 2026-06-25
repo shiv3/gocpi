@@ -11,11 +11,12 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { Badge } from '@/components/ui/badge'
 import type { Report } from '../../model/dto'
 
 const DIMENSIONS = ['ENERGY', 'TIME', 'PARKING_TIME', 'FLAT'] as const
 const COLORS = ['#175cd3', '#12b76a', '#f79009', '#7a5af8']
-const CHART_SIZE = { width: 420, height: 260 }
+const CHART_SIZE = { width: 360, height: 180 }
 
 export interface CostChartProps {
   report: Report
@@ -56,21 +57,23 @@ export function CostChart({ report }: CostChartProps) {
   ]
 
   return (
-    <section className="result-section cost-chart" aria-labelledby="cost-chart-heading">
-      <div className="section-heading">
-        <h2 id="cost-chart-heading">Cost charts</h2>
-        <span className="currency-badge">{report.currency}</span>
+    <section aria-labelledby="cost-chart-heading" className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <h3 id="cost-chart-heading" className="text-sm font-medium">
+          Cost charts
+        </h3>
+        <Badge variant="secondary">{report.currency}</Badge>
       </div>
       {rows.length === 0 ? (
-        <p className="empty-state">No dimension costs to chart</p>
+        <p className="text-sm text-muted-foreground">No dimension costs to chart</p>
       ) : (
-        <div className="cost-chart__grid">
-          <div className="cost-chart__panel">
-            <h3>Share by dimension</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1">
+            <h4 className="text-xs font-medium text-muted-foreground">Share by dimension</h4>
             {pieRows.length === 0 ? (
-              <p className="empty-state">No positive costs to chart</p>
+              <p className="text-sm text-muted-foreground">No positive costs to chart</p>
             ) : (
-              <div className="cost-chart__canvas">
+              <div className="h-44 w-full">
                 <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_SIZE}>
                   <PieChart>
                     <Pie
@@ -92,9 +95,9 @@ export function CostChart({ report }: CostChartProps) {
               </div>
             )}
           </div>
-          <div className="cost-chart__panel">
-            <h3>Before vs after taxes</h3>
-            <div className="cost-chart__canvas">
+          <div className="space-y-1">
+            <h4 className="text-xs font-medium text-muted-foreground">Before vs after taxes</h4>
+            <div className="h-44 w-full">
               <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_SIZE}>
                 <BarChart data={rows} margin={{ top: 8, right: 12, bottom: 8, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />

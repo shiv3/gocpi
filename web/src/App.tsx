@@ -375,11 +375,11 @@ export function App() {
     <>
       <main className="min-h-screen bg-muted/30 text-foreground">
       <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-4 lg:px-6">
+        <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-4 py-3 lg:px-6">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-semibold tracking-normal">gocpi pricing simulator</h1>
+                <h1 className="text-xl font-semibold tracking-normal">gocpi pricing simulator</h1>
                 <Badge variant="secondary">OCPI {version}</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -451,10 +451,10 @@ export function App() {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-[1600px] gap-5 px-4 py-5 lg:grid-cols-[minmax(0,1.9fr)_minmax(360px,1fr)] lg:px-6">
+      <div className="mx-auto grid max-w-[1600px] gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1.9fr)_minmax(360px,1fr)] lg:px-6">
         <section aria-label="Simulator input" className="min-w-0">
           {view === 'form' ? (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {parseError && (
                 <Alert variant="destructive" className="py-3">
                   <AlertTitle>Invalid JSON</AlertTitle>
@@ -505,7 +505,7 @@ export function App() {
         </section>
 
         <aside aria-label="Engine results" className="min-w-0">
-          <div className="sticky top-4 space-y-4">
+          <div className="sticky top-4 space-y-3">
             {(engineError || resultError) && (
               <Alert variant="destructive">
                 <AlertTitle>Calculation problem</AlertTitle>

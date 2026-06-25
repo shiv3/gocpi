@@ -138,11 +138,11 @@ export function ValidationResult({ verdict, onOpenAdvanced }: ValidationResultPr
 
   return (
     <Card className="rounded-md">
-      <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 p-5">
-        <CardTitle className="text-lg">Validation result</CardTitle>
+      <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 p-4">
+        <CardTitle className="text-base">Validation result</CardTitle>
         <Badge variant={badgeVariant(label)}>{label}</Badge>
       </CardHeader>
-      <CardContent className="space-y-5 p-5 pt-0">
+      <CardContent className="space-y-4 p-4 pt-0">
         <Alert variant={label === 'Error' ? 'destructive' : 'default'}>
           <Icon className="h-4 w-4" />
           <AlertTitle>{label}</AlertTitle>

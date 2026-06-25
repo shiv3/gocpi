@@ -57,11 +57,11 @@ export function TariffSetup({ value, onChange, onOpenAdvancedTariffs }: TariffSe
   if (!primaryTariff) {
     return (
       <Card className="rounded-md">
-        <CardHeader className="p-5">
-          <CardTitle className="text-lg">Tariff setup</CardTitle>
+        <CardHeader className="p-4">
+          <CardTitle className="text-base">Tariff setup</CardTitle>
           <CardDescription>Define the tariff plan used to price the session.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3 p-5 pt-0">
+        <CardContent className="space-y-3 p-4 pt-0">
           <p className="text-sm text-muted-foreground">No primary tariff configured.</p>
           <Button type="button" variant="outline" onClick={onOpenAdvancedTariffs}>
             Edit additional tariffs &amp; rules in Advanced
@@ -88,9 +88,9 @@ export function TariffSetup({ value, onChange, onOpenAdvancedTariffs }: TariffSe
   return (
     <>
       <Card className="rounded-md">
-        <CardHeader className="flex-row items-start justify-between space-y-0 p-5">
+        <CardHeader className="flex-row items-start justify-between space-y-0 p-4">
           <div className="space-y-1">
-            <CardTitle className="text-lg">Tariff setup</CardTitle>
+            <CardTitle className="text-base">Tariff setup</CardTitle>
             <CardDescription>Define the tariff plan used to price the session.</CardDescription>
           </div>
           <DropdownMenu>
@@ -111,7 +111,7 @@ export function TariffSetup({ value, onChange, onOpenAdvancedTariffs }: TariffSe
             </DropdownMenuContent>
           </DropdownMenu>
         </CardHeader>
-        <CardContent className="space-y-5 p-5 pt-0">
+        <CardContent className="space-y-4 p-4 pt-0">
           <div className="max-w-sm space-y-2">
             <Label htmlFor="primary-tariff-name">Tariff name</Label>
             <Input

@@ -155,10 +155,10 @@ export function AdvancedSettings({
 
   return (
     <Card className="rounded-md">
-      <CardHeader className="p-5">
-        <CardTitle className="text-lg">Advanced settings</CardTitle>
+      <CardHeader className="p-4">
+        <CardTitle className="text-base">Advanced settings</CardTitle>
       </CardHeader>
-      <CardContent className="p-5 pt-0">
+      <CardContent className="p-4 pt-0">
         <Accordion
           type="single"
           collapsible
@@ -338,7 +338,7 @@ function TariffRulesEditor({ value, version, tariffIndex, onChange }: TariffRule
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="space-y-2">
           <Label htmlFor={`advanced-tariff-name-${tariffIndex}`}>Tariff name</Label>

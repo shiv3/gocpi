@@ -27,11 +27,11 @@ export function CalculationSettings({
 }: CalculationSettingsProps) {
   return (
     <Card className="rounded-md">
-      <CardHeader className="space-y-1 p-5">
-        <CardTitle className="text-lg">Calculation settings</CardTitle>
+      <CardHeader className="space-y-1 p-4">
+        <CardTitle className="text-base">Calculation settings</CardTitle>
         <CardDescription>Set the currency, country, and calculation period.</CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-4 p-5 pt-0 sm:grid-cols-2">
+      <CardContent className="grid gap-4 p-4 pt-0 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="calculation-currency">Currency</Label>
           <NativeSelect

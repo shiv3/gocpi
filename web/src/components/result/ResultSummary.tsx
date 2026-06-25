@@ -35,10 +35,10 @@ export function ResultSummary({ report, currency }: ResultSummaryProps) {
 
   return (
     <Card className="rounded-md">
-      <CardHeader className="p-5">
-        <CardTitle className="text-lg">Result summary</CardTitle>
+      <CardHeader className="p-4">
+        <CardTitle className="text-base">Result summary</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 p-5 pt-0">
+      <CardContent className="space-y-4 p-4 pt-0">
         <div className="space-y-1">
           <p className="text-sm font-medium text-muted-foreground">Total after tax</p>
           <p
@@ -57,14 +57,14 @@ export function ResultSummary({ report, currency }: ResultSummaryProps) {
               key={beforeTaxesText}
               aria-label="Before tax"
               data-value-key={beforeTaxesText}
-              className={cn('text-lg font-semibold', flashClass)}
+              className={cn('text-base font-semibold', flashClass)}
             >
               {beforeTaxesText}
             </p>
           </div>
           <div className="rounded-md border bg-muted/30 p-3">
             <p className="text-xs font-medium text-muted-foreground">VAT</p>
-            <p key={vatText} aria-label="VAT" data-value-key={vatText} className={cn('text-lg font-semibold', flashClass)}>
+            <p key={vatText} aria-label="VAT" data-value-key={vatText} className={cn('text-base font-semibold', flashClass)}>
               {vatText}
             </p>
           </div>

@@ -78,9 +78,9 @@ export function ChargingSession({
   return (
     <>
       <Card className="rounded-md">
-        <CardHeader className="flex-row items-start justify-between space-y-0 p-5">
+        <CardHeader className="flex-row items-start justify-between space-y-0 p-4">
           <div className="space-y-1">
-            <CardTitle className="text-lg">Charging session</CardTitle>
+            <CardTitle className="text-base">Charging session</CardTitle>
             <CardDescription>Describe when charging happened and how much was used.</CardDescription>
           </div>
           <Button
@@ -93,7 +93,7 @@ export function ChargingSession({
             Add charging period
           </Button>
         </CardHeader>
-        <CardContent className="space-y-4 p-5 pt-0">
+        <CardContent className="space-y-4 p-4 pt-0">
           {value.map((period, index) => {
             const availableTariffIds =
               period.tariffId && !tariffIds.includes(period.tariffId) ? [...tariffIds, period.tariffId] : tariffIds

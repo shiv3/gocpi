@@ -15,7 +15,7 @@ export interface CostAnalysisProps {
 export function CostAnalysis({ report, series, unitMinutes, onUnitChange, currency }: CostAnalysisProps) {
   return (
     <Card className="rounded-md">
-      <CardContent className="p-5">
+      <CardContent className="p-4">
         <Accordion type="single" collapsible defaultValue="cost-analysis">
           <AccordionItem value="cost-analysis">
             <AccordionTrigger>Cost analysis</AccordionTrigger>

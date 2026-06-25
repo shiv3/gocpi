@@ -30,9 +30,9 @@ export function JsonPanel({ text, onChange, parseError, syncStatus = parseError 
 
   return (
     <Card className="rounded-md" aria-labelledby="json-panel-heading">
-      <CardHeader className="space-y-3 p-5">
+      <CardHeader className="space-y-3 p-4">
         <div className="flex flex-wrap items-center gap-2">
-          <CardTitle id="json-panel-heading" className="text-lg">
+          <CardTitle id="json-panel-heading" className="text-base">
             CDR JSON
           </CardTitle>
           <Badge variant="outline">Developer mode</Badge>
@@ -40,7 +40,7 @@ export function JsonPanel({ text, onChange, parseError, syncStatus = parseError 
         </div>
         <CardDescription>Edit the serialized CDR directly when you need to inspect or test the engine payload.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3 p-5 pt-0">
+      <CardContent className="space-y-3 p-4 pt-0">
         <Label htmlFor={textareaId}>JSON</Label>
         <textarea
           id={textareaId}
