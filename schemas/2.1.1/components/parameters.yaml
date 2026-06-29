@@ -1,0 +1,124 @@
+openapi: 3.1.0
+components:
+  parameters:
+    # ---- Common Request Headers ----
+    # These headers are required on every OCPI request.
+
+    X-Request-ID:
+      in: header
+      name: X-Request-ID
+      description: |
+        Every request SHALL contain a unique request ID, the response to this request SHALL
+        contain the same ID. It is advised to use GUID/UUID as values.
+      required: true
+      schema:
+        type: string
+    X-Correlation-ID:
+      in: header
+      name: X-Correlation-ID
+      description: |
+        Every request/response SHALL contain a unique correlation ID, every response to this
+        request SHALL contain the same ID. It is advised to use GUID/UUID as values.
+        When a Hub forwards a request to a party, the request SHALL contain the same
+        X-Correlation-ID HTTP header (with the same value).
+      required: true
+      schema:
+        type: string
+
+    # ---- Message Routing Headers ----
+    # Required for requests to/from functional modules when communicating via a Hub.
+    # SHALL NOT be used with configuration modules (credentials, versions, hubclientinfo).
+
+    OCPI-to-party-id:
+      in: header
+      name: OCPI-to-party-id
+      description: "'party id' of the connected party this message is to be sent to."
+      required: false
+      schema:
+        type: string
+        minLength: 3
+        maxLength: 3
+    OCPI-to-country-code:
+      in: header
+      name: OCPI-to-country-code
+      description: "'country code' of the connected party this message is to be sent to."
+      required: false
+      schema:
+        type: string
+        minLength: 2
+        maxLength: 2
+    OCPI-from-party-id:
+      in: header
+      name: OCPI-from-party-id
+      description: "'party id' of the connected party this message is sent from."
+      required: false
+      schema:
+        type: string
+        minLength: 3
+        maxLength: 3
+    OCPI-from-country-code:
+      in: header
+      name: OCPI-from-country-code
+      description: "'country code' of the connected party this message is sent from."
+      required: false
+      schema:
+        type: string
+        minLength: 2
+        maxLength: 2
+
+    # ---- Pagination Query Parameters ----
+
+    DateFromParameter:
+      in: query
+      name: date_from
+      description: Only return objects that have last_updated after or equal to this Date/Time (inclusive).
+      required: false
+      schema:
+        type: string
+        format: date-time
+    DateToParameter:
+      in: query
+      name: date_to
+      description: Only return objects that have last_updated up to this Date/Time, but not including (exclusive).
+      required: false
+      schema:
+        type: string
+        format: date-time
+    OffsetParameter:
+      in: query
+      name: offset
+      description: The offset of the first object returned. Default is 0.
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    LimitParameter:
+      in: query
+      name: limit
+      description: Maximum number of objects to GET.
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+
+    # ---- Common Path Parameters ----
+
+    CountryCodeParameter:
+      in: path
+      name: country_code
+      description: Country code of the CPO that 'owns' this object (ISO-3166 alpha-2).
+      required: true
+      schema:
+        type: string
+        minLength: 2
+        maxLength: 2
+    PartyIdParameter:
+      in: path
+      name: party_id
+      description: Party ID (Provider ID) of the CPO that 'owns' this object (following the ISO-15118 standard).
+      required: true
+      schema:
+        type: string
+        minLength: 3
+        maxLength: 3

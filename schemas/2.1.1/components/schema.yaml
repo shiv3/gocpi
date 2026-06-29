@@ -1,0 +1,373 @@
+openapi: 3.1.0
+components:
+  securitySchemes:
+    ocpiAuthorization:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: |
+        OCPI Token-based authentication. Every OCPI HTTP request MUST add an 'Authorization' header.
+        The header uses the format: `Token <base64-encoded-credentials-token>`
+  headers:
+    X-Request-ID:
+      description: |
+        Every request SHALL contain a unique request ID, the response to this request SHALL
+        contain the same ID. It is advised to use GUID/UUID as values.
+      required: true
+      schema:
+        type: string
+        format: uuid
+    X-Correlation-ID:
+      description: |
+        Every request/response SHALL contain a unique correlation ID, every response to this
+        request SHALL contain the same ID. It is advised to use GUID/UUID as values.
+        When a Hub forwards a request, the X-Correlation-ID SHALL be kept the same.
+      required: true
+      schema:
+        type: string
+        format: uuid
+    OCPI-to-party-id:
+      description: |
+        'party id' of the connected party this message is to be sent to.
+        Required for MSGs to/from functional modules when connecting via a Hub.
+        SHALL NOT be used with configuration modules (credentials, versions, hubclientinfo).
+      required: false
+      schema:
+        type: string
+        minLength: 3
+        maxLength: 3
+    OCPI-to-country-code:
+      description: |
+        'country code' of the connected party this message is to be sent to.
+        Required for MSGs to/from functional modules when connecting via a Hub.
+        SHALL NOT be used with configuration modules (credentials, versions, hubclientinfo).
+      required: false
+      schema:
+        type: string
+        minLength: 2
+        maxLength: 2
+    OCPI-from-party-id:
+      description: |
+        'party id' of the connected party this message is sent from.
+        Required for MSGs to/from functional modules when connecting via a Hub.
+        SHALL NOT be used with configuration modules (credentials, versions, hubclientinfo).
+      required: false
+      schema:
+        type: string
+        minLength: 3
+        maxLength: 3
+    OCPI-from-country-code:
+      description: |
+        'country code' of the connected party this message is sent from.
+        Required for MSGs to/from functional modules when connecting via a Hub.
+        SHALL NOT be used with configuration modules (credentials, versions, hubclientinfo).
+      required: false
+      schema:
+        type: string
+        minLength: 2
+        maxLength: 2
+    X-Total-Count:
+      description: |
+        The total number of objects available in the server system that match the given query
+        (including the given query parameters, for example: date_to and date_from but excluding
+        limit and offset) and that are available to this client.
+      schema:
+        type: integer
+    X-Limit:
+      description: |
+        The maximum number of objects that the server can return.
+        Note that this is an upper limit. If there are not enough remaining objects to return,
+        fewer objects than this upper limit number will be returned. X-Limit SHALL then still
+        show the upper limit, not the number of objects returned.
+      schema:
+        type: integer
+    Link:
+      description: |
+        Link to the 'next' page should be provided when this is NOT the last page.
+        The Link should also contain any filters present in the original request.
+        Format: `<URL>; rel="next"`
+      schema:
+        type: string
+
+  responses:
+    OCPIErrorResponse:
+      description: OCPI error response envelope
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                description: |
+                  Optional additional error information.
+                  Content is not strictly defined by OCPI and may be null.
+              status_code:
+                type: integer
+                description: |
+                  OCPI status code.
+                  Any value other than 1000 indicates an error.
+                example: 2001
+              status_message:
+                type: string
+                description: |
+                  Human-readable description of the error.
+                example: "Invalid or missing parameters"
+              timestamp:
+                type: string
+                format: date-time
+                description: |
+                  Timestamp when the error occurred.
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/X-Request-ID"
+        X-Correlation-ID:
+          $ref: "#/components/headers/X-Correlation-ID"
+        OCPI-from-country-code:
+          $ref: "#/components/headers/OCPI-from-country-code"
+        OCPI-from-party-id:
+          $ref: "#/components/headers/OCPI-from-party-id"
+        OCPI-to-country-code:
+          $ref: "#/components/headers/OCPI-to-country-code"
+        OCPI-to-party-id:
+          $ref: "#/components/headers/OCPI-to-party-id"
+    OCPIUnauthorizedResponse:
+      description: |
+        Authorization failed. The credentials token is missing, invalid, or does not
+        match any known party.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status_code:
+                type: integer
+                description: OCPI status code.
+                example: 2000
+              status_message:
+                type: string
+                description: Human-readable error description.
+                example: "Unauthorized - invalid or missing credentials token"
+              timestamp:
+                type: string
+                format: date-time
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/X-Request-ID"
+        X-Correlation-ID:
+          $ref: "#/components/headers/X-Correlation-ID"
+        OCPI-from-country-code:
+          $ref: "#/components/headers/OCPI-from-country-code"
+        OCPI-from-party-id:
+          $ref: "#/components/headers/OCPI-from-party-id"
+        OCPI-to-country-code:
+          $ref: "#/components/headers/OCPI-to-country-code"
+        OCPI-to-party-id:
+          $ref: "#/components/headers/OCPI-to-party-id"
+    OCPISuccessResponse:
+      description: Successful OCPI response.
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/X-Request-ID"
+        X-Correlation-ID:
+          $ref: "#/components/headers/X-Correlation-ID"
+        OCPI-from-country-code:
+          $ref: "#/components/headers/OCPI-from-country-code"
+        OCPI-from-party-id:
+          $ref: "#/components/headers/OCPI-from-party-id"
+        OCPI-to-country-code:
+          $ref: "#/components/headers/OCPI-to-country-code"
+        OCPI-to-party-id:
+          $ref: "#/components/headers/OCPI-to-party-id"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OCPIResponse"
+    OCPICreatedResponse:
+      description: Resource successfully created.
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/X-Request-ID"
+        X-Correlation-ID:
+          $ref: "#/components/headers/X-Correlation-ID"
+        OCPI-from-country-code:
+          $ref: "#/components/headers/OCPI-from-country-code"
+        OCPI-from-party-id:
+          $ref: "#/components/headers/OCPI-from-party-id"
+        OCPI-to-country-code:
+          $ref: "#/components/headers/OCPI-to-country-code"
+        OCPI-to-party-id:
+          $ref: "#/components/headers/OCPI-to-party-id"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OCPIResponse"
+    OCPINotFoundResponse:
+      description: The requested resource was not found.
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/X-Request-ID"
+        X-Correlation-ID:
+          $ref: "#/components/headers/X-Correlation-ID"
+        OCPI-from-country-code:
+          $ref: "#/components/headers/OCPI-from-country-code"
+        OCPI-from-party-id:
+          $ref: "#/components/headers/OCPI-from-party-id"
+        OCPI-to-country-code:
+          $ref: "#/components/headers/OCPI-to-country-code"
+        OCPI-to-party-id:
+          $ref: "#/components/headers/OCPI-to-party-id"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OCPIResponse"
+
+  schemas:
+    OCPIResponse:
+      description: OCPI Response envelope wrapping all successful responses.
+      type: object
+      properties:
+        status_code:
+          type: integer
+          description: OCPI status code, 1000 for success.
+          example: 1000
+        status_message:
+          type: string
+          description: An optional status message which may help when debugging.
+        timestamp:
+          type: string
+          format: date-time
+          description: The time this message was generated.
+        data:
+          description: Response data object or list of objects.
+      required:
+        - status_code
+        - timestamp
+    StatusCode:
+      type: integer
+      description: |
+        OCPI status code. There are two types of status codes:
+        - Transport related (HTTP)
+        - Content related (OCPI)
+
+        The transport layer ends after a message is correctly parsed into a valid JSON structure.
+        Requests that reach the OCPI layer SHOULD return an OCPI response message with a status_code.
+      enum:
+        - 1000
+        - 2000
+        - 2001
+        - 2002
+        - 2003
+        - 2004
+        - 3000
+        - 3001
+        - 3002
+        - 3003
+        - 4000
+        - 4001
+        - 4002
+        - 4003
+      x-enumDescriptions:
+        1000: Generic success code
+        2000: Generic client error
+        2001: Invalid or missing parameters
+        2002: Not enough information
+        2003: Unknown Location
+        2004: Unknown Token
+        3000: Generic server error
+        3001: Unable to use the client's API
+        3002: Unsupported version
+        3003: No matching endpoints or expected endpoints missing between parties
+        4000: Generic hub error
+        4001: Unknown receiver (TO address is unknown)
+        4002: Timeout on forwarded request
+        4003: Connection problem (receiving party is not connected)
+    DisplayText:
+      type: object
+      description: Multi-language text with a language code.
+      required:
+        - language
+        - text
+      properties:
+        language:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: Language Code ISO 639-1.
+        text:
+          type: string
+          maxLength: 512
+          description: Text to be displayed to an end user. No markup, HTML etc. allowed.
+      additionalProperties: true
+    Price:
+      type: object
+      description: Price with VAT information.
+      required:
+        - excl_vat
+      properties:
+        excl_vat:
+          type: number
+          description: Price/Cost excluding VAT.
+        incl_vat:
+          type: number
+          description: Price/Cost including VAT.
+      additionalProperties: true
+    BusinessDetails:
+      type: object
+      description: Details of an operator, owner, or suboperator.
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: Name of the operator/owner/suboperator.
+        website:
+          type: string
+          format: uri
+          maxLength: 255
+          description: Link to website of the operator.
+        logo:
+          $ref: "#/components/schemas/Image"
+      additionalProperties: true
+    Image:
+      type: object
+      description: Reference to an image with metadata.
+      required:
+        - url
+        - category
+        - type
+      properties:
+        url:
+          type: string
+          format: uri
+          maxLength: 255
+          description: URL from where the image data can be fetched.
+        thumbnail:
+          type: string
+          format: uri
+          maxLength: 255
+          description: URL from where a thumbnail of the image can be fetched.
+        category:
+          $ref: "#/components/schemas/ImageCategory"
+        type:
+          type: string
+          maxLength: 4
+          description: Image type (e.g. gif, jpeg, png, svg).
+        width:
+          type: integer
+          description: Width of the full-scale image.
+        height:
+          type: integer
+          description: Height of the full-scale image.
+      additionalProperties: true
+    ImageCategory:
+      type: string
+      enum:
+        - CHARGER
+        - ENTRANCE
+        - LOCATION
+        - NETWORK
+        - OPERATOR
+        - OTHER
+        - OWNER
+      description: The category of an image to obtain the correct usage.
