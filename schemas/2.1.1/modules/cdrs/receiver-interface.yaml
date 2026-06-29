@@ -1,0 +1,118 @@
+openapi: 3.1.0
+info:
+  title: OCPI 2.1.1 CDRs Receiver Interface
+  description: The Receiver Interface is typically implemented by the eMSP and allows creation and retrieval of CDRs.
+  version: 2.1.1
+  contact:
+    name: EVRoaming Foundation
+    url: https://evroaming.org
+externalDocs:
+  description: OCPI 2.1.1 Specification
+  url: https://github.com/ocpi/ocpi
+security:
+- ocpiAuthorization: []
+components:
+  securitySchemes:
+    ocpiAuthorization:
+      $ref: ../../components/schema.yaml#/components/securitySchemes/ocpiAuthorization
+paths:
+  /cdrs:
+    post:
+      operationId: receiverPostCdr
+      summary: Create a new CDR
+      tags:
+      - CDRs
+      parameters:
+      - $ref: ../../components/parameters.yaml#/components/parameters/X-Request-ID
+      - $ref: ../../components/parameters.yaml#/components/parameters/X-Correlation-ID
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-from-country-code
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-from-party-id
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-to-country-code
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-to-party-id
+      requestBody:
+        description: The new CDR object.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./schema.yaml#/components/schemas/CDR
+      responses:
+        '201':
+          description: CDR successfully created. The Location header contains the URL to the newly created CDR.
+          headers:
+            X-Request-ID:
+              $ref: ../../components/schema.yaml#/components/headers/X-Request-ID
+            X-Correlation-ID:
+              $ref: ../../components/schema.yaml#/components/headers/X-Correlation-ID
+            OCPI-from-country-code:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-from-country-code
+            OCPI-from-party-id:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-from-party-id
+            OCPI-to-country-code:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-to-country-code
+            OCPI-to-party-id:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-to-party-id
+            Location:
+              description: URL to the newly created CDR in the eMSP's system.
+              required: true
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: ../../components/schema.yaml#/components/schemas/OCPIResponse
+        '400':
+          $ref: ../../components/schema.yaml#/components/responses/OCPIErrorResponse
+        '401':
+          $ref: ../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse
+  /cdrs/{cdr_id}:
+    get:
+      operationId: receiverGetCdr
+      summary: Retrieve an existing CDR
+      tags:
+      - CDRs
+      parameters:
+      - $ref: ../../components/parameters.yaml#/components/parameters/X-Request-ID
+      - $ref: ../../components/parameters.yaml#/components/parameters/X-Correlation-ID
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-from-country-code
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-from-party-id
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-to-country-code
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-to-party-id
+      - in: path
+        name: cdr_id
+        required: true
+        schema:
+          type: string
+        description: ID of the CDR to retrieve.
+      responses:
+        '200':
+          description: Successful response containing CDR.
+          headers:
+            X-Request-ID:
+              $ref: ../../components/schema.yaml#/components/headers/X-Request-ID
+            X-Correlation-ID:
+              $ref: ../../components/schema.yaml#/components/headers/X-Correlation-ID
+            OCPI-from-country-code:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-from-country-code
+            OCPI-from-party-id:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-from-party-id
+            OCPI-to-country-code:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-to-country-code
+            OCPI-to-party-id:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-to-party-id
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: ../../components/schema.yaml#/components/schemas/OCPIResponse
+                - type: object
+                  properties:
+                    data:
+                      $ref: ./schema.yaml#/components/schemas/CDR
+        '400':
+          $ref: ../../components/schema.yaml#/components/responses/OCPIErrorResponse
+        '401':
+          $ref: ../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse
+        '404':
+          $ref: ../../components/schema.yaml#/components/responses/OCPINotFoundResponse

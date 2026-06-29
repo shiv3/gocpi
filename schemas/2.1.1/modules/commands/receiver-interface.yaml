@@ -1,0 +1,214 @@
+openapi: 3.1.0
+info:
+  title: OCPI 2.1.1 Commands Receiver Interface
+  description: The Receiver Interface is typically implemented by the CPO and receives remote commands.
+  version: 2.1.1
+  contact:
+    name: EVRoaming Foundation
+    url: https://evroaming.org
+externalDocs:
+  description: OCPI 2.1.1 Specification
+  url: https://github.com/ocpi/ocpi
+security:
+- ocpiAuthorization: []
+components:
+  securitySchemes:
+    ocpiAuthorization:
+      $ref: ../../components/schema.yaml#/components/securitySchemes/ocpiAuthorization
+paths:
+  /commands/RESERVE_NOW:
+    post:
+      operationId: receiverPostReserveNow
+      summary: Send a RESERVE_NOW command
+      tags:
+      - Commands
+      parameters:
+      - $ref: ../../components/parameters.yaml#/components/parameters/X-Request-ID
+      - $ref: ../../components/parameters.yaml#/components/parameters/X-Correlation-ID
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-from-country-code
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-from-party-id
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-to-country-code
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-to-party-id
+      requestBody:
+        description: ReserveNow object.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./schema.yaml#/components/schemas/ReserveNow
+      responses:
+        '200':
+          description: Successful response containing CommandResponse.
+          headers:
+            X-Request-ID:
+              $ref: ../../components/schema.yaml#/components/headers/X-Request-ID
+            X-Correlation-ID:
+              $ref: ../../components/schema.yaml#/components/headers/X-Correlation-ID
+            OCPI-from-country-code:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-from-country-code
+            OCPI-from-party-id:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-from-party-id
+            OCPI-to-country-code:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-to-country-code
+            OCPI-to-party-id:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-to-party-id
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: ../../components/schema.yaml#/components/schemas/OCPIResponse
+                - type: object
+                  properties:
+                    data:
+                      $ref: ./schema.yaml#/components/schemas/CommandResponse
+        '400':
+          $ref: ../../components/schema.yaml#/components/responses/OCPIErrorResponse
+        '401':
+          $ref: ../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse
+  /commands/START_SESSION:
+    post:
+      operationId: receiverPostStartSession
+      summary: Send a START_SESSION command
+      tags:
+      - Commands
+      parameters:
+      - $ref: ../../components/parameters.yaml#/components/parameters/X-Request-ID
+      - $ref: ../../components/parameters.yaml#/components/parameters/X-Correlation-ID
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-from-country-code
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-from-party-id
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-to-country-code
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-to-party-id
+      requestBody:
+        description: StartSession object.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./schema.yaml#/components/schemas/StartSession
+      responses:
+        '200':
+          description: Successful response containing CommandResponse.
+          headers:
+            X-Request-ID:
+              $ref: ../../components/schema.yaml#/components/headers/X-Request-ID
+            X-Correlation-ID:
+              $ref: ../../components/schema.yaml#/components/headers/X-Correlation-ID
+            OCPI-from-country-code:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-from-country-code
+            OCPI-from-party-id:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-from-party-id
+            OCPI-to-country-code:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-to-country-code
+            OCPI-to-party-id:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-to-party-id
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: ../../components/schema.yaml#/components/schemas/OCPIResponse
+                - type: object
+                  properties:
+                    data:
+                      $ref: ./schema.yaml#/components/schemas/CommandResponse
+        '400':
+          $ref: ../../components/schema.yaml#/components/responses/OCPIErrorResponse
+        '401':
+          $ref: ../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse
+  /commands/STOP_SESSION:
+    post:
+      operationId: receiverPostStopSession
+      summary: Send a STOP_SESSION command
+      tags:
+      - Commands
+      parameters:
+      - $ref: ../../components/parameters.yaml#/components/parameters/X-Request-ID
+      - $ref: ../../components/parameters.yaml#/components/parameters/X-Correlation-ID
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-from-country-code
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-from-party-id
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-to-country-code
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-to-party-id
+      requestBody:
+        description: StopSession object.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./schema.yaml#/components/schemas/StopSession
+      responses:
+        '200':
+          description: Successful response containing CommandResponse.
+          headers:
+            X-Request-ID:
+              $ref: ../../components/schema.yaml#/components/headers/X-Request-ID
+            X-Correlation-ID:
+              $ref: ../../components/schema.yaml#/components/headers/X-Correlation-ID
+            OCPI-from-country-code:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-from-country-code
+            OCPI-from-party-id:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-from-party-id
+            OCPI-to-country-code:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-to-country-code
+            OCPI-to-party-id:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-to-party-id
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: ../../components/schema.yaml#/components/schemas/OCPIResponse
+                - type: object
+                  properties:
+                    data:
+                      $ref: ./schema.yaml#/components/schemas/CommandResponse
+        '400':
+          $ref: ../../components/schema.yaml#/components/responses/OCPIErrorResponse
+        '401':
+          $ref: ../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse
+  /commands/UNLOCK_CONNECTOR:
+    post:
+      operationId: receiverPostUnlockConnector
+      summary: Send an UNLOCK_CONNECTOR command
+      tags:
+      - Commands
+      parameters:
+      - $ref: ../../components/parameters.yaml#/components/parameters/X-Request-ID
+      - $ref: ../../components/parameters.yaml#/components/parameters/X-Correlation-ID
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-from-country-code
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-from-party-id
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-to-country-code
+      - $ref: ../../components/parameters.yaml#/components/parameters/OCPI-to-party-id
+      requestBody:
+        description: UnlockConnector object.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./schema.yaml#/components/schemas/UnlockConnector
+      responses:
+        '200':
+          description: Successful response containing CommandResponse.
+          headers:
+            X-Request-ID:
+              $ref: ../../components/schema.yaml#/components/headers/X-Request-ID
+            X-Correlation-ID:
+              $ref: ../../components/schema.yaml#/components/headers/X-Correlation-ID
+            OCPI-from-country-code:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-from-country-code
+            OCPI-from-party-id:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-from-party-id
+            OCPI-to-country-code:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-to-country-code
+            OCPI-to-party-id:
+              $ref: ../../components/schema.yaml#/components/headers/OCPI-to-party-id
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: ../../components/schema.yaml#/components/schemas/OCPIResponse
+                - type: object
+                  properties:
+                    data:
+                      $ref: ./schema.yaml#/components/schemas/CommandResponse
+        '400':
+          $ref: ../../components/schema.yaml#/components/responses/OCPIErrorResponse
+        '401':
+          $ref: ../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse

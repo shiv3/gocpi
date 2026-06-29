@@ -1,0 +1,725 @@
+openapi: 3.1.0
+components:
+  schemas:
+    Location:
+      type: object
+      description: The Location object describes the location and its properties where a group of EVSEs that belong together are installed.
+      required:
+      - country_code
+      - party_id
+      - id
+      - publish
+      - address
+      - city
+      - country
+      - coordinates
+      - time_zone
+      - last_updated
+      properties:
+        country_code:
+          type: string
+          maxLength: 2
+          description: ISO-3166 alpha-2 country code of the CPO that owns this Location.
+          minLength: 2
+        party_id:
+          type: string
+          maxLength: 3
+          description: ID of the CPO that owns this Location.
+          minLength: 3
+        id:
+          type: string
+          maxLength: 36
+          description: Uniquely identifies the location within the CPO's platform.
+        publish:
+          type: boolean
+          description: Whether this Location may be published on a website or app.
+        publish_allowed_to:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublishTokenType'
+          description: Only used when publish is false. Tokens listed are allowed to be shown this Location.
+        name:
+          type: string
+          maxLength: 255
+          description: Display name of the location.
+        address:
+          type: string
+          maxLength: 45
+          description: Street/block name and house number if available.
+        city:
+          type: string
+          maxLength: 45
+          description: City or town.
+        postal_code:
+          type: string
+          maxLength: 10
+          description: Postal code of the location.
+        state:
+          type: string
+          maxLength: 20
+          description: State or province of the location.
+        country:
+          type: string
+          maxLength: 3
+          description: ISO 3166-1 alpha-3 code for the country.
+        coordinates:
+          $ref: '#/components/schemas/GeoLocation'
+        related_locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdditionalGeoLocation'
+          description: Geographical locations of related points relevant to the user.
+        parking_type:
+          $ref: '#/components/schemas/ParkingType'
+        evses:
+          type: array
+          items:
+            $ref: '#/components/schemas/EVSE'
+          description: List of EVSEs that belong to this Location.
+        directions:
+          type: array
+          items:
+            $ref: ../../components/schema.yaml#/components/schemas/DisplayText
+          description: Human-readable directions on how to reach the location.
+        operator:
+          $ref: ../../components/schema.yaml#/components/schemas/BusinessDetails
+        suboperator:
+          $ref: ../../components/schema.yaml#/components/schemas/BusinessDetails
+        owner:
+          $ref: ../../components/schema.yaml#/components/schemas/BusinessDetails
+        facilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Facility'
+          description: Optional list of facilities this charging location directly belongs to.
+        time_zone:
+          type: string
+          maxLength: 255
+          description: IANA TZ-value representing the time zone of the location.
+        opening_times:
+          $ref: '#/components/schemas/Hours'
+        charging_when_closed:
+          type: boolean
+          description: Indicates if the EVSEs are still charging outside the opening hours. Default is true.
+        images:
+          type: array
+          items:
+            $ref: ../../components/schema.yaml#/components/schemas/Image
+          description: Links to images related to the location.
+        energy_mix:
+          $ref: '#/components/schemas/EnergyMix'
+        last_updated:
+          type: string
+          format: date-time
+      additionalProperties: true
+    EVSE:
+      type: object
+      description: The EVSE object describes the part of a Charging Station that controls one or more Connectors. For each EVSE, a set of Connectors is given.
+      required:
+      - uid
+      - status
+      - connectors
+      - last_updated
+      properties:
+        uid:
+          type: string
+          maxLength: 36
+          description: Uniquely identifies the EVSE within the CPO's platform (not the eMI3 EVSE ID).
+        evse_id:
+          type: string
+          maxLength: 48
+          description: Compliant with the eMI3 standard EVSE ID.
+        status:
+          $ref: '#/components/schemas/Status'
+        status_schedule:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatusSchedule'
+          description: Indicates a planned status update of the EVSE.
+        capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Capability'
+          description: List of functionalities that the EVSE is capable of.
+        connectors:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Connector'
+          description: List of available connectors on the EVSE.
+        floor_level:
+          type: string
+          maxLength: 4
+          description: Level on which the Charge Point is located (in garage buildings).
+        coordinates:
+          $ref: '#/components/schemas/GeoLocation'
+        physical_reference:
+          type: string
+          maxLength: 16
+          description: A number/string printed on the outside of the EVSE for visual identification.
+        directions:
+          type: array
+          items:
+            $ref: ../../components/schema.yaml#/components/schemas/DisplayText
+          description: Multi-language human-readable directions to find the EVSE.
+        parking_restrictions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParkingRestriction'
+          description: Restrictions that apply to the parking spot.
+        images:
+          type: array
+          items:
+            $ref: ../../components/schema.yaml#/components/schemas/Image
+          description: Links to images related to the EVSE.
+        last_updated:
+          type: string
+          format: date-time
+      additionalProperties: true
+    Connector:
+      type: object
+      description: A connector is the socket or cable and plug available for the EV to use.
+      required:
+      - id
+      - standard
+      - format
+      - power_type
+      - max_voltage
+      - max_amperage
+      - last_updated
+      properties:
+        id:
+          type: string
+          maxLength: 36
+          description: Identifier of the Connector within the EVSE.
+        standard:
+          $ref: '#/components/schemas/ConnectorType'
+        format:
+          $ref: '#/components/schemas/ConnectorFormat'
+        power_type:
+          $ref: '#/components/schemas/PowerType'
+        max_voltage:
+          type: integer
+          description: Maximum voltage of the connector (line to neutral) in Volts [V].
+        max_amperage:
+          type: integer
+          description: Maximum amperage of the connector in Amperes [A].
+        max_electric_power:
+          type: integer
+          description: Maximum electric power that can be delivered by this connector in Watts [W].
+        tariff_ids:
+          type: array
+          items:
+            type: string
+            maxLength: 36
+          description: Identifiers of the currently valid charging tariffs.
+        terms_and_conditions:
+          type: string
+          format: uri
+          maxLength: 255
+          description: URL to the operator's terms and conditions.
+        last_updated:
+          type: string
+          format: date-time
+      additionalProperties: true
+    LocationPatch:
+      type: object
+      description: Partial Location object for PATCH. MUST contain last_updated.
+      required:
+      - last_updated
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        address:
+          type: string
+          maxLength: 45
+        city:
+          type: string
+          maxLength: 45
+        postal_code:
+          type: string
+          maxLength: 10
+        state:
+          type: string
+          maxLength: 20
+        country:
+          type: string
+          maxLength: 3
+        coordinates:
+          $ref: '#/components/schemas/GeoLocation'
+        related_locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdditionalGeoLocation'
+        parking_type:
+          $ref: '#/components/schemas/ParkingType'
+        evses:
+          type: array
+          items:
+            $ref: '#/components/schemas/EVSE'
+        directions:
+          type: array
+          items:
+            $ref: ../../components/schema.yaml#/components/schemas/DisplayText
+        operator:
+          $ref: ../../components/schema.yaml#/components/schemas/BusinessDetails
+        suboperator:
+          $ref: ../../components/schema.yaml#/components/schemas/BusinessDetails
+        owner:
+          $ref: ../../components/schema.yaml#/components/schemas/BusinessDetails
+        facilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Facility'
+        time_zone:
+          type: string
+          maxLength: 255
+        opening_times:
+          $ref: '#/components/schemas/Hours'
+        charging_when_closed:
+          type: boolean
+        images:
+          type: array
+          items:
+            $ref: ../../components/schema.yaml#/components/schemas/Image
+        energy_mix:
+          $ref: '#/components/schemas/EnergyMix'
+        publish:
+          type: boolean
+        publish_allowed_to:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublishTokenType'
+        last_updated:
+          type: string
+          format: date-time
+      additionalProperties: true
+    EvsePatch:
+      type: object
+      description: Partial EVSE object for PATCH. MUST contain last_updated.
+      required:
+      - last_updated
+      properties:
+        uid:
+          type: string
+          maxLength: 36
+        evse_id:
+          type: string
+          maxLength: 48
+        status:
+          $ref: '#/components/schemas/Status'
+        status_schedule:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatusSchedule'
+        capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Capability'
+        connectors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Connector'
+        floor_level:
+          type: string
+          maxLength: 4
+        coordinates:
+          $ref: '#/components/schemas/GeoLocation'
+        physical_reference:
+          type: string
+          maxLength: 16
+        directions:
+          type: array
+          items:
+            $ref: ../../components/schema.yaml#/components/schemas/DisplayText
+        parking_restrictions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParkingRestriction'
+        images:
+          type: array
+          items:
+            $ref: ../../components/schema.yaml#/components/schemas/Image
+        last_updated:
+          type: string
+          format: date-time
+      additionalProperties: true
+    ConnectorPatch:
+      type: object
+      description: Partial Connector object for PATCH. MUST contain last_updated.
+      required:
+      - last_updated
+      properties:
+        id:
+          type: string
+          maxLength: 36
+        standard:
+          $ref: '#/components/schemas/ConnectorType'
+        format:
+          $ref: '#/components/schemas/ConnectorFormat'
+        power_type:
+          $ref: '#/components/schemas/PowerType'
+        max_voltage:
+          type: integer
+        max_amperage:
+          type: integer
+        max_electric_power:
+          type: integer
+        tariff_ids:
+          type: array
+          items:
+            type: string
+            maxLength: 36
+        terms_and_conditions:
+          type: string
+          format: uri
+          maxLength: 255
+        last_updated:
+          type: string
+          format: date-time
+      additionalProperties: true
+    PublishTokenType:
+      type: object
+      description: Defines the set of token properties used to identify tokens allowed to view a Location.
+      properties:
+        uid:
+          type: string
+          maxLength: 36
+          description: Unique token identifier.
+        type:
+          $ref: ../tokens/schema.yaml#/components/schemas/TokenType
+        visual_number:
+          type: string
+          maxLength: 64
+          description: Visual number printed on the token.
+        issuer:
+          type: string
+          maxLength: 64
+          description: Issuing company name.
+        group_id:
+          type: string
+          maxLength: 36
+          description: Token group identifier.
+      additionalProperties: true
+    StatusSchedule:
+      type: object
+      description: A planned status update for an EVSE.
+      required:
+      - period_begin
+      - status
+      properties:
+        period_begin:
+          type: string
+          format: date-time
+        period_end:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/Status'
+      additionalProperties: true
+    Status:
+      type: string
+      enum:
+      - AVAILABLE
+      - BLOCKED
+      - CHARGING
+      - INOPERATIVE
+      - OUTOFORDER
+      - PLANNED
+      - REMOVED
+      - RESERVED
+      - UNKNOWN
+      description: The status of an EVSE.
+    Capability:
+      description: The capabilities of an EVSE.
+      type: string
+      enum:
+      - CHARGING_PROFILE_CAPABLE
+      - CHARGING_PREFERENCES_CAPABLE
+      - CHIP_CARD_SUPPORT
+      - CONTACTLESS_CARD_SUPPORT
+      - CREDIT_CARD_PAYABLE
+      - DEBIT_CARD_PAYABLE
+      - PED_TERMINAL
+      - REMOTE_START_STOP_CAPABLE
+      - RESERVABLE
+      - RFID_READER
+      - START_SESSION_CONNECTOR_REQUIRED
+      - TOKEN_GROUP_CAPABLE
+      - UNLOCK_CAPABLE
+    ConnectorFormat:
+      type: string
+      enum:
+      - SOCKET
+      - CABLE
+      description: The format of a connector (socket or attached cable).
+    ConnectorType:
+      description: The socket or plug standard of the connector.
+      type: string
+      enum:
+      - CHADEMO
+      - CHAOJI
+      - DOMESTIC_A
+      - DOMESTIC_B
+      - DOMESTIC_C
+      - DOMESTIC_D
+      - DOMESTIC_E
+      - DOMESTIC_F
+      - DOMESTIC_G
+      - DOMESTIC_H
+      - DOMESTIC_I
+      - DOMESTIC_J
+      - DOMESTIC_K
+      - DOMESTIC_L
+      - DOMESTIC_M
+      - DOMESTIC_N
+      - DOMESTIC_O
+      - GBT_AC
+      - GBT_DC
+      - IEC_60309_2_single_16
+      - IEC_60309_2_three_16
+      - IEC_60309_2_three_32
+      - IEC_60309_2_three_64
+      - IEC_62196_T1
+      - IEC_62196_T1_COMBO
+      - IEC_62196_T2
+      - IEC_62196_T2_COMBO
+      - IEC_62196_T3A
+      - IEC_62196_T3C
+      - NEMA_5_20
+      - NEMA_6_30
+      - NEMA_6_50
+      - NEMA_10_30
+      - NEMA_10_50
+      - NEMA_14_30
+      - NEMA_14_50
+      - PANTOGRAPH_BOTTOM_UP
+      - PANTOGRAPH_TOP_DOWN
+      - TESLA_R
+      - TESLA_S
+    PowerType:
+      type: string
+      enum:
+      - AC_1_PHASE
+      - AC_2_PHASE
+      - AC_2_PHASE_SPLIT
+      - AC_3_PHASE
+      - DC
+      description: AC or DC power type.
+    ParkingType:
+      description: The general type of parking at this location.
+      type: string
+      enum:
+      - ALONG_MOTORWAY
+      - PARKING_GARAGE
+      - PARKING_LOT
+      - ON_DRIVEWAY
+      - ON_STREET
+      - UNDERGROUND_GARAGE
+    ParkingRestriction:
+      description: Restrictions for using a parking spot.
+      type: string
+      enum:
+      - CUSTOMERS
+      - DISABLED
+      - EV_ONLY
+      - MOTORCYCLES
+      - PLUGGED
+    Facility:
+      description: Facilities at or near the charging location.
+      type: string
+      enum:
+      - HOTEL
+      - RESTAURANT
+      - CAFE
+      - MALL
+      - SUPERMARKET
+      - SPORT
+      - RECREATION_AREA
+      - NATURE
+      - MUSEUM
+      - BIKE_SHARING
+      - BUS_STOP
+      - TAXI_STAND
+      - TRAM_STOP
+      - METRO_STATION
+      - TRAIN_STATION
+      - AIRPORT
+      - PARKING_LOT
+      - CARPOOL_PARKING
+      - FUEL_STATION
+      - WIFI
+    GeoLocation:
+      type: object
+      description: Geographic coordinates (WGS 84).
+      required:
+      - latitude
+      - longitude
+      properties:
+        latitude:
+          type: string
+          maxLength: 10
+          description: Latitude in decimal degree (e.g. "50.770774").
+          pattern: ^-?[0-9]{1,2}\.[0-9]{1,8}$
+        longitude:
+          type: string
+          maxLength: 11
+          description: Longitude in decimal degree (e.g. "-126.104965").
+          pattern: ^-?[0-9]{1,3}\.[0-9]{1,8}$
+      additionalProperties: true
+    AdditionalGeoLocation:
+      type: object
+      description: An additional geographic location with an optional human-readable name.
+      required:
+      - latitude
+      - longitude
+      properties:
+        latitude:
+          type: string
+          maxLength: 10
+          description: Latitude in decimal degree.
+        longitude:
+          type: string
+          maxLength: 11
+          description: Longitude in decimal degree.
+        name:
+          $ref: ../../components/schema.yaml#/components/schemas/DisplayText
+      additionalProperties: true
+    Hours:
+      type: object
+      description: Opening and access hours.
+      required:
+      - twentyfourseven
+      properties:
+        twentyfourseven:
+          type: boolean
+          description: True to represent 24/7, with the exception of the optional exceptional_openings/closings.
+        regular_hours:
+          type: array
+          items:
+            $ref: '#/components/schemas/RegularHours'
+          description: Regular hours, weekday-based. Only to be used if twentyfourseven is false.
+        exceptional_openings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExceptionalPeriod'
+          description: Exceptions for specified calendar dates when the EVSE is operating.
+        exceptional_closings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExceptionalPeriod'
+          description: Exceptions for specified calendar dates when the EVSE is not operating.
+      additionalProperties: true
+    RegularHours:
+      type: object
+      description: Regular recurring operation or access hours.
+      required:
+      - weekday
+      - period_begin
+      - period_end
+      properties:
+        weekday:
+          type: integer
+          minimum: 1
+          maximum: 7
+          description: Day of the week, 1=Monday, 7=Sunday.
+        period_begin:
+          type: string
+          maxLength: 5
+          pattern: ^[0-2][0-9]:[0-5][0-9]$
+          description: Begin of the regular period (HH:MM, 24h format).
+        period_end:
+          type: string
+          maxLength: 5
+          pattern: ^[0-2][0-9]:[0-5][0-9]$
+          description: End of the regular period (HH:MM, 24h format).
+      additionalProperties: true
+    ExceptionalPeriod:
+      type: object
+      description: Specifies one exceptional period for operating hours.
+      required:
+      - period_begin
+      - period_end
+      properties:
+        period_begin:
+          type: string
+          format: date-time
+        period_end:
+          type: string
+          format: date-time
+      additionalProperties: true
+    EnergyMix:
+      type: object
+      description: Details about the energy supplied at this location.
+      required:
+      - is_green_energy
+      properties:
+        is_green_energy:
+          type: boolean
+          description: True if 100% from regenerative sources.
+        energy_sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnergySource'
+          description: Key-value pairs of energy sources.
+        environ_impact:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnvironmentalImpact'
+          description: Key-value pairs of environmental impact values.
+        supplier_name:
+          type: string
+          maxLength: 64
+          description: Name of the energy supplier.
+        energy_product_name:
+          type: string
+          maxLength: 64
+          description: Name of the energy product/tariff.
+      additionalProperties: true
+    EnergySource:
+      type: object
+      description: Breakdown of energy from a specific source.
+      required:
+      - source
+      - percentage
+      properties:
+        source:
+          $ref: '#/components/schemas/EnergySourceCategory'
+        percentage:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Percentage of this source in the energy mix (0-100).
+      additionalProperties: true
+    EnvironmentalImpact:
+      type: object
+      description: Amount of environmental waste produced.
+      required:
+      - category
+      - amount
+      properties:
+        category:
+          $ref: '#/components/schemas/EnvironmentalImpactCategory'
+        amount:
+          type: number
+          description: Amount of this environmental impact in g/kWh.
+      additionalProperties: true
+    EnergySourceCategory:
+      type: string
+      enum:
+      - NUCLEAR
+      - GENERAL_FOSSIL
+      - COAL
+      - GAS
+      - GENERAL_GREEN
+      - SOLAR
+      - WIND
+      - WATER
+      description: Categories of energy sources.
+    EnvironmentalImpactCategory:
+      description: Categories of environmental impact values.
+      type: string
+      enum:
+      - NUCLEAR_WASTE
+      - CARBON_DIOXIDE
