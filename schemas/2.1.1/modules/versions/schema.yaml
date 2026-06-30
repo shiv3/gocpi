@@ -1,0 +1,76 @@
+openapi: 3.1.0
+components:
+  schemas:
+    Version:
+      type: object
+      description: OCPI version information.
+      required:
+      - version
+      - url
+      properties:
+        version:
+          $ref: '#/components/schemas/VersionNumber'
+        url:
+          type: string
+          format: uri
+          maxLength: 255
+          description: URL to the endpoint containing version specific information.
+      additionalProperties: true
+    VersionDetails:
+      type: object
+      description: Detailed information about a specific OCPI version.
+      required:
+      - version
+      - endpoints
+      properties:
+        version:
+          $ref: '#/components/schemas/VersionNumber'
+        endpoints:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Endpoint'
+          description: A list of supported endpoints for this version.
+      additionalProperties: true
+    Endpoint:
+      type: object
+      description: Information about a supported OCPI endpoint.
+      required:
+      - identifier
+      - role
+      - url
+      properties:
+        identifier:
+          $ref: '#/components/schemas/ModuleID'
+        role:
+          $ref: '#/components/schemas/InterfaceRole'
+        url:
+          type: string
+          format: uri
+          maxLength: 255
+          description: URL to the endpoint.
+      additionalProperties: true
+    InterfaceRole:
+      type: string
+      enum:
+      - SENDER
+      - RECEIVER
+      description: The role of an interface. SENDER is implemented by the owner of data (for Pull). RECEIVER is implemented by the receiver of data (for Push).
+    ModuleID:
+      description: The identifier of an OCPI module.
+      type: string
+      enum:
+      - cdrs
+      - commands
+      - credentials
+      - locations
+      - sessions
+      - tariffs
+      - tokens
+    VersionNumber:
+      description: List of known OCPI version numbers.
+      type: string
+      enum:
+      - '2.0'
+      - '2.1'
+      - 2.1.1

@@ -5,6 +5,7 @@ build:
 
 # Regenerate the version packages from the vendored OpenAPI specs.
 generate:
+	go run ./internal/codegen -version 2.1.1
 	go run ./internal/codegen -version 2.2.1
 	go run ./internal/codegen -version 2.3.0
 

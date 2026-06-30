@@ -5,35 +5,37 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A generics-first **OCPI** (Open Charge Point Interface) implementation in Go for
-**OCPI 2.2.1 and 2.3.0** — the HTTP/JSON REST protocol for e-mobility roaming
-between CPOs, eMSPs and Hubs.
+**OCPI 2.1.1, 2.2.1 and 2.3.0** — the HTTP/JSON REST protocol for e-mobility
+roaming between CPOs, eMSPs and Hubs.
 
 > Status: WIP, pre-v1. Implemented: the `core` transport (envelope, status codes,
 > pagination, token auth, routing, retries, metrics), generated types + typed
-> clients + server handler interfaces for every module of both versions, role
+> clients + server handler interfaces for every module of all supported versions, role
 > presets, the Versions/Credentials handshake, and two-layer validation
 > (struct-tag + JSON-Schema). The public API may change before v1.0.
 
 gocpi is the OCPI sibling of [gocpp](https://github.com/shiv3/gocpp) (OCPP) and
 shares its philosophy: generics-first ergonomics, version-prefixed packages,
-codegen from the official spec, pluggable observability, and heavy testing.
+codegen from vendored OpenAPI specs, pluggable observability, and heavy testing.
 
 ## Why gocpi
 
 - **Client + server in one module.** OCPI parties are both at once: gocpi gives
   you typed HTTP clients to call peers and `http.Handler` server endpoints to
   host your own — for every role (CPO, eMSP, Hub, ...).
-- **Generated from the official OpenAPI.** Types, clients and server handler
-  interfaces for every module of OCPI 2.2.1 (`v221`) and 2.3.0 (`v230`,
-  incl. bookings & payments) are generated from the
-  [official OCPI OpenAPI specification](https://github.com/ocpi/openapi-specification)
-  — no hand-written, drift-prone structs.
+- **Generated from vendored OpenAPI specs.** Types, clients and server handler
+  interfaces for every module of OCPI 2.1.1 (`v211`), 2.2.1 (`v221`) and 2.3.0
+  (`v230`, incl. bookings & payments) are generated from vendored OpenAPI specs.
+  The 2.2.1/2.3.0 specs come from the
+  [official OCPI OpenAPI specification](https://github.com/ocpi/openapi-specification);
+  the 2.1.1 spec is community-derived and non-official.
 - **OCPI semantics built in.** The standard response envelope, OCPI status codes,
   pagination (`Link` / `X-Total-Count` / `X-Limit` + iterators), Base64 token
   auth, the Versions+Credentials handshake, hub message-routing headers, and
   transient-failure retries.
 - **Two-layer validation.** Generated `validate` struct tags (`core.Validate`)
-  plus an embedded JSON-Schema validator (`v221.ValidateJSON`).
+  plus embedded JSON-Schema validators (`v211.ValidateJSON`, `v221.ValidateJSON`,
+  `v230.ValidateJSON`).
 - **Framework-agnostic.** The server is a plain `http.Handler` — mount it under
   any prefix in net/http, chi, echo, etc.
 - **Pluggable observability.** `slog` logging and a `Metrics` interface with
@@ -164,22 +166,23 @@ emsp := core.NewClient(core.WithClientMetrics(otelm))
 | `core/transport` | `Doer` HTTP abstraction + in-memory fake for tests |
 | `core/schema` | JSON-Schema `Validator` |
 | `core/observability` (+ `metrics/{prom,otel}`) | `Metrics` interface + Prometheus/OpenTelemetry adapters |
-| `v221` / `v230` | Generated types, typed clients + server handlers, `RegisterCPO/MSP/Hub`, embedded JSON-Schema validator |
+| `v211` / `v221` / `v230` | Generated types, typed clients + server handlers, role presets, embedded JSON-Schema validator |
 | `handshake` | Versions + Credentials registration |
 
 ## Versions
 
 | Package | OCPI version | Modules |
 |---|---|---|
+| `v211` | 2.1.1 | locations, sessions, cdrs, tariffs, tokens, commands, credentials, versions |
 | `v221` | 2.2.1 | locations, sessions, cdrs, tariffs, tokens, commands, chargingprofiles, hubclientinfo, credentials, versions |
-| `v230` | 2.3.0 | the above **+ bookings, payments** |
+| `v230` | 2.3.0 | v221 modules **+ bookings, payments** |
 
 ## Testing
 
 ```sh
 make test        # go test ./...
 make test-race   # go test -race ./...
-make generate    # regenerate v221 + v230 from the vendored OpenAPI
+make generate    # regenerate v211 + v221 + v230 from the vendored OpenAPI
 make lint        # golangci-lint
 ```
 

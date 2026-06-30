@@ -1,0 +1,188 @@
+openapi: 3.1.0
+components:
+  schemas:
+    Token:
+      type: object
+      description: Representation of a charging token.
+      required:
+      - country_code
+      - party_id
+      - uid
+      - type
+      - contract_id
+      - issuer
+      - valid
+      - whitelist
+      - last_updated
+      properties:
+        country_code:
+          type: string
+          maxLength: 2
+          description: ISO-3166 alpha-2 country code of the eMSP that owns this Token.
+          minLength: 2
+        party_id:
+          type: string
+          maxLength: 3
+          description: ID of the eMSP that owns this Token.
+          minLength: 3
+        uid:
+          type: string
+          maxLength: 36
+          description: Unique ID by which this Token (combined with Token type) can be identified. For RFID tokens, this is typically the RFID hidden ID.
+        type:
+          $ref: '#/components/schemas/TokenType'
+        contract_id:
+          type: string
+          maxLength: 36
+          description: Uniquely identifies the EV driver contract token within the eMSP's platform.
+        visual_number:
+          type: string
+          maxLength: 64
+          description: Visual readable number/identification printed on the Token.
+        issuer:
+          type: string
+          maxLength: 64
+          description: Issuing company name (usually printed on the RFID card).
+        group_id:
+          type: string
+          maxLength: 36
+          description: Groups multiple tokens so a session can be started with one and stopped with another.
+        valid:
+          type: boolean
+          description: Whether this Token is valid.
+        whitelist:
+          $ref: '#/components/schemas/WhitelistType'
+        language:
+          type: string
+          maxLength: 2
+          description: ISO 639-1 language code for the Token owner's preferred interface language.
+        default_profile_type:
+          $ref: '#/components/schemas/ProfileType'
+        energy_contract:
+          $ref: '#/components/schemas/EnergyContract'
+        last_updated:
+          type: string
+          format: date-time
+      additionalProperties: true
+    AuthorizationInfo:
+      type: object
+      description: Information about the authorization status of a Token.
+      required:
+      - allowed
+      - token
+      properties:
+        allowed:
+          $ref: '#/components/schemas/AllowedType'
+        token:
+          $ref: '#/components/schemas/Token'
+        location:
+          $ref: '#/components/schemas/LocationReferences'
+        authorization_reference:
+          type: string
+          maxLength: 36
+          description: Reference to the authorization (used in Session and CDR).
+        info:
+          $ref: ../../components/schema.yaml#/components/schemas/DisplayText
+      additionalProperties: true
+    TokenPatch:
+      type: object
+      description: Partial Token object for PATCH. MUST contain last_updated.
+      required:
+      - last_updated
+      properties:
+        type:
+          $ref: '#/components/schemas/TokenType'
+        contract_id:
+          type: string
+          maxLength: 36
+        visual_number:
+          type: string
+          maxLength: 64
+        issuer:
+          type: string
+          maxLength: 64
+        group_id:
+          type: string
+          maxLength: 36
+        valid:
+          type: boolean
+        whitelist:
+          $ref: '#/components/schemas/WhitelistType'
+        language:
+          type: string
+          minLength: 2
+          maxLength: 2
+        default_profile_type:
+          type: string
+          maxLength: 32
+        energy_contract:
+          $ref: '#/components/schemas/EnergyContract'
+        last_updated:
+          type: string
+          format: date-time
+      additionalProperties: true
+    ProfileType:
+      description: Type of charging profile selected by the EV driver.
+      type: string
+      enum:
+      - CHEAP
+      - FAST
+      - GREEN
+      - REGULAR
+    LocationReferences:
+      type: object
+      description: References to a Location and specific EVSEs.
+      required:
+      - location_id
+      properties:
+        location_id:
+          type: string
+          maxLength: 36
+          description: Unique identifier for the location.
+        evse_uids:
+          type: array
+          items:
+            type: string
+            maxLength: 36
+          description: Unique identifiers for EVSEs within the given location.
+      additionalProperties: true
+    EnergyContract:
+      type: object
+      description: Information about an EV driver's energy supply contract.
+      required:
+      - supplier_name
+      properties:
+        supplier_name:
+          type: string
+          maxLength: 64
+          description: Name of the energy supplier for this Token.
+        contract_id:
+          type: string
+          maxLength: 64
+          description: Contract ID at the energy supplier.
+      additionalProperties: true
+    TokenType:
+      description: Type of charging token.
+      type: string
+      enum:
+      - AD_HOC_USER
+      - APP_USER
+      - OTHER
+      - RFID
+    WhitelistType:
+      type: string
+      enum:
+      - ALWAYS
+      - ALLOWED
+      - ALLOWED_OFFLINE
+      - NEVER
+      description: Defines the whitelist behavior for a Token.
+    AllowedType:
+      type: string
+      enum:
+      - ALLOWED
+      - BLOCKED
+      - EXPIRED
+      - NO_CREDIT
+      - NOT_ALLOWED
+      description: Authorization status of a Token.

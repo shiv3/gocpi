@@ -1,0 +1,88 @@
+openapi: 3.1.0
+info:
+  title: OCPI 2.1.1 Versions Interface
+  description: The Versions module lists supported OCPI versions and version details.
+  version: 2.1.1
+  contact:
+    name: EVRoaming Foundation
+    url: https://evroaming.org
+externalDocs:
+  description: OCPI 2.1.1 Specification
+  url: https://github.com/ocpi/ocpi
+security:
+- ocpiAuthorization: []
+components:
+  securitySchemes:
+    ocpiAuthorization:
+      $ref: ../../components/schema.yaml#/components/securitySchemes/ocpiAuthorization
+paths:
+  /versions:
+    get:
+      operationId: getVersions
+      summary: Get supported OCPI versions
+      tags:
+      - Versions
+      parameters:
+      - $ref: ../../components/parameters.yaml#/components/parameters/X-Request-ID
+      - $ref: ../../components/parameters.yaml#/components/parameters/X-Correlation-ID
+      responses:
+        '200':
+          description: Successful response containing supported versions.
+          headers:
+            X-Request-ID:
+              $ref: ../../components/schema.yaml#/components/headers/X-Request-ID
+            X-Correlation-ID:
+              $ref: ../../components/schema.yaml#/components/headers/X-Correlation-ID
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: ../../components/schema.yaml#/components/schemas/OCPIResponse
+                - type: object
+                  properties:
+                    data:
+                      type: array
+                      items:
+                        $ref: ./schema.yaml#/components/schemas/Version
+        '400':
+          $ref: ../../components/schema.yaml#/components/responses/OCPIErrorResponse
+        '401':
+          $ref: ../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse
+  /versions/{version}:
+    get:
+      operationId: getVersionDetails
+      summary: Get version details
+      tags:
+      - Versions
+      parameters:
+      - $ref: ../../components/parameters.yaml#/components/parameters/X-Request-ID
+      - $ref: ../../components/parameters.yaml#/components/parameters/X-Correlation-ID
+      - in: path
+        name: version
+        required: true
+        schema:
+          $ref: ./schema.yaml#/components/schemas/VersionNumber
+        description: The version number to get details for.
+      responses:
+        '200':
+          description: Successful response containing version details.
+          headers:
+            X-Request-ID:
+              $ref: ../../components/schema.yaml#/components/headers/X-Request-ID
+            X-Correlation-ID:
+              $ref: ../../components/schema.yaml#/components/headers/X-Correlation-ID
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: ../../components/schema.yaml#/components/schemas/OCPIResponse
+                - type: object
+                  properties:
+                    data:
+                      $ref: ./schema.yaml#/components/schemas/VersionDetails
+        '400':
+          $ref: ../../components/schema.yaml#/components/responses/OCPIErrorResponse
+        '401':
+          $ref: ../../components/schema.yaml#/components/responses/OCPIUnauthorizedResponse
+        '404':
+          $ref: ../../components/schema.yaml#/components/responses/OCPINotFoundResponse
